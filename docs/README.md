@@ -11,6 +11,7 @@ The docs describe the stable behavior and domain model. Implementation choices s
 - [Interaction Contracts](./interaction-contracts.md): the user-facing behavior that should remain recognizable.
 - [Tech Stack](./tech-stack.md): recommended implementation stack and engineering posture.
 - [Agent Implementation Brief](./agent-implementation-brief.md): guidance for modern coding agents, including where they have freedom and where they do not.
+- [Implementation Plan](./implementation-plan.md): milestone roadmap (M0–M9) for executing the build.
 
 ## How To Use These Docs
 
