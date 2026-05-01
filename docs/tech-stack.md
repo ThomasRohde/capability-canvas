@@ -13,6 +13,7 @@ This document recommends defaults. They are not hard constraints unless a decisi
 - **Build tool**: Vite.
 - **Styling**: Tailwind CSS plus a small design-token layer.
 - **Icons**: Lucide React.
+- **Outline tree**: `@headless-tree/react` for the hierarchy navigator, with custom row rendering against the design tokens.
 - **State shell**: Zustand or an equivalent small external store.
 - **Domain core**: pure TypeScript modules with no React imports.
 - **Document validation**: Zod or another typed schema validator.
@@ -193,6 +194,7 @@ Good candidates:
 - React, React DOM, Vite, TypeScript.
 - Tailwind CSS.
 - Lucide React.
+- `@headless-tree/react` for the outline tree.
 - Zustand or another small store.
 - Immer if it simplifies command reducers.
 - idb.
@@ -205,6 +207,7 @@ Be cautious with:
 
 - Large graph editors that are edge-first rather than containment-first.
 - Heavy drag/drop libraries if custom pointer handling is clearer.
+- Tree components that own row markup or styling — the outline must hit the exact 30 px row, 11 px swatch, score-aligned spec in `DESIGN.md`, which is why `@headless-tree/react` (headless) is preferred over batteries-included alternatives.
 - Layout engines that cannot express manual, locked, and containment constraints.
 - Dependencies that make export fidelity depend on browser screenshots.
 
