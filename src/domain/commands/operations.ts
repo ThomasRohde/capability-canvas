@@ -3,6 +3,7 @@ import { cloneDocument, rebuildChildren } from '../document/normalize';
 import { childrenOf, hasChildren, now, type CapabilityDocument, type CapabilityNode, type NodeId } from '../document/types';
 import { ensureParentContainment } from '../layout/containment';
 import { computeDocumentBounds } from '../layout/engine';
+import { visibleHorizontalEdgePadding, visibleVerticalEdgePadding } from '../layout/spacing';
 import { canAlign, canDistribute } from '../selection/rules';
 import { descendantsOf, isDescendantOf, validateDocument } from '../validation/validate';
 import { error, type Diagnostic } from '../validation/diagnostics';
@@ -209,8 +210,18 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
       if (!node) return fail(doc, 'missing-node', 'The selected capability no longer exists.');
       if (node.isLockedAsIs) return fail(doc, 'locked-node', 'Locked capabilities cannot be resized.');
       const childBounds = boundsForNodes(doc, childrenOf(doc, nodeId));
-      const minW = childBounds ? childBounds.x + childBounds.w - node.x + 32 : 80;
-      const minH = childBounds ? childBounds.y + childBounds.h - node.y + 32 : 40;
+      const minW = childBounds
+        ? childBounds.x +
+          childBounds.w -
+          node.x +
+          visibleHorizontalEdgePadding(node.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight)
+        : 80;
+      const minH = childBounds
+        ? childBounds.y +
+          childBounds.h -
+          node.y +
+          visibleVerticalEdgePadding(node.layoutPreferences?.marginBottom ?? doc.settings.containerPaddingBottom)
+        : 40;
       return updateOnly(doc, nodeId, { w: Math.max(w, minW), h: Math.max(h, minH) });
     })
   ]);
@@ -354,9 +365,9 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
       const bounds = boundsForNodes(doc, childrenOf(doc, nodeId));
       if (!bounds) return ok(doc);
       const margin = {
-        top: (node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop) + 28,
-        right: node.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight,
-        bottom: node.layoutPreferences?.marginBottom ?? doc.settings.containerPaddingBottom,
+        top: (node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop) + doc.settings.containerTitleHeight,
+        right: visibleHorizontalEdgePadding(node.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight),
+        bottom: visibleVerticalEdgePadding(node.layoutPreferences?.marginBottom ?? doc.settings.containerPaddingBottom),
         left: node.layoutPreferences?.marginLeft ?? doc.settings.containerPaddingLeft
       };
       const x = Math.min(node.x, bounds.x - margin.left);

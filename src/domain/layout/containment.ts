@@ -1,14 +1,45 @@
-import { cloneDocument } from '../document/normalize';
-import { childrenOf, ROOT_PARENT_ID, type Bounds, type CapabilityDocument, type NodeId } from '../document/types';
-
-const CONTAINER_TITLE_RESERVE = 28;
+import { cloneDocument } from "../document/normalize";
+import {
+  childrenOf,
+  ROOT_PARENT_ID,
+  type Bounds,
+  type CapabilityDocument,
+  type NodeId,
+} from "../document/types";
+import {
+  visibleHorizontalEdgePadding,
+  visibleVerticalEdgePadding,
+} from "./spacing";
 
 export interface ContainmentResult {
   doc: CapabilityDocument;
   changedNodeIds: NodeId[];
 }
 
-export function ensureParentContainment(doc: CapabilityDocument): ContainmentResult {
+export function findParentContainmentViolations(
+  doc: CapabilityDocument,
+): string[] {
+  const violations: string[] = [];
+  for (const parent of Object.values(doc.nodesById)) {
+    for (const childId of childrenOf(doc, parent.id)) {
+      const child = doc.nodesById[childId];
+      if (!child) continue;
+      if (
+        child.x < parent.x ||
+        child.y < parent.y ||
+        child.x + child.w > parent.x + parent.w ||
+        child.y + child.h > parent.y + parent.h
+      ) {
+        violations.push(`${parent.id}->${child.id}`);
+      }
+    }
+  }
+  return violations;
+}
+
+export function ensureParentContainment(
+  doc: CapabilityDocument,
+): ContainmentResult {
   const depths = computeDepths(doc);
   const parentIds = Object.keys(doc.nodesById)
     .filter((nodeId) => childrenOf(doc, nodeId).length > 0)
@@ -29,14 +60,27 @@ export function ensureParentContainment(doc: CapabilityDocument): ContainmentRes
     const currentBottom = parent.y + parent.h;
     const x = Math.min(parent.x, childBounds.x - margin.left);
     const y = Math.min(parent.y, childBounds.y - margin.top);
-    const right = Math.max(currentRight, childBounds.x + childBounds.w + margin.right);
-    const bottom = Math.max(currentBottom, childBounds.y + childBounds.h + margin.bottom);
+    const right = Math.max(
+      currentRight,
+      childBounds.x + childBounds.w + margin.right,
+    );
+    const bottom = Math.max(
+      currentBottom,
+      childBounds.y + childBounds.h + margin.bottom,
+    );
     const w = right - x;
     const h = bottom - y;
 
     if (x !== parent.x || y !== parent.y || w !== parent.w || h !== parent.h) {
       if (next === doc) next = cloneDocument(doc);
-      next.nodesById[parentId] = { ...parent, x, y, w, h, updatedAt: Date.now() };
+      next.nodesById[parentId] = {
+        ...parent,
+        x,
+        y,
+        w,
+        h,
+        updatedAt: Date.now(),
+      };
       changedNodeIds.push(parentId);
     }
   }
@@ -47,20 +91,30 @@ export function ensureParentContainment(doc: CapabilityDocument): ContainmentRes
       ...next,
       layout: {
         ...next.layout,
-        boundingBox: computeBounds(next)
-      }
+        boundingBox: computeBounds(next),
+      },
     },
-    changedNodeIds
+    changedNodeIds,
   };
 }
 
 function containmentMargin(doc: CapabilityDocument, parentId: NodeId) {
   const parent = doc.nodesById[parentId];
   return {
-    top: (parent?.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop) + CONTAINER_TITLE_RESERVE,
-    right: parent?.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight,
-    bottom: parent?.layoutPreferences?.marginBottom ?? doc.settings.containerPaddingBottom,
-    left: parent?.layoutPreferences?.marginLeft ?? doc.settings.containerPaddingLeft
+    top:
+      (parent?.layoutPreferences?.marginTop ??
+        doc.settings.containerPaddingTop) + doc.settings.containerTitleHeight,
+    right: visibleHorizontalEdgePadding(
+      parent?.layoutPreferences?.marginRight ??
+        doc.settings.containerPaddingRight,
+    ),
+    bottom: visibleVerticalEdgePadding(
+      parent?.layoutPreferences?.marginBottom ??
+        doc.settings.containerPaddingBottom,
+    ),
+    left:
+      parent?.layoutPreferences?.marginLeft ??
+      doc.settings.containerPaddingLeft,
   };
 }
 
@@ -70,7 +124,8 @@ function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
     depths.set(nodeId, depth);
     for (const childId of childrenOf(doc, nodeId)) visit(childId, depth + 1);
   };
-  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? []) visit(rootId, 0);
+  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? [])
+    visit(rootId, 0);
   return depths;
 }
 

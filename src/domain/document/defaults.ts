@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS = {
   containerPaddingRight: 32,
   containerPaddingBottom: 32,
   containerPaddingLeft: 32,
+  containerTitleHeight: 28,
   childGapX: 32,
   childGapY: 16,
   fontFamily: 'Inter',

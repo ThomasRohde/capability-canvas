@@ -1,0 +1,151 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  createEmptyDocument,
+  createNode,
+} from "../../domain/document/defaults";
+import type { CapabilityDocument } from "../../domain/document/types";
+import { findParentContainmentViolations } from "../../domain/layout/containment";
+import { useDocumentStore } from "./documentStore";
+
+describe("document store layout settings", () => {
+  beforeEach(() => {
+    useDocumentStore.setState({
+      doc: wideRootSiblingDocument(),
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+  });
+
+  it("re-lays out when layout mode changes through the store path", async () => {
+    await useDocumentStore
+      .getState()
+      .updateSettings({ layoutMode: "adaptive" }, { autoLayout: true });
+    expect(
+      findParentContainmentViolations(useDocumentStore.getState().doc),
+    ).toEqual([]);
+
+    await useDocumentStore
+      .getState()
+      .updateSettings({ layoutMode: "uniform" }, { autoLayout: true });
+    const doc = useDocumentStore.getState().doc;
+
+    expect(doc.settings.layoutMode).toBe("uniform");
+    expect(doc.layout.mode).toBe("uniform");
+    expect(findParentContainmentViolations(doc)).toEqual([]);
+    expect(doc.nodesById.operations!.y).toBeGreaterThan(
+      doc.nodesById.servicing!.y,
+    );
+  });
+});
+
+function wideRootSiblingDocument(): CapabilityDocument {
+  const doc = createEmptyDocument();
+  doc.layout.preservePositions = false;
+  doc.layout.isUserArranged = false;
+  doc.settings.layoutMode = "adaptive";
+  doc.settings.fixedLeafWidth = 168;
+  doc.settings.fixedLeafHeight = 37;
+  doc.settings.defaultParentWidth = 360;
+  doc.settings.defaultParentHeight = 140;
+  doc.settings.containerPaddingTop = 12;
+  doc.settings.containerPaddingRight = 4;
+  doc.settings.containerPaddingBottom = 8;
+  doc.settings.containerPaddingLeft = 12;
+  doc.settings.containerTitleHeight = 28;
+  doc.settings.childGapX = 32;
+  doc.settings.childGapY = 16;
+
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Retail Banking",
+    type: "root",
+  });
+  doc.nodesById.servicing = createNode({
+    id: "servicing",
+    parentId: "root",
+    label: "Servicing",
+    type: "parent",
+  });
+  doc.nodesById.risk = createNode({
+    id: "risk",
+    parentId: "root",
+    label: "Risk",
+    type: "parent",
+  });
+  doc.nodesById.operations = createNode({
+    id: "operations",
+    parentId: "root",
+    label: "Operations",
+    type: "parent",
+  });
+  for (const id of [
+    "account-management",
+    "customer-support",
+    "communications",
+  ]) {
+    doc.nodesById[id] = createNode({
+      id,
+      parentId: "servicing",
+      label: id,
+      type: "leaf",
+    });
+  }
+  for (const id of ["credit-risk", "fraud-risk", "operational-risk"]) {
+    doc.nodesById[id] = createNode({
+      id,
+      parentId: "risk",
+      label: id,
+      type: "leaf",
+    });
+  }
+  for (const id of [
+    "process-management",
+    "data-management",
+    "technology-operations",
+    "vendor-management",
+  ]) {
+    doc.nodesById[id] = createNode({
+      id,
+      parentId: "operations",
+      label: id,
+      type: "leaf",
+    });
+  }
+
+  doc.childrenByParentId.__root__ = ["root"];
+  doc.childrenByParentId.root = ["servicing", "risk", "operations"];
+  doc.childrenByParentId.servicing = [
+    "account-management",
+    "customer-support",
+    "communications",
+  ];
+  doc.childrenByParentId.risk = [
+    "credit-risk",
+    "fraud-risk",
+    "operational-risk",
+  ];
+  doc.childrenByParentId.operations = [
+    "process-management",
+    "data-management",
+    "technology-operations",
+    "vendor-management",
+  ];
+  for (const id of [
+    "account-management",
+    "customer-support",
+    "communications",
+    "credit-risk",
+    "fraud-risk",
+    "operational-risk",
+    "process-management",
+    "data-management",
+    "technology-operations",
+    "vendor-management",
+  ]) {
+    doc.childrenByParentId[id] = [];
+  }
+  return doc;
+}

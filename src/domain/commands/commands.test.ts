@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addChild, alignNodes, reparentNode, runTransaction } from './operations';
+import { addChild, alignNodes, reparentNode, resizeNode, runTransaction } from './operations';
 import { createSampleDocument } from '../fixtures/sample';
 
 describe('commands', () => {
@@ -23,5 +23,14 @@ describe('commands', () => {
     expect(result.diagnostics).toHaveLength(0);
     expect(result.doc.nodesById['credit-risk']!.y).toBe(result.doc.nodesById['fraud-risk']!.y);
   });
-});
 
+  it('uses configured right and bottom padding for resize containment', () => {
+    const doc = createSampleDocument();
+    doc.settings.containerPaddingRight = 4;
+    doc.settings.containerPaddingBottom = 8;
+
+    const result = runTransaction(doc, resizeNode('risk', 1, 1));
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.nodesById.risk).toMatchObject({ w: 436, h: 128 });
+  });
+});

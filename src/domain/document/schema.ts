@@ -61,6 +61,7 @@ export const SettingsSchema = z
     containerPaddingRight: spacingNumber.default(DEFAULT_SETTINGS.containerPaddingRight),
     containerPaddingBottom: spacingNumber.default(DEFAULT_SETTINGS.containerPaddingBottom),
     containerPaddingLeft: spacingNumber.default(DEFAULT_SETTINGS.containerPaddingLeft),
+    containerTitleHeight: spacingNumber.default(DEFAULT_SETTINGS.containerTitleHeight),
     childGapX: spacingNumber.default(DEFAULT_SETTINGS.childGapX),
     childGapY: spacingNumber.default(DEFAULT_SETTINGS.childGapY),
     fontFamily: z.string(),

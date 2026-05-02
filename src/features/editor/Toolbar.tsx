@@ -27,6 +27,7 @@ export function Toolbar() {
   const undo = useDocumentStore((state) => state.undo);
   const redo = useDocumentStore((state) => state.redo);
   const autoLayout = useDocumentStore((state) => state.autoLayout);
+  const isAutoLayoutRunning = useDocumentStore((state) => state.isAutoLayoutRunning);
   const setDocument = useDocumentStore((state) => state.setDocument);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const viewport = useUiStore((state) => state.viewport);
@@ -83,7 +84,12 @@ export function Toolbar() {
       <span style={{ minWidth: 54, textAlign: 'center', fontSize: 13 }}>{Math.round(viewport.zoom * 100)}%</span>
       <IconButton icon={Plus} label="Zoom in" onClick={() => setViewport({ ...viewport, zoom: Math.min(2.5, viewport.zoom + 0.1) })} />
       <span className="cc-divider" />
-      <button className="cc-btn cc-btn-primary" type="button" onClick={() => autoLayout(true)}>
+      <button
+        className="cc-btn cc-btn-primary"
+        type="button"
+        disabled={isAutoLayoutRunning}
+        onClick={() => void autoLayout(true)}
+      >
         <LayoutTemplate /> Auto layout
       </button>
       <button

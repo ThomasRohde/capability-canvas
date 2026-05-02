@@ -1,7 +1,6 @@
 import { createEmptyDocument, createNode } from '../document/defaults';
 import { ROOT_PARENT_ID, type CapabilityDocument, type NodeId } from '../document/types';
 import { ensureParentContainment } from '../layout/containment';
-import { applyLayoutPatches, layoutDocument } from '../layout/engine';
 
 const root = 'retail-banking';
 
@@ -380,5 +379,5 @@ export function createThousandNodeDocument(): CapabilityDocument {
     }
   }
   doc.childrenByParentId[ROOT_PARENT_ID] = rootIds;
-  return applyLayoutPatches(doc, layoutDocument({ doc, force: true, mode: 'adaptive' }).patches);
+  return doc;
 }

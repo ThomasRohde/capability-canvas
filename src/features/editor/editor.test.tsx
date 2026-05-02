@@ -1,108 +1,184 @@
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { useDocumentStore } from '../../app/stores/documentStore';
-import { useUiStore } from '../../app/stores/uiStore';
-import { EditorRoute } from './EditorRoute';
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it } from "vitest";
+import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
+import { EditorRoute } from "./EditorRoute";
 
-describe('editor shell', () => {
+describe("editor shell", () => {
   beforeEach(() => {
     useDocumentStore.getState().reset();
     useUiStore.setState({
-      selectedNodeIds: ['digital-onboarding'],
+      selectedNodeIds: ["digital-onboarding"],
       outlineOpen: true,
       inspectorOpen: true,
       activeDrawer: null,
-      exportFormat: 'json',
-      inspectorTab: 'inspector',
-      searchQuery: ''
+      exportFormat: "json",
+      inspectorTab: "inspector",
+      searchQuery: "",
     });
   });
 
-  it('renders the fixed workspace regions', () => {
+  it("renders the fixed workspace regions", () => {
     render(<EditorRoute />);
-    expect(screen.getByText('Capability Canvas')).toBeInTheDocument();
-    expect(screen.getByText('Outline')).toBeInTheDocument();
-    expect(screen.getAllByText('Inspector').length).toBeGreaterThan(0);
-    expect(screen.getByTestId('canvas')).toBeInTheDocument();
+    expect(screen.getByText("Capability Canvas")).toBeInTheDocument();
+    expect(screen.getByText("Outline")).toBeInTheDocument();
+    expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("canvas")).toBeInTheDocument();
   });
 
-  it('shows heatmap scores only in heatmap mode', async () => {
+  it("shows heatmap scores only in heatmap mode", async () => {
     render(<EditorRoute />);
-    const canvas = screen.getByTestId('canvas');
-    expect(within(canvas).queryByText('0.72')).not.toBeInTheDocument();
+    const canvas = screen.getByTestId("canvas");
+    expect(within(canvas).queryByText("0.72")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Heatmap' }));
-    expect(within(canvas).getByText('0.72')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Heatmap" }));
+    expect(within(canvas).getByText("0.72")).toBeInTheDocument();
   });
 
-  it('opens settings and keeps parent canvas labels free of swatches', async () => {
+  it("opens settings and keeps parent canvas labels free of swatches", async () => {
     const { container } = render(<EditorRoute />);
-    expect(container.querySelector('.cc-canvas .cc-node-title .cc-tree-swatch')).not.toBeInTheDocument();
+    expect(
+      container.querySelector(".cc-canvas .cc-node-title .cc-tree-swatch"),
+    ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(screen.getByRole('complementary', { name: 'Settings' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Layout mode')).toBeInTheDocument();
-    expect(screen.getByLabelText('Show grid')).toBeChecked();
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(
+      screen.getByRole("complementary", { name: "Settings" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Layout mode")).toBeInTheDocument();
+    expect(screen.getByLabelText("Show grid")).toBeChecked();
   });
 
-  it('collapses and restores the outline from the rail', async () => {
+  it("collapses and restores the outline from the rail", async () => {
     render(<EditorRoute />);
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse outline' }));
-    expect(screen.queryByText('Outline')).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Collapse outline" }),
+    );
+    expect(screen.queryByText("Outline")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Toggle outline' }));
-    expect(screen.getByText('Outline')).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Toggle outline" }),
+    );
+    expect(screen.getByText("Outline")).toBeInTheDocument();
   });
 
-  it('collapses and restores the inspector even with no selection', async () => {
+  it("collapses and restores the inspector even with no selection", async () => {
     useUiStore.setState({ selectedNodeIds: [] });
     render(<EditorRoute />);
-    expect(screen.getByText('Select a capability to edit its properties.')).toBeInTheDocument();
+    expect(
+      screen.getByText("Select a capability to edit its properties."),
+    ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse inspector' }));
-    expect(screen.queryByText('Inspector')).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Collapse inspector" }),
+    );
+    expect(screen.queryByText("Inspector")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Toggle inspector' }));
-    expect(screen.getAllByText('Inspector').length).toBeGreaterThan(0);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Toggle inspector" }),
+    );
+    expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
   });
 
-  it('switches settings and export drawers from the rail', async () => {
+  it("switches settings and export drawers from the rail", async () => {
     render(<EditorRoute />);
-    await userEvent.click(screen.getByRole('button', { name: 'Open settings' }));
-    expect(screen.getByRole('complementary', { name: 'Settings' })).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    expect(
+      screen.getByRole("complementary", { name: "Settings" }),
+    ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Open export' }));
-    expect(screen.queryByRole('complementary', { name: 'Settings' })).not.toBeInTheDocument();
-    expect(screen.getByRole('complementary', { name: 'Export' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open export" }));
+    expect(
+      screen.queryByRole("complementary", { name: "Settings" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("complementary", { name: "Export" }),
+    ).toBeInTheDocument();
   });
 
-  it('renders canvas padding controls and applies layout explicitly', async () => {
+  it("renders canvas padding controls and applies layout changes", async () => {
     render(<EditorRoute />);
-    await userEvent.click(screen.getByRole('button', { name: 'Open settings' }));
-    const topPadding = screen.getByLabelText('Top');
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const topPadding = screen.getByLabelText("Top");
+    const titleArea = screen.getByLabelText("Title area");
     await userEvent.clear(topPadding);
-    await userEvent.type(topPadding, '48');
+    await userEvent.type(topPadding, "48");
+    await userEvent.clear(titleArea);
+    await userEvent.type(titleArea, "8");
 
-    expect(useDocumentStore.getState().doc.settings.containerPaddingTop).toBe(48);
-    expect(screen.getByLabelText('Horizontal')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Apply auto layout' }));
-    expect(useDocumentStore.getState().past.at(-1)?.label).toBe('Auto layout');
+    expect(useDocumentStore.getState().doc.settings.containerPaddingTop).toBe(
+      48,
+    );
+    expect(useDocumentStore.getState().doc.settings.containerTitleHeight).toBe(
+      8,
+    );
+    expect(screen.getByLabelText("Horizontal")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),
+    );
+    await waitFor(() =>
+      expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+        "Update layout settings",
+      ),
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Apply auto layout" }),
+    );
+    await waitFor(() =>
+      expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+        "Auto layout",
+      ),
+    );
   });
 
-  it('opens outline row actions from the three-dot menu', async () => {
+  it("disables toolbar and settings layout actions while auto layout is running", async () => {
+    useDocumentStore.setState({ isAutoLayoutRunning: true });
+    render(<EditorRoute />);
+
+    expect(screen.getByRole("button", { name: "Auto layout" })).toBeDisabled();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Apply auto layout" }),
+    ).toBeDisabled();
+  });
+
+  it("opens outline row actions from the three-dot menu", async () => {
     const { container } = render(<EditorRoute />);
-    await userEvent.click(screen.getByRole('button', { name: 'Actions for Customer' }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for Customer" }),
+    );
 
-    const menu = screen.getByRole('menu', { name: 'Capability actions' });
-    expect(within(menu).getByRole('menuitem', { name: 'Add child' })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Fit parent' })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    const menu = screen.getByRole("menu", { name: "Capability actions" });
+    expect(
+      within(menu).getByRole("menuitem", { name: "Add child" }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Duplicate" }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Fit parent" }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Delete" }),
+    ).toBeInTheDocument();
 
-    const outlineTree = container.querySelector('.cc-outline-tree') as HTMLElement;
-    const before = within(outlineTree).queryAllByText('New capability').length;
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Add child' }));
-    expect(within(outlineTree).queryAllByText('New capability')).toHaveLength(before + 1);
+    const outlineTree = container.querySelector(
+      ".cc-outline-tree",
+    ) as HTMLElement;
+    const before = within(outlineTree).queryAllByText("New capability").length;
+    await userEvent.click(
+      within(menu).getByRole("menuitem", { name: "Add child" }),
+    );
+    expect(within(outlineTree).queryAllByText("New capability")).toHaveLength(
+      before + 1,
+    );
   });
 });
