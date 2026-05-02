@@ -636,6 +636,21 @@ button:focus-visible {
   opacity: 0.82;
 }
 
+.cc-node.drop-target {
+  box-shadow:
+    0 0 0 2px var(--cc-brand-700),
+    0 0 0 6px rgba(20, 184, 166, 0.18);
+}
+
+.cc-marquee {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px dashed var(--cc-brand-700);
+  border-radius: 4px;
+  z-index: 25;
+}
+
 .cc-node-title {
   display: flex;
   align-items: center;

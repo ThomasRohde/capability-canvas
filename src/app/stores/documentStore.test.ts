@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { addChild } from "../../domain/commands/operations";
 import {
   createEmptyDocument,
   createNode,
 } from "../../domain/document/defaults";
-import type { CapabilityDocument } from "../../domain/document/types";
+import {
+  childrenOf,
+  type CapabilityDocument,
+} from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
 import { useDocumentStore } from "./documentStore";
 
@@ -38,6 +42,23 @@ describe("document store layout settings", () => {
     expect(doc.nodesById.operations!.y).toBeGreaterThan(
       doc.nodesById.servicing!.y,
     );
+  });
+
+  it("re-runs incremental layout for the parent after addChild so the new child is contained", async () => {
+    useDocumentStore.getState().execute(addChild("risk"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const doc = useDocumentStore.getState().doc;
+    const parent = doc.nodesById.risk!;
+    const childIds = childrenOf(doc, "risk");
+    const newChildId = childIds.find(
+      (id) => !["credit-risk", "fraud-risk", "operational-risk"].includes(id),
+    );
+    expect(newChildId).toBeDefined();
+    const child = doc.nodesById[newChildId!]!;
+    expect(child.x).toBeGreaterThanOrEqual(parent.x);
+    expect(child.y).toBeGreaterThanOrEqual(parent.y);
+    expect(child.x + child.w).toBeLessThanOrEqual(parent.x + parent.w);
+    expect(child.y + child.h).toBeLessThanOrEqual(parent.y + parent.h);
   });
 });
 

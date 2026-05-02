@@ -2,6 +2,7 @@ import {
   AlignCenterHorizontal,
   AlignEndHorizontal,
   AlignStartHorizontal,
+  Columns3,
   Copy,
   Maximize,
   Minus,
@@ -24,11 +25,27 @@ import {
   duplicateNodes,
   fitParentToChildren,
   moveNodes,
+  repairSiblingOverlaps,
+  reparentNode,
   resizeNode,
   sameSize,
+  transaction,
 } from "../../domain/commands/operations";
-import type { Bounds, NodeId } from "../../domain/document/types";
+import type {
+  Bounds,
+  CapabilityDocument,
+  NodeId,
+} from "../../domain/document/types";
 import { gridSizeFor, snapToGrid } from "../../domain/layout/grid";
+import {
+  findDropTarget,
+  isAcceptableDropTarget,
+} from "../../domain/selection/dropTarget";
+import {
+  canAlign,
+  canDistribute,
+  canMultiSelect,
+} from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -55,6 +72,8 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const drag = useTransientStore((state) => state.drag);
   const resize = useTransientStore((state) => state.resize);
+  const reparentTargetId = useTransientStore((state) => state.reparentTargetId);
+  const selectionRect = useTransientStore((state) => state.selectionRect);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [contextMenu, setContextMenu] = useState<{
@@ -161,12 +180,20 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (readonly) return;
+      if (isEditableTarget(event.target)) {
+        if (event.key === "Escape") (event.target as HTMLElement).blur();
+        return;
+      }
       if (event.key === "Delete" && selected.length > 0)
         execute(deleteNodes(selected));
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z")
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
         useDocumentStore.getState().undo();
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y")
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+        event.preventDefault();
         useDocumentStore.getState().redo();
+      }
       if (
         (event.ctrlKey || event.metaKey) &&
         event.key.toLowerCase() === "d" &&
@@ -183,7 +210,8 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         selected.length > 0
       ) {
         event.preventDefault();
-        const step = event.shiftKey ? 10 : 1;
+        const baseStep = doc.settings.gridEnabled ? gridSizeFor(doc) : 1;
+        const step = event.shiftKey ? baseStep * 4 : baseStep;
         const dx =
           event.key === "ArrowLeft"
             ? -step
@@ -218,17 +246,21 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   };
 
   const zoomBy = (delta: number) => {
+    zoomAround(delta, size.w / 2, size.h / 2);
+  };
+
+  const zoomAround = (delta: number, anchorX: number, anchorY: number) => {
     const nextZoom = Math.max(
       MIN_ZOOM,
       Math.min(MAX_ZOOM, viewport.zoom + delta),
     );
     if (nextZoom === viewport.zoom) return;
-    const centerDocX = (size.w / 2 - viewport.x) / viewport.zoom;
-    const centerDocY = (size.h / 2 - viewport.y) / viewport.zoom;
+    const docAnchorX = (anchorX - viewport.x) / viewport.zoom;
+    const docAnchorY = (anchorY - viewport.y) / viewport.zoom;
     setViewport({
       zoom: nextZoom,
-      x: size.w / 2 - centerDocX * nextZoom,
-      y: size.h / 2 - centerDocY * nextZoom,
+      x: anchorX - docAnchorX * nextZoom,
+      y: anchorY - docAnchorY * nextZoom,
     });
   };
 
@@ -238,6 +270,58 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       x: size.w / 2 - x * viewport.zoom,
       y: size.h / 2 - y * viewport.zoom,
     });
+  };
+
+  const startMarquee = (event: ReactPointerEvent<HTMLElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const startClientX = event.clientX;
+    const startClientY = event.clientY;
+    const startDocX = (startClientX - rect.left - viewport.x) / viewport.zoom;
+    const startDocY = (startClientY - rect.top - viewport.y) / viewport.zoom;
+    const additive = event.shiftKey;
+    const baseSelection = additive
+      ? new Set(useUiStore.getState().selectedNodeIds)
+      : new Set<NodeId>();
+
+    const onMove = (move: PointerEvent) => {
+      const docX = (move.clientX - rect.left - viewport.x) / viewport.zoom;
+      const docY = (move.clientY - rect.top - viewport.y) / viewport.zoom;
+      useTransientStore.getState().setSelectionRect({
+        x: Math.min(startDocX, docX),
+        y: Math.min(startDocY, docY),
+        w: Math.abs(docX - startDocX),
+        h: Math.abs(docY - startDocY),
+      });
+    };
+
+    const onUp = () => {
+      const rectBounds = useTransientStore.getState().selectionRect;
+      useTransientStore.getState().setSelectionRect(null);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (!rectBounds || rectBounds.w < 4 || rectBounds.h < 4) return;
+      const candidate = new Set(baseSelection);
+      for (const node of Object.values(doc.nodesById)) {
+        if (node.isTextLabel || node.type === "text") continue;
+        if (intersects(node, rectBounds)) candidate.add(node.id);
+      }
+      const ids = [...candidate];
+      if (ids.length === 0) {
+        if (!additive) useUiStore.getState().clearSelection();
+        return;
+      }
+      if (!canMultiSelect(doc, ids).valid) {
+        useUiStore.getState().setSelection(filterToSiblingGroup(doc, ids));
+        return;
+      }
+      useUiStore.getState().setSelection(ids);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   return (
@@ -258,11 +342,27 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         if (!event.ctrlKey && !event.metaKey) return;
         event.preventDefault();
         const delta = event.deltaY > 0 ? -0.08 : 0.08;
-        zoomBy(delta);
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+          zoomAround(
+            delta,
+            event.clientX - rect.left,
+            event.clientY - rect.top,
+          );
+        } else {
+          zoomBy(delta);
+        }
       }}
       onPointerDown={(event) => {
         setContextMenu(null);
         if (event.target !== event.currentTarget || readonly) return;
+        const isMiddleMouse = event.button === 1;
+        const wantsMarquee =
+          !isMiddleMouse && (event.shiftKey || event.ctrlKey || event.metaKey);
+        if (wantsMarquee) {
+          startMarquee(event);
+          return;
+        }
         const startX = event.clientX;
         const startY = event.clientY;
         const startViewport = viewport;
@@ -275,9 +375,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         const onUp = () => {
           window.removeEventListener("pointermove", onMove);
           window.removeEventListener("pointerup", onUp);
+          window.removeEventListener("pointercancel", onUp);
         };
         window.addEventListener("pointermove", onMove);
         window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
       }}
       onContextMenu={(event) => {
         event.preventDefault();
@@ -305,7 +407,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
             return (
               <div
                 key={vm.node.id}
-                className={`cc-node ${isContainer ? "container" : ""} ${selectedState ? "selected" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""}`}
+                className={`cc-node ${isContainer ? "container" : ""} ${selectedState ? "selected" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
                 style={
                   {
                     left: vm.node.x + dragDelta.x,
@@ -322,15 +424,31 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                   event.stopPropagation();
                   if (event.button > 0) return;
                   if (event.ctrlKey || event.metaKey || event.shiftKey)
-                    useUiStore.getState().toggleSelection(vm.node.id);
+                    toggleSelectionWithRules(doc, vm.node.id);
                   else if (!selected.includes(vm.node.id))
                     setSelection([vm.node.id]);
                   if (readonly || vm.node.isLockedAsIs) return;
                   const selectionRoots = selected.includes(vm.node.id)
                     ? selected
                     : [vm.node.id];
+                  const dragRootId = vm.node.id;
+                  const lockedDescendant = findLockedDescendant(
+                    doc,
+                    selectionRoots,
+                  );
+                  if (lockedDescendant) {
+                    pushDragDiagnostic(
+                      "drag-blocked-by-locked-descendant",
+                      `Locked descendant "${doc.nodesById[lockedDescendant]?.label ?? lockedDescendant}" anchors this subtree. Unlock it before dragging.`,
+                    );
+                    return;
+                  }
                   const activeSelection =
                     nodeIdsWithDescendants(selectionRoots);
+                  const draggedSet = new Set(activeSelection);
+                  const canReparent = selectionRoots.length === 1;
+                  const canvasRect = canvasRef.current?.getBoundingClientRect();
+                  let pendingReparentTarget: NodeId | null | undefined;
                   useTransientStore.getState().startDrag({
                     nodeIds: activeSelection,
                     startX: event.clientX,
@@ -340,36 +458,108 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                   });
                   const onMove = (move: PointerEvent) => {
                     const current = useTransientStore.getState().drag;
-                    if (current) {
-                      const snapped = snapDragDelta(
-                        current.nodeIds,
-                        move.clientX - current.startX,
-                        move.clientY - current.startY,
-                      );
-                      useTransientStore
-                        .getState()
-                        .updateDrag(snapped.dx, snapped.dy);
+                    if (!current) return;
+                    const snapped = snapDragDelta(
+                      current.nodeIds,
+                      move.clientX - current.startX,
+                      move.clientY - current.startY,
+                    );
+                    useTransientStore
+                      .getState()
+                      .updateDrag(snapped.dx, snapped.dy);
+                    if (!canReparent || !canvasRect) {
+                      useTransientStore.getState().setReparentTargetId(null);
+                      return;
                     }
+                    const dragRoot = doc.nodesById[dragRootId];
+                    if (!dragRoot) return;
+                    const docX =
+                      (move.clientX - canvasRect.left - viewport.x) /
+                      viewport.zoom;
+                    const docY =
+                      (move.clientY - canvasRect.top - viewport.y) /
+                      viewport.zoom;
+                    const candidate = findDropTarget({
+                      doc,
+                      pointDocX: docX,
+                      pointDocY: docY,
+                      draggedIds: draggedSet,
+                    });
+                    const currentParent = dragRoot.parentId ?? null;
+                    if (candidate.parentId === currentParent) {
+                      pendingReparentTarget = undefined;
+                      useTransientStore.getState().setReparentTargetId(null);
+                      return;
+                    }
+                    const acceptable = isAcceptableDropTarget(
+                      doc,
+                      dragRootId,
+                      candidate.parentId,
+                    );
+                    useTransientStore
+                      .getState()
+                      .setReparentTargetId(
+                        acceptable.accepted ? candidate.parentId : null,
+                      );
+                    pendingReparentTarget = acceptable.accepted
+                      ? candidate.parentId
+                      : undefined;
                   };
                   const onUp = () => {
                     const current = useTransientStore.getState().endDrag();
+                    const reparentTargetId = pendingReparentTarget;
+                    useTransientStore.getState().setReparentTargetId(null);
                     if (
                       current &&
-                      (Math.abs(current.dx) > 1 || Math.abs(current.dy) > 1)
+                      (Math.abs(current.dx) > 1 ||
+                        Math.abs(current.dy) > 1 ||
+                        reparentTargetId !== undefined)
                     ) {
-                      execute(
-                        moveNodes(
-                          current.nodeIds,
-                          current.dx / viewport.zoom,
-                          current.dy / viewport.zoom,
-                        ),
-                      );
+                      const dx = current.dx / viewport.zoom;
+                      const dy = current.dy / viewport.zoom;
+                      const dragRoot = doc.nodesById[dragRootId];
+                      const currentParent = dragRoot?.parentId ?? null;
+                      const wantsReparent =
+                        canReparent &&
+                        reparentTargetId !== undefined &&
+                        reparentTargetId !== currentParent;
+                      if (wantsReparent) {
+                        const reparentTxn = reparentNode(
+                          dragRootId,
+                          reparentTargetId,
+                        );
+                        const moveTxn = moveNodes(current.nodeIds, dx, dy);
+                        execute(
+                          transaction(
+                            "Reparent capability",
+                            [...reparentTxn.commands, ...moveTxn.commands],
+                            {
+                              source: "drag",
+                              relayout: reparentTxn.meta?.relayout,
+                            },
+                          ),
+                        );
+                      } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+                        execute(moveNodes(current.nodeIds, dx, dy));
+                        const parentId = doc.nodesById[dragRootId]?.parentId;
+                        if (parentId) {
+                          const parentNode = doc.nodesById[parentId];
+                          if (
+                            parentNode &&
+                            !parentNode.isManualPositioningEnabled
+                          ) {
+                            execute(repairSiblingOverlaps(parentId));
+                          }
+                        }
+                      }
                     }
                     window.removeEventListener("pointermove", onMove);
                     window.removeEventListener("pointerup", onUp);
+                    window.removeEventListener("pointercancel", onUp);
                   };
                   window.addEventListener("pointermove", onMove);
                   window.addEventListener("pointerup", onUp);
+                  window.addEventListener("pointercancel", onUp);
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -517,6 +707,17 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           </button>
         </div>
       )}
+      {selectionRect && (
+        <div
+          className="cc-marquee"
+          style={{
+            left: selectionRect.x * viewport.zoom + viewport.x,
+            top: selectionRect.y * viewport.zoom + viewport.y,
+            width: selectionRect.w * viewport.zoom,
+            height: selectionRect.h * viewport.zoom,
+          }}
+        />
+      )}
       {selected.length > 1 && !readonly && <BulkToolbar selected={selected} />}
       {doc.heatmap.enabled && doc.heatmap.showLegend && <HeatmapLegend />}
       <Minimap
@@ -532,40 +733,161 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   );
 }
 
+function toggleSelectionWithRules(doc: CapabilityDocument, nodeId: NodeId) {
+  const ui = useUiStore.getState();
+  const current = ui.selectedNodeIds;
+  const candidate = current.includes(nodeId)
+    ? current.filter((id) => id !== nodeId)
+    : [...current, nodeId];
+  if (candidate.length <= 1 || canMultiSelect(doc, candidate).valid) {
+    ui.setSelection(candidate);
+    return;
+  }
+  ui.setSelection([nodeId]);
+}
+
+function intersects(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
+  return (
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+  );
+}
+
+function filterToSiblingGroup(
+  doc: CapabilityDocument,
+  ids: NodeId[],
+): NodeId[] {
+  const buckets = new Map<string, NodeId[]>();
+  for (const id of ids) {
+    const node = doc.nodesById[id];
+    if (!node) continue;
+    if (node.isTextLabel || node.type === "text") continue;
+    const key = String(node.parentId ?? "__root__");
+    const list = buckets.get(key) ?? [];
+    list.push(id);
+    buckets.set(key, list);
+  }
+  let best: NodeId[] = [];
+  for (const list of buckets.values()) {
+    if (list.length > best.length) best = list;
+  }
+  return best;
+}
+
+function findLockedDescendant(
+  doc: CapabilityDocument,
+  rootIds: NodeId[],
+): NodeId | null {
+  for (const rootId of rootIds) {
+    for (const id of descendantIds(doc, rootId)) {
+      if (doc.nodesById[id]?.isLockedAsIs) return id;
+    }
+  }
+  return null;
+}
+
+function pushDragDiagnostic(code: string, message: string): void {
+  const store = useDocumentStore.getState();
+  store.clearDiagnostics();
+  useDocumentStore.setState({
+    lastDiagnostics: [{ code, severity: "warning", message }],
+  });
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable;
+}
+
 function BulkToolbar({ selected }: { selected: NodeId[] }) {
+  const doc = useDocumentStore((state) => state.doc);
   const execute = useDocumentStore((state) => state.execute);
+  const alignAllowed = canAlign(doc, selected);
+  const distributeAllowed = canDistribute(doc, selected);
+  const sameSizeAllowed = canMultiSelect(doc, selected);
+  const anchor = selected[0];
+  const anchorNode = anchor ? doc.nodesById[anchor] : undefined;
+  const fitTargetId = selected.length === 1 && anchor ? anchor : undefined;
+  const fitAllowed =
+    fitTargetId &&
+    !anchorNode?.isLockedAsIs &&
+    (doc.childrenByParentId[fitTargetId]?.length ?? 0) > 0;
   return (
     <div className="cc-bulk-toolbar">
       <span className="count">{selected.length} selected</span>
       <IconButton
         icon={AlignStartHorizontal}
-        label="Align left"
+        label={
+          alignAllowed.valid
+            ? "Align left"
+            : `Align left - ${alignAllowed.reason}`
+        }
+        disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "left"))}
       />
       <IconButton
         icon={AlignCenterHorizontal}
-        label="Align center"
+        label={
+          alignAllowed.valid
+            ? "Align center"
+            : `Align center - ${alignAllowed.reason}`
+        }
+        disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "center"))}
       />
       <IconButton
         icon={AlignEndHorizontal}
-        label="Align right"
+        label={
+          alignAllowed.valid
+            ? "Align right"
+            : `Align right - ${alignAllowed.reason}`
+        }
+        disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "right"))}
       />
       <IconButton
         icon={Rows3}
-        label="Distribute horizontal"
+        label={
+          distributeAllowed.valid
+            ? "Distribute horizontal"
+            : `Distribute horizontal - ${distributeAllowed.reason}`
+        }
+        disabled={!distributeAllowed.valid}
         onClick={() => execute(distributeNodes(selected, "horizontal"))}
       />
       <IconButton
+        icon={Columns3}
+        label={
+          distributeAllowed.valid
+            ? "Distribute vertical"
+            : `Distribute vertical - ${distributeAllowed.reason}`
+        }
+        disabled={!distributeAllowed.valid}
+        onClick={() => execute(distributeNodes(selected, "vertical"))}
+      />
+      <IconButton
         icon={Copy}
-        label="Same size"
-        onClick={() => execute(sameSize(selected, selected[0]!))}
+        label={
+          sameSizeAllowed.valid
+            ? "Match size to first selected"
+            : `Match size - ${sameSizeAllowed.reason}`
+        }
+        disabled={!sameSizeAllowed.valid || !anchor}
+        onClick={() => anchor && execute(sameSize(selected, anchor))}
       />
       <IconButton
         icon={Maximize}
-        label="Fit parent"
-        onClick={() => execute(fitParentToChildren(selected[0]!))}
+        label={
+          fitAllowed
+            ? "Fit parent to children"
+            : "Fit parent to children - select a single parent capability"
+        }
+        disabled={!fitAllowed}
+        onClick={() => fitTargetId && execute(fitParentToChildren(fitTargetId))}
       />
       <IconButton
         icon={Trash2}

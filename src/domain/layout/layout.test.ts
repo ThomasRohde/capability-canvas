@@ -216,6 +216,54 @@ describe("layout engine", () => {
       }),
     );
   });
+
+  it("keeps node references for nodes whose patched geometry matches", () => {
+    const baseDoc = createSampleDocument();
+    const doc = {
+      ...baseDoc,
+      settings: { ...baseDoc.settings, gridEnabled: false },
+    };
+    const stableNode = doc.nodesById["digital-onboarding"]!;
+    const driftNode = doc.nodesById["fraud-risk"]!;
+    const patches = [
+      {
+        id: stableNode.id,
+        x: stableNode.x,
+        y: stableNode.y,
+        w: stableNode.w,
+        h: stableNode.h,
+      },
+      {
+        id: driftNode.id,
+        x: driftNode.x + 24,
+        y: driftNode.y,
+        w: driftNode.w,
+        h: driftNode.h,
+      },
+    ];
+    const after = applyLayoutPatches(doc, patches);
+    expect(after.nodesById[stableNode.id]).toBe(stableNode);
+    expect(after.nodesById[driftNode.id]).not.toBe(driftNode);
+    expect(after.nodesById[driftNode.id]!.x).toBe(driftNode.x + 24);
+  });
+
+  it("returns the same document reference when every patch is a no-op", () => {
+    const doc = createSampleDocument();
+    const patches = Object.values(doc.nodesById).map((node) => ({
+      id: node.id,
+      x: node.x,
+      y: node.y,
+      w: node.w,
+      h: node.h,
+    }));
+    expect(patches.length).toBeGreaterThan(0);
+    const noGridDoc = {
+      ...doc,
+      settings: { ...doc.settings, gridEnabled: false },
+    };
+    const after = applyLayoutPatches(noGridDoc, patches);
+    expect(after).toBe(noGridDoc);
+  });
 });
 
 function twoChildDocument() {

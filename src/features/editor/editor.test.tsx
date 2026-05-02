@@ -371,6 +371,55 @@ describe("editor shell", () => {
     ).toBeDisabled();
   });
 
+  it("does not delete the selected node when Delete is pressed inside an inspector field", () => {
+    render(<EditorRoute />);
+    const description = screen.getByLabelText("Description");
+    description.focus();
+    const before =
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"];
+    expect(before).toBeDefined();
+
+    fireEvent.keyDown(description, { key: "Delete" });
+
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"],
+    ).toBeDefined();
+  });
+
+  it("does not nudge the selected node when arrow keys are pressed inside an inspector field", () => {
+    render(<EditorRoute />);
+    const description = screen.getByLabelText("Description");
+    description.focus();
+    const beforeX =
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]!.x;
+
+    fireEvent.keyDown(description, { key: "ArrowRight" });
+
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]!.x,
+    ).toBe(beforeX);
+  });
+
+  it("disables align controls when fewer than two siblings are selected", () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "process-management"],
+    });
+    render(<EditorRoute />);
+    const align = screen.getByRole("button", { name: /^Align left/ });
+    expect(align).toBeDisabled();
+  });
+
+  it("disables distribute controls when only two siblings are selected", () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "fraud-risk"],
+    });
+    render(<EditorRoute />);
+    const distribute = screen.getByRole("button", {
+      name: /^Distribute horizontal/,
+    });
+    expect(distribute).toBeDisabled();
+  });
+
   it("opens outline row actions from the three-dot menu", async () => {
     const { container } = render(<EditorRoute />);
     await userEvent.click(

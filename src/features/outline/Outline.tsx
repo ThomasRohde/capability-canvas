@@ -1,12 +1,35 @@
-import { hotkeysCoreFeature, selectionFeature, syncDataLoaderFeature } from '@headless-tree/core';
-import { useTree } from '@headless-tree/react';
-import { ChevronDown, ChevronRight, Filter, MoreHorizontal, Plus, Search } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { addChild, addRoot, deleteNodes, duplicateNodes, fitParentToChildren } from '../../domain/commands/operations';
-import { childrenOf, ROOT_PARENT_ID, type NodeId } from '../../domain/document/types';
-import { useDocumentStore } from '../../app/stores/documentStore';
-import { useUiStore } from '../../app/stores/uiStore';
-import { CATEGORY_STYLES } from '../heatmap/resolveNodeFill';
+import {
+  hotkeysCoreFeature,
+  selectionFeature,
+  syncDataLoaderFeature,
+} from "@headless-tree/core";
+import { useTree } from "@headless-tree/react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Filter,
+  MoreHorizontal,
+  Plus,
+  Search,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  addChild,
+  addRoot,
+  deleteNodes,
+  duplicateNodes,
+  fitParentToChildren,
+} from "../../domain/commands/operations";
+import {
+  childrenOf,
+  ROOT_PARENT_ID,
+  type CapabilityDocument,
+  type NodeId,
+} from "../../domain/document/types";
+import { canMultiSelect } from "../../domain/selection/rules";
+import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
+import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
 export function Outline() {
   const doc = useDocumentStore((state) => state.doc);
@@ -18,22 +41,28 @@ export function Outline() {
   const setSearchQuery = useUiStore((state) => state.setSearchQuery);
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
 
-  const rootItemId = 'outline-root';
-  const folderIds = useMemo(() => Object.keys(doc.nodesById).filter((id) => childrenOf(doc, id).length > 0), [doc]);
+  const rootItemId = "outline-root";
+  const folderIds = useMemo(
+    () =>
+      Object.keys(doc.nodesById).filter((id) => childrenOf(doc, id).length > 0),
+    [doc],
+  );
   const knownFolderIds = useRef(new Set(folderIds));
   const [expandedItems, setExpandedItems] = useState(folderIds);
   const structureSignature = useMemo(
     () =>
       Object.entries(doc.childrenByParentId)
-        .map(([parentId, childIds]) => `${parentId}:${childIds.join(',')}`)
+        .map(([parentId, childIds]) => `${parentId}:${childIds.join(",")}`)
         .sort()
-        .join('|'),
-    [doc.childrenByParentId]
+        .join("|"),
+    [doc.childrenByParentId],
   );
 
   useEffect(() => {
     const currentFolderIds = new Set(folderIds);
-    const newlyFolderIds = folderIds.filter((id) => !knownFolderIds.current.has(id));
+    const newlyFolderIds = folderIds.filter(
+      (id) => !knownFolderIds.current.has(id),
+    );
     knownFolderIds.current = currentFolderIds;
     setExpandedItems((previous) => {
       const next = previous.filter((id) => currentFolderIds.has(id));
@@ -51,7 +80,7 @@ export function Outline() {
     indent: 14,
     getItemName: (item) => {
       const id = item.getId();
-      return id === rootItemId ? 'Root' : (doc.nodesById[id]?.label ?? id);
+      return id === rootItemId ? "Root" : (doc.nodesById[id]?.label ?? id);
     },
     isItemFolder: (item) => {
       const id = item.getId();
@@ -59,9 +88,12 @@ export function Outline() {
     },
     dataLoader: {
       getItem: (itemId) => itemId,
-      getChildren: (itemId) => (itemId === rootItemId ? (doc.childrenByParentId[ROOT_PARENT_ID] ?? []) : childrenOf(doc, itemId))
+      getChildren: (itemId) =>
+        itemId === rootItemId
+          ? (doc.childrenByParentId[ROOT_PARENT_ID] ?? [])
+          : childrenOf(doc, itemId),
     },
-    features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature]
+    features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature],
   });
 
   useEffect(() => {
@@ -72,13 +104,26 @@ export function Outline() {
     <aside className="cc-outline">
       <div className="cc-outline-header">
         <div className="cc-panel-title">Outline</div>
-        <button className="cc-icon-btn" type="button" aria-label="Collapse outline" onClick={() => setOutlineOpen(false)}>
+        <button
+          className="cc-icon-btn"
+          type="button"
+          aria-label="Collapse outline"
+          onClick={() => setOutlineOpen(false)}
+        >
           <ChevronDown />
         </button>
       </div>
       <div className="cc-outline-search">
-        <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={14} style={{ position: 'absolute', left: 9, top: 9, color: 'var(--cc-slate-400)' }} />
+        <div style={{ position: "relative", flex: 1 }}>
+          <Search
+            size={14}
+            style={{
+              position: "absolute",
+              left: 9,
+              top: 9,
+              color: "var(--cc-slate-400)",
+            }}
+          />
           <input
             className="cc-input"
             style={{ paddingLeft: 28 }}
@@ -87,10 +132,19 @@ export function Outline() {
             onChange={(event) => setSearchQuery(event.target.value)}
           />
         </div>
-        <button className="cc-icon-btn" type="button" aria-label="Filter outline">
+        <button
+          className="cc-icon-btn"
+          type="button"
+          aria-label="Filter outline"
+        >
           <Filter />
         </button>
-        <button className="cc-icon-btn active" type="button" aria-label="Add root capability" onClick={() => execute(addRoot())}>
+        <button
+          className="cc-icon-btn active"
+          type="button"
+          aria-label="Add root capability"
+          onClick={() => execute(addRoot())}
+        >
           <Plus />
         </button>
       </div>
@@ -100,7 +154,13 @@ export function Outline() {
           .filter((item) => item.getId() !== rootItemId)
           .filter((item) => {
             const query = searchQuery.trim().toLowerCase();
-            return query.length === 0 || (doc.nodesById[item.getId()]?.label.toLowerCase().includes(query) ?? false);
+            return (
+              query.length === 0 ||
+              (doc.nodesById[item.getId()]?.label
+                .toLowerCase()
+                .includes(query) ??
+                false)
+            );
           })
           .map((item) => {
             const node = doc.nodesById[item.getId()];
@@ -112,21 +172,38 @@ export function Outline() {
               <div
                 {...itemProps}
                 key={node.id}
-                className={`cc-tree-row ${active ? 'active' : ''}`}
-                style={{ paddingLeft: `${8 + item.getItemMeta().level * 14}px` }}
+                className={`cc-tree-row ${active ? "active" : ""}`}
+                style={{
+                  paddingLeft: `${8 + item.getItemMeta().level * 14}px`,
+                }}
                 onClick={(event) => {
                   itemProps.onClick?.(event);
                   if (event.ctrlKey || event.metaKey || event.shiftKey) {
-                    useUiStore.getState().toggleSelection(node.id);
+                    toggleOutlineSelection(doc, node.id);
                   } else {
                     setSelection([node.id]);
                   }
                 }}
               >
-                {item.isFolder() ? item.isExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} /> : <span style={{ width: 14 }} />}
-                <span className="cc-tree-swatch" style={{ color: style.border, background: style.background }} />
+                {item.isFolder() ? (
+                  item.isExpanded() ? (
+                    <ChevronDown size={14} />
+                  ) : (
+                    <ChevronRight size={14} />
+                  )
+                ) : (
+                  <span style={{ width: 14 }} />
+                )}
+                <span
+                  className="cc-tree-swatch"
+                  style={{ color: style.border, background: style.background }}
+                />
                 <span className="cc-tree-label">{node.label}</span>
-                {doc.heatmap.enabled && node.heatmapValue !== undefined && <span className="cc-tree-score">{node.heatmapValue.toFixed(2)}</span>}
+                {doc.heatmap.enabled && node.heatmapValue !== undefined && (
+                  <span className="cc-tree-score">
+                    {node.heatmapValue.toFixed(2)}
+                  </span>
+                )}
                 <button
                   className="cc-tree-actions"
                   type="button"
@@ -143,7 +220,7 @@ export function Outline() {
                 {menuNodeId === node.id && (
                   <OutlineActionsMenu
                     nodeId={node.id}
-                    canAddChild={!node.isTextLabel && node.type !== 'text'}
+                    canAddChild={!node.isTextLabel && node.type !== "text"}
                     canFitParent={childrenOf(doc, node.id).length > 0}
                     onClose={() => setMenuNodeId(null)}
                   />
@@ -153,7 +230,11 @@ export function Outline() {
           })}
       </div>
       <div className="cc-outline-footer">
-        <button className="cc-btn cc-add-root" type="button" onClick={() => execute(addRoot())}>
+        <button
+          className="cc-btn cc-add-root"
+          type="button"
+          onClick={() => execute(addRoot())}
+        >
           <Plus /> Add root capability
         </button>
       </div>
@@ -162,14 +243,30 @@ export function Outline() {
 }
 
 function arraysEqual(first: string[], second: string[]) {
-  return first.length === second.length && first.every((value, index) => value === second[index]);
+  return (
+    first.length === second.length &&
+    first.every((value, index) => value === second[index])
+  );
+}
+
+function toggleOutlineSelection(doc: CapabilityDocument, nodeId: NodeId) {
+  const ui = useUiStore.getState();
+  const current = ui.selectedNodeIds;
+  const candidate = current.includes(nodeId)
+    ? current.filter((id) => id !== nodeId)
+    : [...current, nodeId];
+  if (candidate.length <= 1 || canMultiSelect(doc, candidate).valid) {
+    ui.setSelection(candidate);
+    return;
+  }
+  ui.setSelection([nodeId]);
 }
 
 function OutlineActionsMenu({
   nodeId,
   canAddChild,
   canFitParent,
-  onClose
+  onClose,
 }: {
   nodeId: NodeId;
   canAddChild: boolean;
@@ -183,21 +280,43 @@ function OutlineActionsMenu({
   };
 
   return (
-    <div className="cc-outline-menu" role="menu" aria-label="Capability actions" onClick={(event) => event.stopPropagation()}>
+    <div
+      className="cc-outline-menu"
+      role="menu"
+      aria-label="Capability actions"
+      onClick={(event) => event.stopPropagation()}
+    >
       {canAddChild && (
-        <button type="button" role="menuitem" onClick={() => run(() => execute(addChild(nodeId)))}>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => run(() => execute(addChild(nodeId)))}
+        >
           Add child
         </button>
       )}
-      <button type="button" role="menuitem" onClick={() => run(() => execute(duplicateNodes([nodeId])))}>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => run(() => execute(duplicateNodes([nodeId])))}
+      >
         Duplicate
       </button>
       {canFitParent && (
-        <button type="button" role="menuitem" onClick={() => run(() => execute(fitParentToChildren(nodeId)))}>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => run(() => execute(fitParentToChildren(nodeId)))}
+        >
           Fit parent
         </button>
       )}
-      <button type="button" role="menuitem" className="danger" onClick={() => run(() => execute(deleteNodes([nodeId])))}>
+      <button
+        type="button"
+        role="menuitem"
+        className="danger"
+        onClick={() => run(() => execute(deleteNodes([nodeId])))}
+      >
         Delete
       </button>
     </div>

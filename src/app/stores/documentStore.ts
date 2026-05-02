@@ -4,9 +4,13 @@ import {
   transaction,
   updateDocumentSettings,
 } from "../../domain/commands/operations";
-import type { HistoryEntry, Transaction } from "../../domain/commands/types";
+import type {
+  HistoryEntry,
+  RelayoutScope,
+  Transaction,
+} from "../../domain/commands/types";
 import { cloneDocument } from "../../domain/document/normalize";
-import type { CapabilityDocument } from "../../domain/document/types";
+import type { CapabilityDocument, NodeId } from "../../domain/document/types";
 import { createSampleDocument } from "../../domain/fixtures/sample";
 import { ensureParentContainment } from "../../domain/layout/containment";
 import { applyLayoutPatches, layoutDocument } from "../../domain/layout/engine";
@@ -43,23 +47,34 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   execute: (txn) => {
     const before = get().doc;
     const result = runTransaction(before, txn);
+    const committed = result.doc !== before;
     set({
       doc: result.doc,
       lastDiagnostics: result.diagnostics,
-      dirty: result.doc !== before || get().dirty,
-      past:
-        result.doc === before
-          ? get().past
-          : [
-              ...get().past,
-              {
-                label: txn.label,
-                before: cloneDocument(before),
-                after: cloneDocument(result.doc),
-              },
-            ],
-      future: result.doc === before ? get().future : [],
+      dirty: committed || get().dirty,
+      past: committed
+        ? [
+            ...get().past,
+            {
+              label: txn.label,
+              before: cloneDocument(before),
+              after: cloneDocument(result.doc),
+            },
+          ]
+        : get().past,
+      future: committed ? [] : get().future,
     });
+    if (committed && txn.meta?.relayout) {
+      void runRelayout({
+        before,
+        after: result.doc,
+        scope: txn.meta.relayout.scope,
+        force: txn.meta.relayout.force ?? false,
+        label: txn.label,
+        get,
+        set,
+      });
+    }
     return result.diagnostics;
   },
   undo: () => {
@@ -274,6 +289,99 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   clearDiagnostics: () => set({ lastDiagnostics: [] }),
 }));
 
+async function runRelayout(args: {
+  before: CapabilityDocument;
+  after: CapabilityDocument;
+  scope: RelayoutScope;
+  force: boolean;
+  label: string;
+  get: () => DocumentState;
+  set: (partial: Partial<DocumentState>) => void;
+}): Promise<void> {
+  const { before, after, scope, force, get, set } = args;
+  if (get().doc !== after) return;
+  const ids = resolveScope(scope, before, after);
+  if (ids?.length === 0) return;
+
+  try {
+    const result = await layoutDocument({
+      doc: after,
+      affectedNodeIds: ids ?? undefined,
+      mode: after.settings.layoutMode,
+      force,
+    });
+    if (get().doc !== after) return;
+    if (result.patches.length === 0) {
+      const merged = mergeDiagnostics(
+        get().lastDiagnostics,
+        result.diagnostics,
+      );
+      if (merged !== get().lastDiagnostics) set({ lastDiagnostics: merged });
+      return;
+    }
+
+    const laidOut = applyLayoutPatches(after, result.patches);
+    if (laidOut === after) return;
+    const repaired = ensureParentContainment(laidOut).doc;
+    if (get().doc !== after) return;
+
+    const past = get().past;
+    const last = past[past.length - 1];
+    const replacement: HistoryEntry = last
+      ? {
+          label: last.label,
+          before: last.before,
+          after: cloneDocument(repaired),
+        }
+      : {
+          label: args.label,
+          before: cloneDocument(before),
+          after: cloneDocument(repaired),
+        };
+
+    set({
+      doc: repaired,
+      past: last ? [...past.slice(0, -1), replacement] : [...past, replacement],
+      future: [],
+      dirty: true,
+      lastDiagnostics: mergeDiagnostics(
+        get().lastDiagnostics,
+        result.diagnostics,
+      ),
+    });
+  } catch (error) {
+    if (get().doc !== after) return;
+    set({
+      lastDiagnostics: mergeDiagnostics(get().lastDiagnostics, [
+        warning(
+          "layout-failed",
+          `Auto layout after ${args.label.toLowerCase()} failed. ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      ]),
+    });
+  }
+}
+
+function resolveScope(
+  scope: RelayoutScope,
+  before: CapabilityDocument,
+  after: CapabilityDocument,
+): NodeId[] | null {
+  if (scope === "document") return null;
+  if (typeof scope === "function") return scope(before, after);
+  return scope;
+}
+
+function mergeDiagnostics(
+  existing: Diagnostic[],
+  additions: Diagnostic[],
+): Diagnostic[] {
+  if (additions.length === 0) return existing;
+  return [...existing, ...additions];
+}
+
 async function layoutAndRepair(
   doc: CapabilityDocument,
   force: boolean,
@@ -308,7 +416,10 @@ function settingsLabel(patch: Partial<CapabilityDocument["settings"]>) {
 export function executeMany(
   label: string,
   transactions: Transaction[],
-  source: NonNullable<Transaction["meta"]>["source"] = "edit",
+  source: Exclude<
+    NonNullable<Transaction["meta"]>["source"],
+    undefined
+  > = "edit",
 ) {
   useDocumentStore.getState().execute(
     transaction(

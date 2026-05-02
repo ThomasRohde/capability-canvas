@@ -100,46 +100,50 @@ export function addChild(
   parentId: NodeId,
   label = "New capability",
 ): Transaction {
-  return transaction("Add child capability", [
-    command("add-child", { parentId, label }, (doc) => {
-      const parent = doc.nodesById[parentId];
-      if (!parent)
-        return fail(
-          doc,
-          "missing-parent",
-          "Select a valid parent before adding a child.",
-        );
-      if (parent.isTextLabel || parent.type === "text")
-        return fail(
-          doc,
-          "text-label-parent",
-          "Text labels cannot contain children.",
-        );
-      const next = cloneDocument(doc);
-      const childCount = childrenOf(next, parentId).length;
-      const id = makeId("cap");
-      next.nodesById[id] = createNode({
-        id,
-        label,
-        parentId,
-        type: "leaf",
-        color: parent.color,
-        x: snapCoordinate(next, parent.x + 32 + childCount * 184),
-        y: snapCoordinate(next, parent.y + 64),
-        w: next.settings.fixedLeafWidth,
-        h: next.settings.fixedLeafHeight,
-        heatmapValue: 0,
-      });
-      next.nodesById[parentId] = {
-        ...parent,
-        type: parent.type === "root" ? "root" : "parent",
-        updatedAt: now(),
-      };
-      next.childrenByParentId[parentId] = [...childrenOf(next, parentId), id];
-      next.childrenByParentId[id] = [];
-      return ok(next);
-    }),
-  ]);
+  return transaction(
+    "Add child capability",
+    [
+      command("add-child", { parentId, label }, (doc) => {
+        const parent = doc.nodesById[parentId];
+        if (!parent)
+          return fail(
+            doc,
+            "missing-parent",
+            "Select a valid parent before adding a child.",
+          );
+        if (parent.isTextLabel || parent.type === "text")
+          return fail(
+            doc,
+            "text-label-parent",
+            "Text labels cannot contain children.",
+          );
+        const next = cloneDocument(doc);
+        const childCount = childrenOf(next, parentId).length;
+        const id = makeId("cap");
+        next.nodesById[id] = createNode({
+          id,
+          label,
+          parentId,
+          type: "leaf",
+          color: parent.color,
+          x: snapCoordinate(next, parent.x + 32 + childCount * 184),
+          y: snapCoordinate(next, parent.y + 64),
+          w: next.settings.fixedLeafWidth,
+          h: next.settings.fixedLeafHeight,
+          heatmapValue: 0,
+        });
+        next.nodesById[parentId] = {
+          ...parent,
+          type: parent.type === "root" ? "root" : "parent",
+          updatedAt: now(),
+        };
+        next.childrenByParentId[parentId] = [...childrenOf(next, parentId), id];
+        next.childrenByParentId[id] = [];
+        return ok(next);
+      }),
+    ],
+    { relayout: { scope: [parentId], force: true } },
+  );
 }
 
 export function addTextLabel(
@@ -237,27 +241,43 @@ export function updateHeatmapSettings(
 }
 
 export function deleteNodes(nodeIds: NodeId[]): Transaction {
-  return transaction("Delete capability", [
-    command("delete-nodes", { nodeIds }, (doc) => {
-      const next = cloneDocument(doc);
-      const toDelete = new Set<NodeId>();
-      for (const id of nodeIds) {
-        if (!next.nodesById[id]) continue;
-        toDelete.add(id);
-        for (const descendantId of descendantsOf(next, id))
-          toDelete.add(descendantId);
-      }
-      for (const id of toDelete) delete next.nodesById[id];
-      for (const [parentId, children] of Object.entries(
-        next.childrenByParentId,
-      )) {
-        next.childrenByParentId[parentId] = children.filter(
-          (childId) => !toDelete.has(childId),
-        );
-      }
-      return ok(rebuildChildren(next));
-    }),
-  ]);
+  return transaction(
+    "Delete capability",
+    [
+      command("delete-nodes", { nodeIds }, (doc) => {
+        const next = cloneDocument(doc);
+        const toDelete = new Set<NodeId>();
+        for (const id of nodeIds) {
+          if (!next.nodesById[id]) continue;
+          toDelete.add(id);
+          for (const descendantId of descendantsOf(next, id))
+            toDelete.add(descendantId);
+        }
+        for (const id of toDelete) delete next.nodesById[id];
+        for (const [parentId, children] of Object.entries(
+          next.childrenByParentId,
+        )) {
+          next.childrenByParentId[parentId] = children.filter(
+            (childId) => !toDelete.has(childId),
+          );
+        }
+        return ok(rebuildChildren(next));
+      }),
+    ],
+    {
+      relayout: {
+        scope: (beforeDoc) => {
+          const parents = new Set<NodeId>();
+          for (const id of nodeIds) {
+            const node = beforeDoc.nodesById[id];
+            if (node?.parentId) parents.add(node.parentId);
+          }
+          return [...parents];
+        },
+        force: true,
+      },
+    },
+  );
 }
 
 export function moveNodes(
@@ -298,79 +318,118 @@ export function moveNodes(
 }
 
 export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
-  return transaction("Resize capability", [
-    command("resize-node", { nodeId, w, h }, (doc) => {
-      const node = doc.nodesById[nodeId];
-      if (!node)
-        return fail(
-          doc,
-          "missing-node",
-          "The selected capability no longer exists.",
-        );
-      if (node.isLockedAsIs)
-        return fail(
-          doc,
-          "locked-node",
-          "Locked capabilities cannot be resized.",
-        );
-      const childBounds = boundsForNodes(doc, childrenOf(doc, nodeId));
-      const minW = childBounds
-        ? childBounds.x +
-          childBounds.w -
-          node.x +
-          visibleHorizontalEdgePadding(
-            node.layoutPreferences?.marginRight ??
-              doc.settings.containerPaddingRight,
-          )
-        : 80;
-      const minH = childBounds
-        ? childBounds.y +
-          childBounds.h -
-          node.y +
-          visibleVerticalEdgePadding(
-            node.layoutPreferences?.marginBottom ??
-              doc.settings.containerPaddingBottom,
-          )
-        : 40;
-      return updateOnly(doc, nodeId, {
-        w: Math.max(w, minW),
-        h: Math.max(h, minH),
-      });
-    }),
-  ]);
+  return transaction(
+    "Resize capability",
+    [
+      command("resize-node", { nodeId, w, h }, (doc) => {
+        const node = doc.nodesById[nodeId];
+        if (!node)
+          return fail(
+            doc,
+            "missing-node",
+            "The selected capability no longer exists.",
+          );
+        if (node.isLockedAsIs)
+          return fail(
+            doc,
+            "locked-node",
+            "Locked capabilities cannot be resized.",
+          );
+        const childBounds = boundsForNodes(doc, childrenOf(doc, nodeId));
+        const minW = childBounds
+          ? childBounds.x +
+            childBounds.w -
+            node.x +
+            visibleHorizontalEdgePadding(
+              node.layoutPreferences?.marginRight ??
+                doc.settings.containerPaddingRight,
+            )
+          : 80;
+        const minH = childBounds
+          ? childBounds.y +
+            childBounds.h -
+            node.y +
+            visibleVerticalEdgePadding(
+              node.layoutPreferences?.marginBottom ??
+                doc.settings.containerPaddingBottom,
+            )
+          : 40;
+        return updateOnly(doc, nodeId, {
+          w: Math.max(w, minW),
+          h: Math.max(h, minH),
+        });
+      }),
+    ],
+    {
+      relayout: {
+        scope: (beforeDoc, afterDoc) => {
+          const node =
+            afterDoc.nodesById[nodeId] ?? beforeDoc.nodesById[nodeId];
+          if (!node) return [];
+          if (childrenOf(afterDoc, nodeId).length === 0) return [];
+          if (node.isManualPositioningEnabled) return [];
+          return [nodeId];
+        },
+        force: true,
+      },
+    },
+  );
 }
 
 export function reparentNode(
   nodeId: NodeId,
   parentId: NodeId | null,
 ): Transaction {
-  return transaction("Reparent capability", [
-    command("reparent-node", { nodeId, parentId }, (doc) => {
-      const node = doc.nodesById[nodeId];
-      const parent = parentId ? doc.nodesById[parentId] : null;
-      if (!node)
-        return fail(
-          doc,
-          "missing-node",
-          "The selected capability no longer exists.",
-        );
-      if (parent?.isTextLabel || parent?.type === "text")
-        return fail(doc, "text-label-parent", "Text labels cannot be parents.");
-      if (parentId && isDescendantOf(doc, parentId, nodeId))
-        return fail(
-          doc,
-          "cycle",
-          "A node cannot be moved into its descendant.",
-        );
-      const next = cloneDocument(doc);
-      next.nodesById[nodeId] = {
-        ...node,
-        parentId,
-        type: parentId ? (node.type === "root" ? "parent" : node.type) : "root",
-      };
-      return ok(rebuildChildren(next));
-    }),
-  ]);
+  return transaction(
+    "Reparent capability",
+    [
+      command("reparent-node", { nodeId, parentId }, (doc) => {
+        const node = doc.nodesById[nodeId];
+        const parent = parentId ? doc.nodesById[parentId] : null;
+        if (!node)
+          return fail(
+            doc,
+            "missing-node",
+            "The selected capability no longer exists.",
+          );
+        if (parent?.isTextLabel || parent?.type === "text")
+          return fail(
+            doc,
+            "text-label-parent",
+            "Text labels cannot be parents.",
+          );
+        if (parentId && isDescendantOf(doc, parentId, nodeId))
+          return fail(
+            doc,
+            "cycle",
+            "A node cannot be moved into its descendant.",
+          );
+        const next = cloneDocument(doc);
+        next.nodesById[nodeId] = {
+          ...node,
+          parentId,
+          type: parentId
+            ? node.type === "root"
+              ? "parent"
+              : node.type
+            : "root",
+        };
+        return ok(rebuildChildren(next));
+      }),
+    ],
+    {
+      relayout: {
+        scope: (beforeDoc) => {
+          const oldParent = beforeDoc.nodesById[nodeId]?.parentId ?? null;
+          const scope = new Set<NodeId>();
+          if (oldParent) scope.add(oldParent);
+          if (parentId) scope.add(parentId);
+          return [...scope];
+        },
+        force: true,
+      },
+    },
+  );
 }
 
 export function duplicateNodes(nodeIds: NodeId[]): Transaction {
@@ -539,6 +598,12 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
           "missing-node",
           "The selected capability no longer exists.",
         );
+      if (node.isLockedAsIs)
+        return fail(
+          doc,
+          "locked-node",
+          "Locked capabilities cannot be resized.",
+        );
       const bounds = boundsForNodes(doc, childrenOf(doc, nodeId));
       if (!bounds) return ok(doc);
       const margin = {
@@ -558,8 +623,8 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
           node.layoutPreferences?.marginLeft ??
           doc.settings.containerPaddingLeft,
       };
-      const x = Math.min(node.x, bounds.x - margin.left);
-      const y = Math.min(node.y, bounds.y - margin.top);
+      const x = bounds.x - margin.left;
+      const y = bounds.y - margin.top;
       return updateOnly(doc, nodeId, {
         x,
         y,
@@ -568,6 +633,59 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
       });
     }),
   ]);
+}
+
+export function repairSiblingOverlaps(parentId: NodeId): Transaction {
+  return transaction("Resolve sibling overlap", [
+    command("repair-sibling-overlaps", { parentId }, (doc) => {
+      const parent = doc.nodesById[parentId];
+      if (!parent) return ok(doc);
+      const childIds = childrenOf(doc, parentId);
+      if (childIds.length < 2) return ok(doc);
+      const next = cloneDocument(doc);
+      const movable = childIds
+        .map((id) => next.nodesById[id])
+        .filter(
+          (node): node is NonNullable<typeof node> =>
+            !!node && !node.isLockedAsIs && !node.isManualPositioningEnabled,
+        );
+      if (movable.length < 2) return ok(doc);
+      let changed = false;
+      const placed: typeof movable = [];
+      for (const node of [...movable].sort(
+        (a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id),
+      )) {
+        const x = node.x;
+        let y = node.y;
+        let nudges = 0;
+        while (
+          placed.some((other) => rectanglesOverlap({ ...node, x, y }, other)) &&
+          nudges < 64
+        ) {
+          y += doc.settings.childGapY;
+          nudges += 1;
+        }
+        if (y !== node.y) {
+          changed = true;
+          next.nodesById[node.id] = { ...node, x, y, updatedAt: now() };
+          placed.push(next.nodesById[node.id]!);
+        } else {
+          placed.push(node);
+        }
+      }
+      if (!changed) return ok(doc);
+      return ok(next);
+    }),
+  ]);
+}
+
+function rectanglesOverlap(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
+  return (
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+  );
 }
 
 export function lockSubtree(nodeId: NodeId, locked: boolean): Transaction {

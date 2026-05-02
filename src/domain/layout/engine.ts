@@ -156,19 +156,32 @@ export function applyLayoutPatches(
 ): CapabilityDocument {
   if (patches.length === 0) return doc;
   const nodesById = { ...doc.nodesById };
+  let changed = false;
   for (const patch of patches) {
     const node = nodesById[patch.id];
     if (!node) continue;
     const preserveCoordinates = isInsideManualSubtree(doc, patch.id);
+    const nextX = preserveCoordinates ? patch.x : snapCoordinate(doc, patch.x);
+    const nextY = preserveCoordinates ? patch.y : snapCoordinate(doc, patch.y);
+    if (
+      node.x === nextX &&
+      node.y === nextY &&
+      node.w === patch.w &&
+      node.h === patch.h
+    ) {
+      continue;
+    }
+    changed = true;
     nodesById[patch.id] = {
       ...node,
-      x: preserveCoordinates ? patch.x : snapCoordinate(doc, patch.x),
-      y: preserveCoordinates ? patch.y : snapCoordinate(doc, patch.y),
+      x: nextX,
+      y: nextY,
       w: patch.w,
       h: patch.h,
       updatedAt: Date.now(),
     };
   }
+  if (!changed) return doc;
   const bounds = computeDocumentBounds({ ...doc, nodesById });
   return {
     ...doc,
