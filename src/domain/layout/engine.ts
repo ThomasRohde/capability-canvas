@@ -8,6 +8,7 @@ import {
 } from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 import { warning } from "../validation/diagnostics";
+import { snapCoordinate } from "./grid";
 import {
   visibleHorizontalEdgePadding,
   visibleVerticalEdgePadding,
@@ -158,10 +159,11 @@ export function applyLayoutPatches(
   for (const patch of patches) {
     const node = nodesById[patch.id];
     if (!node) continue;
+    const preserveCoordinates = isInsideManualSubtree(doc, patch.id);
     nodesById[patch.id] = {
       ...node,
-      x: patch.x,
-      y: patch.y,
+      x: preserveCoordinates ? patch.x : snapCoordinate(doc, patch.x),
+      y: preserveCoordinates ? patch.y : snapCoordinate(doc, patch.y),
       w: patch.w,
       h: patch.h,
       updatedAt: Date.now(),
@@ -178,6 +180,15 @@ export function applyLayoutPatches(
     },
     timestamp: Date.now(),
   };
+}
+
+function isInsideManualSubtree(doc: CapabilityDocument, nodeId: NodeId) {
+  let current: CapabilityNode | undefined = doc.nodesById[nodeId];
+  while (current) {
+    if (current.isManualPositioningEnabled) return true;
+    current = current.parentId ? doc.nodesById[current.parentId] : undefined;
+  }
+  return false;
 }
 
 export function computeDocumentBounds(doc: CapabilityDocument) {

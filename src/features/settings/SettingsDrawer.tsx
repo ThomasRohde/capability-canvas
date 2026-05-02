@@ -96,6 +96,29 @@ export function SettingsDrawer() {
             />
             <span>Show grid</span>
           </label>
+          <NumberSetting
+            id="grid-size"
+            label="Grid size"
+            value={doc.settings.gridSize}
+            min={4}
+            onChange={(gridSize) =>
+              execute(updateDocumentSettings({ gridSize }))
+            }
+          />
+          <label className="cc-check-row">
+            <input
+              type="checkbox"
+              checked={doc.settings.resizeSnapToGrid}
+              onChange={(event) =>
+                execute(
+                  updateDocumentSettings({
+                    resizeSnapToGrid: event.target.checked,
+                  }),
+                )
+              }
+            />
+            <span>Snap resizing to grid</span>
+          </label>
           <div className="cc-field-row">
             <NumberSetting
               id="leaf-width"

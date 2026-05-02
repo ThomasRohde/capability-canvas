@@ -1,11 +1,18 @@
-export const DOCUMENT_SCHEMA = 'capability-canvas.document';
-export const DOCUMENT_VERSION = '1.0';
-export const ROOT_PARENT_ID = '__root__';
+export const DOCUMENT_SCHEMA = "capability-canvas.document";
+export const DOCUMENT_VERSION = "1.0";
+export const ROOT_PARENT_ID = "__root__";
 
 export type NodeId = string;
-export type NodeType = 'root' | 'parent' | 'leaf' | 'text';
-export type CapabilityColor = 'mint' | 'sky' | 'coral' | 'amber' | 'lavender' | 'peach' | 'teal';
-export type LayoutMode = 'uniform' | 'flow' | 'adaptive' | 'free';
+export type NodeType = "root" | "parent" | "leaf" | "text";
+export type CapabilityColor =
+  | "mint"
+  | "sky"
+  | "coral"
+  | "amber"
+  | "lavender"
+  | "peach"
+  | "teal";
+export type LayoutMode = "uniform" | "flow" | "adaptive" | "free";
 
 export interface Bounds {
   x: number;
@@ -40,7 +47,7 @@ export interface CapabilityNode extends Bounds {
     fontFamily?: string;
     fontSize?: number;
     fontWeight?: number;
-    align?: 'left' | 'center' | 'right';
+    align?: "left" | "center" | "right";
   };
   heatmapValue?: number;
   createdAt: number;
@@ -49,6 +56,8 @@ export interface CapabilityNode extends Bounds {
 
 export interface DiagramSettings {
   gridEnabled: boolean;
+  gridSize: number;
+  resizeSnapToGrid: boolean;
   fixedLeafWidth: number;
   fixedLeafHeight: number;
   defaultParentWidth: number;
@@ -75,7 +84,7 @@ export interface LayoutMetadata {
 export interface HeatmapState {
   enabled: boolean;
   showLegend: boolean;
-  palette: 'green-yellow-red' | 'mint-amber-coral';
+  palette: "green-yellow-red" | "mint-amber-coral";
   fallbackColor: CapabilityColor;
 }
 
@@ -106,7 +115,10 @@ export function rootChildren(doc: CapabilityDocument): NodeId[] {
   return doc.childrenByParentId[ROOT_PARENT_ID] ?? [];
 }
 
-export function childrenOf(doc: CapabilityDocument, parentId: NodeId | null): NodeId[] {
+export function childrenOf(
+  doc: CapabilityDocument,
+  parentId: NodeId | null,
+): NodeId[] {
   return doc.childrenByParentId[parentId ?? ROOT_PARENT_ID] ?? [];
 }
 

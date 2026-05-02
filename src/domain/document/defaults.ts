@@ -5,13 +5,22 @@ import {
   DOCUMENT_SCHEMA,
   DOCUMENT_VERSION,
   ROOT_PARENT_ID,
-  type NodeId
-} from './types';
+  type NodeId,
+} from "./types";
 
-export const CATEGORY_COLORS: CapabilityColor[] = ['mint', 'sky', 'coral', 'amber', 'lavender', 'peach'];
+export const CATEGORY_COLORS: CapabilityColor[] = [
+  "mint",
+  "sky",
+  "coral",
+  "amber",
+  "lavender",
+  "peach",
+];
 
 export const DEFAULT_SETTINGS = {
   gridEnabled: true,
+  gridSize: 16,
+  resizeSnapToGrid: true,
   fixedLeafWidth: 168,
   fixedLeafHeight: 56,
   defaultParentWidth: 360,
@@ -23,27 +32,27 @@ export const DEFAULT_SETTINGS = {
   containerTitleHeight: 28,
   childGapX: 32,
   childGapY: 16,
-  fontFamily: 'Inter',
+  fontFamily: "Inter",
   borderRadius: 8,
-  layoutMode: 'adaptive' as const
+  layoutMode: "adaptive" as const,
 };
 
 export const DEFAULT_LAYOUT = {
-  mode: 'adaptive' as const,
+  mode: "adaptive" as const,
   isUserArranged: false,
   preservePositions: true,
-  boundingBox: { x: 0, y: 0, w: 0, h: 0 }
+  boundingBox: { x: 0, y: 0, w: 0, h: 0 },
 };
 
 export const DEFAULT_HEATMAP = {
   enabled: false,
   showLegend: true,
-  palette: 'green-yellow-red' as const,
-  fallbackColor: 'mint' as const
+  palette: "green-yellow-red" as const,
+  fallbackColor: "mint" as const,
 };
 
 export function createNode(
-  partial: Partial<CapabilityNode> & Pick<CapabilityNode, 'id' | 'label'>
+  partial: Partial<CapabilityNode> & Pick<CapabilityNode, "id" | "label">,
 ): CapabilityNode {
   const timestamp = Date.now();
   return {
@@ -54,32 +63,37 @@ export function createNode(
     y: partial.y ?? 0,
     w: partial.w ?? DEFAULT_SETTINGS.fixedLeafWidth,
     h: partial.h ?? DEFAULT_SETTINGS.fixedLeafHeight,
-    type: partial.type ?? 'leaf',
-    color: partial.color ?? 'mint',
+    type: partial.type ?? "leaf",
+    color: partial.color ?? "mint",
     description: partial.description,
     metadata: partial.metadata ?? {},
     layoutPreferences: partial.layoutPreferences,
     isManualPositioningEnabled: partial.isManualPositioningEnabled ?? false,
     isLockedAsIs: partial.isLockedAsIs ?? false,
-    isTextLabel: partial.isTextLabel ?? partial.type === 'text',
+    isTextLabel: partial.isTextLabel ?? partial.type === "text",
     textStyle: partial.textStyle,
     heatmapValue: partial.heatmapValue,
     createdAt: partial.createdAt ?? timestamp,
-    updatedAt: partial.updatedAt ?? timestamp
+    updatedAt: partial.updatedAt ?? timestamp,
   };
 }
 
-export function createEmptyDocument(title = 'Untitled capability model'): CapabilityDocument {
+export function createEmptyDocument(
+  title = "Untitled capability model",
+): CapabilityDocument {
   return {
     schema: DOCUMENT_SCHEMA,
     version: DOCUMENT_VERSION,
     nodesById: {},
     childrenByParentId: { [ROOT_PARENT_ID]: [] },
     settings: { ...DEFAULT_SETTINGS },
-    layout: { ...DEFAULT_LAYOUT, boundingBox: { ...DEFAULT_LAYOUT.boundingBox } },
+    layout: {
+      ...DEFAULT_LAYOUT,
+      boundingBox: { ...DEFAULT_LAYOUT.boundingBox },
+    },
     heatmap: { ...DEFAULT_HEATMAP },
     timestamp: Date.now(),
-    title
+    title,
   };
 }
 
@@ -87,7 +101,7 @@ export function nextColor(index: number): CapabilityColor {
   return CATEGORY_COLORS[index % CATEGORY_COLORS.length]!;
 }
 
-export function makeId(prefix = 'cap'): NodeId {
+export function makeId(prefix = "cap"): NodeId {
   const random = Math.random().toString(36).slice(2, 8);
   return `${prefix}-${random}`;
 }

@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Capability Canvas">
-  <path fill="#0f766e" d="M32 4 56 18v10L32 14 8 28V18L32 4Z" />
-  <path fill="#14b8a6" d="M8 28v18l24 14 24-14V36L32 50 16 41V33l16 9 24-14v10L32 52 8 38V28Z" />
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-label="Capability Canvas"
+>
+  <path
+    fill="#0f766e"
+    d="M32 5 52 16.5v10.4L32 15.4 20 22.3v19.4l12 6.9 20-11.5v10.4L32 59 10 46.3V17.7L32 5Z"
+  />
+  <path fill="#14b8a6" d="M10 35.4 20 41.1v10.4L10 45.8V35.4Z" />
 </svg>
