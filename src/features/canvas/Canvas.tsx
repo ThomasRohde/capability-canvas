@@ -65,6 +65,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const execute = useDocumentStore((state) => state.execute);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
+  const clearSelection = useUiStore((state) => state.clearSelection);
   const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
@@ -355,7 +356,12 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       }}
       onPointerDown={(event) => {
         setContextMenu(null);
-        if (event.target !== event.currentTarget || readonly) return;
+        if (!isCanvasBackgroundTarget(event.target, event.currentTarget))
+          return;
+        if (readonly) {
+          clearSelection();
+          return;
+        }
         const isMiddleMouse = event.button === 1;
         const wantsMarquee =
           !isMiddleMouse && (event.shiftKey || event.ctrlKey || event.metaKey);
@@ -366,13 +372,22 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         const startX = event.clientX;
         const startY = event.clientY;
         const startViewport = viewport;
-        const onMove = (move: PointerEvent) =>
+        let didMove = false;
+        const onMove = (move: PointerEvent) => {
+          if (
+            Math.abs(move.clientX - startX) > 2 ||
+            Math.abs(move.clientY - startY) > 2
+          ) {
+            didMove = true;
+          }
           setViewport({
             ...startViewport,
             x: startViewport.x + move.clientX - startX,
             y: startViewport.y + move.clientY - startY,
           });
+        };
         const onUp = () => {
+          if (!didMove && event.button === 0) clearSelection();
           window.removeEventListener("pointermove", onMove);
           window.removeEventListener("pointerup", onUp);
           window.removeEventListener("pointercancel", onUp);
@@ -719,6 +734,17 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         onCenter={centerOnDocumentPoint}
       />
     </main>
+  );
+}
+
+function isCanvasBackgroundTarget(
+  target: EventTarget | null,
+  currentTarget: EventTarget,
+): boolean {
+  if (target === currentTarget) return true;
+  return (
+    target instanceof HTMLElement &&
+    target.classList.contains("cc-canvas-stage")
   );
 }
 

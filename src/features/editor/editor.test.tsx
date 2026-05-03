@@ -51,6 +51,36 @@ describe("editor shell", () => {
     ).toBeInTheDocument();
   });
 
+  it("clears selection when the empty canvas background is clicked", () => {
+    const { container } = render(<EditorRoute />);
+    expect(useUiStore.getState().selectedNodeIds).toEqual([
+      "digital-onboarding",
+    ]);
+
+    const stage = container.querySelector(".cc-canvas-stage") as HTMLElement;
+    fireEvent(
+      stage,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: 20,
+        clientY: 20,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointerup", {
+        bubbles: true,
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      }),
+    );
+
+    expect(useUiStore.getState().selectedNodeIds).toEqual([]);
+  });
+
   it("supports minimap zoom controls and click-to-center navigation", async () => {
     const { container } = render(<EditorRoute />);
     const minimap = container.querySelector(".cc-minimap") as HTMLElement;
