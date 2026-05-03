@@ -16,6 +16,51 @@ describe("document JSON adapter", () => {
     expect(serializeDocument(parsed.doc!)).toEqual(wire);
   });
 
+  it("tastes and imports capability list JSON arrays", () => {
+    const parsed = parseDocument([
+      {
+        id: "edm",
+        name: "Enterprise Domain Model",
+        description: "Root model",
+        parent: null,
+        capability: 0,
+      },
+      {
+        id: "channels",
+        name: "Channels",
+        description: "Channel domain",
+        parent: "edm",
+        capability: 0,
+      },
+      {
+        id: "human-channels",
+        name: "Human Channels",
+        parent: "channels",
+        capability: 1,
+      },
+    ]);
+
+    expect(parsed.doc).not.toBeNull();
+    expect(parsed.doc!.title).toBe("Enterprise Domain Model");
+    expect(parsed.doc!.layout.preservePositions).toBe(false);
+    expect(parsed.doc!.nodesById.edm!.type).toBe("root");
+    expect(parsed.doc!.nodesById.channels!.type).toBe("parent");
+    expect(parsed.doc!.nodesById["human-channels"]!.type).toBe("leaf");
+    expect(parsed.doc!.nodesById.channels!.parentId).toBe("edm");
+    expect(parsed.doc!.nodesById["human-channels"]!.parentId).toBe(
+      "channels",
+    );
+    expect(parsed.doc!.nodesById.channels!.metadata).toMatchObject({
+      importFormat: "capability-list",
+      capability: 0,
+    });
+    expect(
+      parsed.diagnostics.some(
+        (diag) => diag.code === "external-capability-list-imported",
+      ),
+    ).toBe(true);
+  });
+
   it("repairs missing parents without leaving orphans", () => {
     const wire = serializeDocument(createSampleDocument());
     wire.nodes[1]!.parentId = "missing";

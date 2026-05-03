@@ -1,12 +1,6 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import {
@@ -14,9 +8,15 @@ import {
   reparentNode,
   runTransaction,
 } from "../../domain/commands/operations";
+import { stringifyDocument } from "../../domain/document/serialize";
+import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
 
 describe("editor shell", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     useDocumentStore.getState().reset();
     useUiStore.setState({
@@ -37,6 +37,34 @@ describe("editor shell", () => {
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
+  });
+
+  it("imports a JSON document from the Import button", async () => {
+    const importedDoc = {
+      ...useDocumentStore.getState().doc,
+      title: "Imported capability model",
+    };
+    const showSaveFilePicker = vi.fn();
+    vi.stubGlobal("showSaveFilePicker", showSaveFilePicker);
+
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input.accept).toBe(".json,application/json");
+    const file = {
+      text: async () => stringifyDocument(importedDoc),
+    } as File;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(useDocumentStore.getState().doc.title).toBe(
+        "Imported capability model",
+      ),
+    );
+    expect(showSaveFilePicker).not.toHaveBeenCalled();
   });
 
   it("shows heatmap scores only in heatmap mode", async () => {
@@ -120,6 +148,31 @@ describe("editor shell", () => {
     expect(centeredViewport).not.toEqual(beforeCentering);
     expect(Number.isFinite(centeredViewport.x)).toBe(true);
     expect(Number.isFinite(centeredViewport.y)).toBe(true);
+  });
+
+  it("uses the same capability fills in the minimap", () => {
+    const { container } = render(<EditorRoute />);
+    const minimapBlobs = [
+      ...container.querySelectorAll(".cc-minimap-blob"),
+    ] as HTMLElement[];
+    const doc = useDocumentStore.getState().doc;
+    const expectedFills = Object.values(doc.nodesById)
+      .map((node) => {
+        const fill = resolveNodeFill(node, doc.heatmap);
+        return `${normalizeCssColor(fill.background)}|${normalizeCssColor(fill.border)}`;
+      })
+      .sort();
+    const actualFills = minimapBlobs
+      .map((blob) => {
+        const style = blob.getAttribute("style") ?? "";
+        const background = style.match(/background: ([^;]+);/)?.[1];
+        const border = style.match(/border: 1px solid ([^;]+);/)?.[1];
+        return `${background}|${border}`;
+      })
+      .sort();
+
+    expect(minimapBlobs.length).toBeGreaterThan(0);
+    expect(actualFills).toEqual(expectedFills);
   });
 
   it("opens settings and keeps parent canvas labels free of swatches", async () => {
@@ -242,6 +295,20 @@ describe("editor shell", () => {
     expect(container.querySelector(".cc-node.selected.container")).toBe(
       operationalRisk,
     );
+  });
+
+  it("renders container frames above node cards so containment remains visible", () => {
+    const { container } = render(<EditorRoute />);
+    const containerNode = container.querySelector(
+      ".cc-node.container",
+    ) as HTMLElement;
+    const frame = container.querySelector(".cc-container-frame") as HTMLElement;
+
+    expect(frame).toBeInTheDocument();
+    expect(Number(frame.style.zIndex)).toBeGreaterThan(
+      Number(containerNode.style.zIndex),
+    );
+    expect(frame).toHaveStyle({ pointerEvents: "none" });
   });
 
   it("snaps drag movement to the grid and previews dragged descendants", () => {
@@ -529,6 +596,36 @@ describe("editor shell", () => {
     expect(align).toBeDisabled();
   });
 
+  it("shows PowerPoint-style bulk alignment and sizing actions", () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
+    });
+    const { container } = render(<EditorRoute />);
+    const bulkToolbar = container.querySelector(
+      ".cc-bulk-toolbar",
+    ) as HTMLElement;
+
+    for (const label of [
+      "Align left",
+      "Align center",
+      "Align right",
+      "Align top",
+      "Align middle",
+      "Align bottom",
+      "Distribute horizontal",
+      "Distribute vertical",
+      "Match width to first selected",
+      "Match height to first selected",
+      "Match size to first selected",
+      "Duplicate",
+      "Delete",
+    ]) {
+      expect(
+        within(bulkToolbar).getByRole("button", { name: label }),
+      ).toBeInTheDocument();
+    }
+  });
+
   it("disables distribute controls when only two siblings are selected", () => {
     useUiStore.setState({
       selectedNodeIds: ["credit-risk", "fraud-risk"],
@@ -572,3 +669,12 @@ describe("editor shell", () => {
     );
   });
 });
+
+function normalizeCssColor(color: string): string {
+  if (!color.startsWith("#")) return color;
+  const value = color.slice(1);
+  const red = Number.parseInt(value.slice(0, 2), 16);
+  const green = Number.parseInt(value.slice(2, 4), 16);
+  const blue = Number.parseInt(value.slice(4, 6), 16);
+  return `rgb(${red}, ${green}, ${blue})`;
+}

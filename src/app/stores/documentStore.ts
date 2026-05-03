@@ -26,7 +26,12 @@ interface DocumentState {
   execute: (txn: Transaction) => Diagnostic[];
   undo: () => void;
   redo: () => void;
-  setDocument: (doc: CapabilityDocument, label?: string) => void;
+  setDocument: (
+    doc: CapabilityDocument,
+    label?: string,
+    diagnostics?: Diagnostic[],
+  ) => void;
+  setDiagnostics: (diagnostics: Diagnostic[]) => void;
   reset: () => void;
   autoLayout: (force?: boolean) => Promise<Diagnostic[]>;
   updateSettings: (
@@ -100,7 +105,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       lastDiagnostics: [],
     });
   },
-  setDocument: (doc, label = "Import document") => {
+  setDocument: (doc, label = "Import document", diagnostics = []) => {
     const before = get().doc;
     const repaired = ensureParentContainment(doc).doc;
     set({
@@ -115,9 +120,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       ],
       future: [],
       dirty: true,
-      lastDiagnostics: [],
+      lastDiagnostics: diagnostics,
     });
   },
+  setDiagnostics: (diagnostics) => set({ lastDiagnostics: diagnostics }),
   reset: () =>
     set({
       doc: createSampleDocument(),

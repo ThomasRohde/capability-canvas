@@ -64,6 +64,23 @@ describe("commands", () => {
     );
   });
 
+  it("aligns centers to the selected group center", () => {
+    const doc = createSampleDocument();
+    const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
+    const selected = nodeIds.map((id) => doc.nodesById[id]!);
+    const minX = Math.min(...selected.map((node) => node.x));
+    const maxX = Math.max(...selected.map((node) => node.x + node.w));
+    const targetCenter = minX + (maxX - minX) / 2;
+
+    const result = runTransaction(doc, alignNodes(nodeIds, "center"));
+
+    expect(result.diagnostics).toHaveLength(0);
+    for (const nodeId of nodeIds) {
+      const node = result.doc.nodesById[nodeId]!;
+      expect(node.x + node.w / 2).toBe(targetCenter);
+    }
+  });
+
   it("uses configured right and bottom padding for resize containment", () => {
     const doc = createSampleDocument();
     doc.settings.containerPaddingRight = 4;

@@ -1,13 +1,19 @@
 import {
-  AlignCenterHorizontal,
-  AlignEndHorizontal,
-  AlignStartHorizontal,
-  Columns3,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalSpaceBetween,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  AlignVerticalJustifyStart,
+  AlignVerticalSpaceBetween,
   Copy,
   Maximize,
   Minus,
   Plus,
-  Rows3,
+  Scaling,
+  StretchHorizontal,
+  StretchVertical,
   Trash2,
 } from "lucide-react";
 import {
@@ -89,6 +95,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const viewModels = useMemo(
     () => createNodeViewModels(doc, docViewport),
     [doc, docViewport],
+  );
+  const visibleViewModels = useMemo(
+    () => viewModels.filter((vm) => vm.visible || selected.includes(vm.node.id)),
+    [selected, viewModels],
   );
   const contextNode = contextMenu ? doc.nodesById[contextMenu.nodeId] : null;
 
@@ -406,9 +416,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
         }}
       >
-        {viewModels
-          .filter((vm) => vm.visible || selected.includes(vm.node.id))
-          .map((vm) => {
+        {visibleViewModels.map((vm) => {
             const selectedState = selected.includes(vm.node.id);
             const fill = resolveNodeFill(vm.node, doc.heatmap);
             const isContainer = vm.node.type !== "leaf" && !vm.node.isTextLabel;
@@ -643,6 +651,37 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
               </div>
             );
           })}
+        {visibleViewModels
+          .filter((vm) => vm.node.type !== "leaf" && !vm.node.isTextLabel)
+          .map((vm) => {
+            const selectedState = selected.includes(vm.node.id);
+            const fill = resolveNodeFill(vm.node, doc.heatmap);
+            const dragDelta = drag?.nodeIds.includes(vm.node.id)
+              ? { x: drag.dx / viewport.zoom, y: drag.dy / viewport.zoom }
+              : { x: 0, y: 0 };
+            const resizeDelta =
+              resize?.nodeId === vm.node.id
+                ? { w: resize.dx / viewport.zoom, h: resize.dy / viewport.zoom }
+                : { w: 0, h: 0 };
+            return (
+              <div
+                key={`${vm.node.id}-frame`}
+                className={`cc-container-frame ${selectedState ? "selected" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                aria-hidden="true"
+                style={
+                  {
+                    left: vm.node.x + dragDelta.x,
+                    top: vm.node.y + dragDelta.y,
+                    width: Math.max(40, vm.node.w + resizeDelta.w),
+                    height: Math.max(32, vm.node.h + resizeDelta.h),
+                    zIndex: 10000 + vm.depth,
+                    pointerEvents: "none",
+                    "--node-border": fill.border,
+                  } as React.CSSProperties
+                }
+              />
+            );
+          })}
       </div>
       {contextMenu && contextNode && !readonly && (
         <div
@@ -727,7 +766,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       <Minimap
         bounds={doc.layout.boundingBox}
         viewport={docViewport}
-        nodes={viewModels.map((vm) => vm.bounds)}
+        nodes={viewModels.map((vm) => ({
+          ...vm.bounds,
+          fill: resolveNodeFill(vm.node, doc.heatmap),
+        }))}
         onFit={fitView}
         onZoomIn={() => zoomBy(0.1)}
         onZoomOut={() => zoomBy(-0.1)}
@@ -815,7 +857,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
     <div className="cc-bulk-toolbar">
       <span className="count">{selected.length} selected</span>
       <IconButton
-        icon={AlignStartHorizontal}
+        icon={AlignHorizontalJustifyStart}
         label={
           alignAllowed.valid
             ? "Align left"
@@ -825,7 +867,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onClick={() => execute(alignNodes(selected, "left"))}
       />
       <IconButton
-        icon={AlignCenterHorizontal}
+        icon={AlignHorizontalJustifyCenter}
         label={
           alignAllowed.valid
             ? "Align center"
@@ -835,7 +877,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onClick={() => execute(alignNodes(selected, "center"))}
       />
       <IconButton
-        icon={AlignEndHorizontal}
+        icon={AlignHorizontalJustifyEnd}
         label={
           alignAllowed.valid
             ? "Align right"
@@ -844,8 +886,40 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "right"))}
       />
+      <span className="cc-toolbar-separator" />
       <IconButton
-        icon={Rows3}
+        icon={AlignVerticalJustifyStart}
+        label={
+          alignAllowed.valid
+            ? "Align top"
+            : `Align top - ${alignAllowed.reason}`
+        }
+        disabled={!alignAllowed.valid}
+        onClick={() => execute(alignNodes(selected, "top"))}
+      />
+      <IconButton
+        icon={AlignVerticalJustifyCenter}
+        label={
+          alignAllowed.valid
+            ? "Align middle"
+            : `Align middle - ${alignAllowed.reason}`
+        }
+        disabled={!alignAllowed.valid}
+        onClick={() => execute(alignNodes(selected, "middle"))}
+      />
+      <IconButton
+        icon={AlignVerticalJustifyEnd}
+        label={
+          alignAllowed.valid
+            ? "Align bottom"
+            : `Align bottom - ${alignAllowed.reason}`
+        }
+        disabled={!alignAllowed.valid}
+        onClick={() => execute(alignNodes(selected, "bottom"))}
+      />
+      <span className="cc-toolbar-separator" />
+      <IconButton
+        icon={AlignHorizontalSpaceBetween}
         label={
           distributeAllowed.valid
             ? "Distribute horizontal"
@@ -855,7 +929,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onClick={() => execute(distributeNodes(selected, "horizontal"))}
       />
       <IconButton
-        icon={Columns3}
+        icon={AlignVerticalSpaceBetween}
         label={
           distributeAllowed.valid
             ? "Distribute vertical"
@@ -864,8 +938,29 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         disabled={!distributeAllowed.valid}
         onClick={() => execute(distributeNodes(selected, "vertical"))}
       />
+      <span className="cc-toolbar-separator" />
       <IconButton
-        icon={Copy}
+        icon={StretchHorizontal}
+        label={
+          sameSizeAllowed.valid
+            ? "Match width to first selected"
+            : `Match width - ${sameSizeAllowed.reason}`
+        }
+        disabled={!sameSizeAllowed.valid || !anchor}
+        onClick={() => anchor && execute(sameSize(selected, anchor, "width"))}
+      />
+      <IconButton
+        icon={StretchVertical}
+        label={
+          sameSizeAllowed.valid
+            ? "Match height to first selected"
+            : `Match height - ${sameSizeAllowed.reason}`
+        }
+        disabled={!sameSizeAllowed.valid || !anchor}
+        onClick={() => anchor && execute(sameSize(selected, anchor, "height"))}
+      />
+      <IconButton
+        icon={Scaling}
         label={
           sameSizeAllowed.valid
             ? "Match size to first selected"
@@ -873,6 +968,12 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         }
         disabled={!sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor))}
+      />
+      <span className="cc-toolbar-separator" />
+      <IconButton
+        icon={Copy}
+        label="Duplicate"
+        onClick={() => execute(duplicateNodes(selected))}
       />
       <IconButton
         icon={Maximize}
@@ -924,7 +1025,14 @@ function Minimap({
 }: {
   bounds: Bounds;
   viewport: Bounds;
-  nodes: Bounds[];
+  nodes: Array<
+    Bounds & {
+      fill: {
+        background: string;
+        border: string;
+      };
+    }
+  >;
   onFit: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -1001,12 +1109,8 @@ function Minimap({
               top: (node.y - bounds.y) * scale,
               width: Math.max(2, node.w * scale),
               height: Math.max(2, node.h * scale),
-              background:
-                index % 3 === 0
-                  ? "#bbf7d0"
-                  : index % 3 === 1
-                    ? "#fed7aa"
-                    : "#bae6fd",
+              background: node.fill.background,
+              border: `1px solid ${node.fill.border}`,
             }}
           />
         ))}

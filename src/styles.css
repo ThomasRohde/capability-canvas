@@ -642,6 +642,25 @@ button:focus-visible {
     0 0 0 6px rgba(20, 184, 166, 0.18);
 }
 
+.cc-container-frame {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px solid var(--node-border);
+  border-radius: 8px;
+  background: transparent;
+}
+
+.cc-container-frame.selected {
+  border-width: 2px;
+  box-shadow: 0 0 0 1px var(--node-border);
+}
+
+.cc-container-frame.drop-target {
+  box-shadow:
+    0 0 0 2px var(--cc-brand-700),
+    0 0 0 6px rgba(20, 184, 166, 0.18);
+}
+
 .cc-marquee {
   position: absolute;
   pointer-events: none;
@@ -781,6 +800,13 @@ button:focus-visible {
   padding: 0 8px;
   font-size: 12px;
   font-weight: 500;
+}
+
+.cc-bulk-toolbar .cc-toolbar-separator {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: var(--cc-slate-200);
 }
 
 .cc-inspector {

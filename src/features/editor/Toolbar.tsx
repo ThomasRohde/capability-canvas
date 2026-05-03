@@ -1,7 +1,6 @@
 import {
   Download,
   FileJson,
-  FolderOpen,
   Grid3X3,
   LayoutTemplate,
   Minus,
@@ -21,9 +20,10 @@ import {
   duplicateNodes,
 } from "../../domain/commands/operations";
 import { parseDocumentJson } from "../../domain/document/parse";
+import type { ParseResult } from "../../domain/document/parse";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
-import { openDocumentFile, saveDocumentFile } from "../../app/fileSystem";
+import { openDocumentFile } from "../../app/fileSystem";
 import { IconButton } from "../shared/IconButton";
 
 export function Toolbar() {
@@ -36,11 +36,25 @@ export function Toolbar() {
     (state) => state.isAutoLayoutRunning,
   );
   const setDocument = useDocumentStore((state) => state.setDocument);
+  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
+  const applyImportResult = (parsed: ParseResult, label: string) => {
+    if (!parsed.doc) {
+      setDiagnostics(parsed.diagnostics);
+      return;
+    }
+    setDocument(parsed.doc, label, parsed.diagnostics);
+    if (!parsed.doc.layout.preservePositions) void autoLayout(true);
+  };
+  const importDocument = () => {
+    void openDocumentFile().then((parsed) =>
+      applyImportResult(parsed, "Import file"),
+    );
+  };
 
   return (
     <header className="cc-toolbar">
@@ -56,17 +70,10 @@ export function Toolbar() {
         {doc.title}
       </button>
       <span className="cc-divider" />
-      <IconButton
-        icon={FolderOpen}
-        label="Open JSON file"
-        onClick={() =>
-          void openDocumentFile().then((next) => next && setDocument(next))
-        }
-      />
       <button
         className="cc-btn"
         type="button"
-        onClick={() => void saveDocumentFile(doc)}
+        onClick={importDocument}
       >
         <Upload /> Import
       </button>
@@ -190,7 +197,7 @@ export function Toolbar() {
           const raw = window.prompt("Paste Capability Canvas JSON");
           if (raw) {
             const parsed = parseDocumentJson(raw);
-            if (parsed.doc) setDocument(parsed.doc);
+            applyImportResult(parsed, "Import pasted JSON");
           }
         }}
       />

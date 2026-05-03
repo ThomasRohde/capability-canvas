@@ -746,13 +746,16 @@ function alignTarget(
   nodes: CapabilityNode[],
   direction: AlignDirection,
 ): number {
-  if (direction === "left") return Math.min(...nodes.map((node) => node.x));
-  if (direction === "center") return nodes[0]!.x + nodes[0]!.w / 2;
-  if (direction === "right")
-    return Math.max(...nodes.map((node) => node.x + node.w));
-  if (direction === "top") return Math.min(...nodes.map((node) => node.y));
-  if (direction === "middle") return nodes[0]!.y + nodes[0]!.h / 2;
-  return Math.max(...nodes.map((node) => node.y + node.h));
+  const minX = Math.min(...nodes.map((node) => node.x));
+  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
+  const minY = Math.min(...nodes.map((node) => node.y));
+  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
+  if (direction === "left") return minX;
+  if (direction === "center") return minX + (maxX - minX) / 2;
+  if (direction === "right") return maxX;
+  if (direction === "top") return minY;
+  if (direction === "middle") return minY + (maxY - minY) / 2;
+  return maxY;
 }
 
 function boundsForNodes(doc: CapabilityDocument, ids: NodeId[]) {
