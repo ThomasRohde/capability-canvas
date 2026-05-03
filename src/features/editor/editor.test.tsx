@@ -191,6 +191,20 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
   });
 
+  it("opens document title editing from the title chip", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Edit document title" }),
+    );
+
+    expect(
+      screen.getByRole("complementary", { name: "Settings" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue(
+      "Retail Bank Capability Model",
+    );
+  });
+
   it("toggles the canvas grid and updates grid size", async () => {
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");
@@ -248,6 +262,62 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Toggle inspector" }),
     );
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
+  });
+
+  it("filters the outline to the selected path", async () => {
+    const { container } = render(<EditorRoute />);
+    const outline = container.querySelector(".cc-outline") as HTMLElement;
+    expect(within(outline).getByText("Risk")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show selected outline path" }),
+    );
+
+    expect(within(outline).getByText("Digital Onboarding")).toBeInTheDocument();
+    expect(within(outline).getByText("Digital")).toBeInTheDocument();
+    expect(within(outline).queryByText("Risk")).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show all outline capabilities" }),
+    );
+    expect(within(outline).getByText("Risk")).toBeInTheDocument();
+  });
+
+  it("wires status bar actions to workspace state", async () => {
+    render(<EditorRoute />);
+
+    expect(
+      screen.queryByRole("button", { name: "Account" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Notifications" }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Hide layers" }));
+    expect(screen.queryByText("Outline")).not.toBeInTheDocument();
+    expect(useUiStore.getState().outlineOpen).toBe(false);
+
+    await userEvent.click(screen.getByRole("button", { name: "Show layers" }));
+    expect(screen.getByText("Outline")).toBeInTheDocument();
+    expect(useUiStore.getState().outlineOpen).toBe(true);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Hide inspector" }),
+    );
+    expect(screen.queryByText("Inspector")).not.toBeInTheDocument();
+    expect(useUiStore.getState().inspectorOpen).toBe(false);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show inspector" }),
+    );
+    expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
+    expect(useUiStore.getState().inspectorOpen).toBe(true);
+
+    await userEvent.click(screen.getByRole("button", { name: "Diagnostics" }));
+    expect(
+      screen.getByRole("dialog", { name: "Diagnostics" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("No diagnostics")).toBeInTheDocument();
   });
 
   it("opens the app inspector instead of the browser menu on node right-click", async () => {
@@ -502,6 +572,18 @@ describe("editor shell", () => {
     expect(
       screen.getByRole("complementary", { name: "Export" }),
     ).toBeInTheDocument();
+  });
+
+  it("runs export validation and renders the selected format as display content", async () => {
+    const { container } = render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    expect(container.querySelector(".cc-format-card")?.tagName).toBe("DIV");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Run validation" }),
+    );
+
+    expect(screen.getByText("Validation passed")).toBeInTheDocument();
   });
 
   it("renders canvas padding controls and applies layout changes", async () => {

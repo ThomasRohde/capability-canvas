@@ -20,9 +20,9 @@ import {
   duplicateNodes,
 } from "../../domain/commands/operations";
 import { parseDocumentJson } from "../../domain/document/parse";
-import type { ParseResult } from "../../domain/document/parse";
-import { useDocumentStore } from "../../app/stores/documentStore";
+import { applyImportedDocument } from "../../app/importDocument";
 import { useUiStore } from "../../app/stores/uiStore";
+import { useDocumentStore } from "../../app/stores/documentStore";
 import { openDocumentFile } from "../../app/fileSystem";
 import { IconButton } from "../shared/IconButton";
 
@@ -35,24 +35,14 @@ export function Toolbar() {
   const isAutoLayoutRunning = useDocumentStore(
     (state) => state.isAutoLayoutRunning,
   );
-  const setDocument = useDocumentStore((state) => state.setDocument);
-  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
-  const applyImportResult = (parsed: ParseResult, label: string) => {
-    if (!parsed.doc) {
-      setDiagnostics(parsed.diagnostics);
-      return;
-    }
-    setDocument(parsed.doc, label, parsed.diagnostics);
-    if (!parsed.doc.layout.preservePositions) void autoLayout(true);
-  };
   const importDocument = () => {
     void openDocumentFile().then((parsed) =>
-      applyImportResult(parsed, "Import file"),
+      applyImportedDocument(parsed, "Import file"),
     );
   };
 
@@ -66,7 +56,13 @@ export function Toolbar() {
         />
         <span className="cc-brand-name">Capability Canvas</span>
       </div>
-      <button className="cc-doc-picker" type="button" title={doc.title}>
+      <button
+        className="cc-doc-picker"
+        type="button"
+        aria-label="Edit document title"
+        title="Edit document title"
+        onClick={() => setActiveDrawer("settings")}
+      >
         {doc.title}
       </button>
       <span className="cc-divider" />
@@ -197,7 +193,7 @@ export function Toolbar() {
           const raw = window.prompt("Paste Capability Canvas JSON");
           if (raw) {
             const parsed = parseDocumentJson(raw);
-            applyImportResult(parsed, "Import pasted JSON");
+            applyImportedDocument(parsed, "Import pasted JSON");
           }
         }}
       />

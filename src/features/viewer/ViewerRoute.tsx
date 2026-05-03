@@ -51,9 +51,9 @@ export function ViewerRoute() {
           <span className="cc-brand-name">Capability Canvas Viewer</span>
         </div>
         <span className="cc-readonly-chip">Read-only</span>
-        <button className="cc-doc-picker" type="button">
+        <span className="cc-doc-picker cc-doc-label">
           {doc.title}
-        </button>
+        </span>
         <span className="cc-spacer" />
         <button
           className="cc-btn"

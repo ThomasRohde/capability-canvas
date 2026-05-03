@@ -4,6 +4,7 @@ import {
   Download,
   ExternalLink,
   RefreshCcw,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -54,10 +55,13 @@ export function ExportDrawer() {
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const format = useUiStore((state) => state.exportFormat);
   const setFormat = useUiStore((state) => state.setExportFormat);
+  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const [busy, setBusy] = useState(false);
+  const [validationRunAt, setValidationRunAt] = useState<number | null>(null);
   const validation = useMemo(() => validateDocument(doc), [doc]);
   if (!open) return null;
   const selected = FORMATS.find((item) => item.format === format)!;
+  const validationRows = validationChecks(validation.diagnostics);
   const viewerUrl = `${window.location.origin}${import.meta.env.BASE_URL}viewer?doc=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(serializeDocument(doc))))))}`;
 
   return (
@@ -85,7 +89,7 @@ export function ExportDrawer() {
       <div className="cc-export-body">
         <div className="cc-field">
           <span className="cc-section-title">Format</span>
-          <button className="cc-format-card on" type="button">
+          <div className="cc-format-card on">
             <Download size={18} />
             <span>
               <strong>{selected.tab}</strong>
@@ -94,32 +98,49 @@ export function ExportDrawer() {
                 {selected.desc}
               </span>
             </span>
-          </button>
+          </div>
         </div>
         <div className="cc-field">
           <span className="cc-section-title">Validate</span>
-          <button className="cc-btn" type="button">
+          <button
+            className="cc-btn"
+            type="button"
+            onClick={() => {
+              setDiagnostics(validation.diagnostics);
+              setValidationRunAt(Date.now());
+            }}
+          >
             <RefreshCcw /> Run validation
           </button>
-          {[
-            "Hierarchy",
-            "Duplicate IDs",
-            "Orphaned nodes",
-            "Missing labels",
-            "Manual layout bounds",
-            "References",
-          ].map((name) => (
-            <div className="cc-validation-row" key={name}>
+          {validationRunAt !== null && (
+            <div
+              className={`cc-validation-result ${validation.valid ? "valid" : "invalid"}`}
+            >
+              {validation.valid ? (
+                <CheckCircle2 size={16} />
+              ) : (
+                <TriangleAlert size={16} />
+              )}
+              <span>
+                {validation.valid
+                  ? "Validation passed"
+                  : `${validation.diagnostics.length} issues found`}
+              </span>
+            </div>
+          )}
+          {validationRows.map((row) => (
+            <div className="cc-validation-row" key={row.name}>
               <span
                 style={{ display: "inline-flex", gap: 8, alignItems: "center" }}
               >
-                <CheckCircle2 size={16} color="#10b981" /> {name}
+                {row.count === 0 ? (
+                  <CheckCircle2 size={16} color="#10b981" />
+                ) : (
+                  <TriangleAlert size={16} color="#f59e0b" />
+                )}
+                {row.name}
               </span>
-              <span>
-                {validation.valid
-                  ? "No issues"
-                  : `${validation.diagnostics.length} issues`}
-              </span>
+              <span>{row.count === 0 ? "No issues" : `${row.count} issues`}</span>
             </div>
           ))}
         </div>
@@ -161,4 +182,32 @@ export function ExportDrawer() {
       </div>
     </aside>
   );
+}
+
+function validationChecks(diagnostics: ReturnType<typeof validateDocument>["diagnostics"]) {
+  const countCodes = (codes: string[]) =>
+    diagnostics.filter((diagnostic) => codes.includes(diagnostic.code)).length;
+  return [
+    {
+      name: "Hierarchy",
+      count: countCodes([
+        "cycle",
+        "invalid-root-type",
+        "root-has-parent",
+        "text-label-has-children",
+      ]),
+    },
+    {
+      name: "Parent references",
+      count: countCodes(["missing-parent", "orphan-node"]),
+    },
+    {
+      name: "Geometry",
+      count: countCodes(["invalid-geometry", "invalid-dimensions"]),
+    },
+    {
+      name: "Heatmap values",
+      count: countCodes(["invalid-heatmap-value"]),
+    },
+  ];
 }

@@ -16,6 +16,7 @@ export function IconButton({ icon: Icon, label, onClick, active, disabled, class
       type="button"
       className={`cc-icon-btn ${active ? 'active' : ''} ${className ?? ''}`}
       aria-label={label}
+      aria-pressed={active === undefined ? undefined : active}
       title={label}
       onClick={onClick}
       disabled={disabled}
@@ -24,4 +25,3 @@ export function IconButton({ icon: Icon, label, onClick, active, disabled, class
     </button>
   );
 }
-

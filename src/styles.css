@@ -213,10 +213,18 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+.cc-doc-label {
+  cursor: default;
+}
+
 .cc-btn:hover,
 .cc-icon-btn:hover,
 .cc-doc-picker:hover {
   background: var(--cc-slate-50);
+}
+
+.cc-doc-label:hover {
+  background: var(--cc-white);
 }
 
 .cc-btn-primary {
@@ -911,6 +919,7 @@ button:focus-visible {
 }
 
 .cc-status {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -918,6 +927,137 @@ button:focus-visible {
   border-top: 1px solid var(--cc-slate-200);
   color: var(--cc-slate-600);
   font-size: 12px;
+}
+
+.cc-status-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-status-message-btn {
+  position: relative;
+}
+
+.cc-status-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--cc-white);
+  border-radius: 9999px;
+  background: var(--cc-danger);
+  color: var(--cc-white);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cc-status-popover {
+  position: absolute;
+  right: 14px;
+  bottom: calc(100% + 8px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100vw - 28px));
+  max-height: min(360px, calc(100vh - 96px));
+  overflow: hidden;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+  color: var(--cc-slate-700);
+}
+
+.cc-status-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cc-slate-200);
+}
+
+.cc-status-popover-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-status-link-btn {
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cc-brand-700);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cc-status-link-btn:hover {
+  background: var(--cc-brand-50);
+}
+
+.cc-status-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  color: var(--cc-slate-600);
+}
+
+.cc-status-empty svg {
+  color: var(--cc-success);
+}
+
+.cc-diagnostic-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 6px;
+  overflow: auto;
+  list-style: none;
+}
+
+.cc-diagnostic-list li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.cc-diagnostic-list li:hover {
+  background: var(--cc-slate-50);
+}
+
+.cc-diagnostic-list svg {
+  margin-top: 1px;
+  color: var(--cc-warning);
+}
+
+.cc-diagnostic-list strong,
+.cc-diagnostic-list span span {
+  display: block;
+  min-width: 0;
+}
+
+.cc-diagnostic-list strong {
+  color: var(--cc-slate-900);
+  font-size: 12px;
+}
+
+.cc-diagnostic-list span span {
+  margin-top: 2px;
+  color: var(--cc-slate-600);
+  line-height: 1.35;
 }
 
 .cc-dot {
@@ -1004,6 +1144,26 @@ button:focus-visible {
   gap: 8px;
   padding: 6px 0;
   font-size: 12px;
+}
+
+.cc-validation-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cc-validation-result.valid {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cc-validation-result.invalid {
+  background: #fffbeb;
+  color: #b45309;
 }
 
 .cc-settings-section {

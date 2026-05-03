@@ -3,6 +3,7 @@ import { parseDocumentJson } from "../domain/document/parse";
 import { findParentContainmentViolations } from "../domain/layout/containment";
 import { EditorRoute } from "../features/editor/EditorRoute";
 import { ViewerRoute } from "../features/viewer/ViewerRoute";
+import { applyImportedDocument } from "./importDocument";
 import { useAutosave } from "./persistence/autosave";
 import { useDocumentStore } from "./stores/documentStore";
 
@@ -25,8 +26,7 @@ export function App() {
     if (!pending) return;
     localStorage.removeItem("capability-canvas.import");
     const parsed = parseDocumentJson(pending);
-    if (parsed.doc)
-      useDocumentStore.getState().setDocument(parsed.doc, "Import from viewer");
+    applyImportedDocument(parsed, "Import from viewer");
   }, []);
   const isViewer = useMemo(() => currentRoutePath().startsWith("/viewer"), []);
   return isViewer ? <ViewerRoute /> : <EditorRoute />;

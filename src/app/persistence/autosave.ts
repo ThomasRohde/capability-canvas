@@ -7,8 +7,9 @@ export function useAutosave(): void {
   useEffect(() => {
     let disposed = false;
     void loadActiveDocument().then((doc) => {
-      if (!disposed && doc) {
-        useDocumentStore.getState().setDocument(doc, 'Restore saved document');
+      const store = useDocumentStore.getState();
+      if (!disposed && doc && !store.dirty) {
+        store.setDocument(doc, 'Restore saved document');
       }
     });
     return () => {
@@ -27,4 +28,3 @@ export function useAutosave(): void {
     return unsubscribe;
   }, []);
 }
-

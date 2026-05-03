@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { applyImportedDocument } from "../importDocument";
 import { addChild } from "../../domain/commands/operations";
 import {
   createEmptyDocument,
   createNode,
 } from "../../domain/document/defaults";
+import { parseDocument } from "../../domain/document/parse";
 import {
   childrenOf,
   type CapabilityDocument,
@@ -60,7 +62,38 @@ describe("document store layout settings", () => {
     expect(child.x + child.w).toBeLessThanOrEqual(parent.x + parent.w);
     expect(child.y + child.h).toBeLessThanOrEqual(parent.y + parent.h);
   });
+
+  it("runs auto layout after importing documents that do not preserve positions", async () => {
+    const parsed = parseDocument([
+      { id: "root", name: "Imported Root", parent: null },
+      { id: "domain", name: "Imported Domain", parent: "root" },
+      { id: "group", name: "Imported Group", parent: "domain" },
+      { id: "leaf-a", name: "Imported Leaf A", parent: "group" },
+      { id: "leaf-b", name: "Imported Leaf B", parent: "group" },
+    ]);
+    expect(parsed.doc?.layout.preservePositions).toBe(false);
+
+    applyImportedDocument(parsed, "Import capability list");
+    await waitForStoreLayout();
+
+    const doc = useDocumentStore.getState().doc;
+    const root = doc.nodesById[childrenOf(doc, null)[0]!]!;
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe("Auto layout");
+    expect(root.x).toBeGreaterThanOrEqual(0);
+    expect(root.y).toBeGreaterThanOrEqual(0);
+    expect(findParentContainmentViolations(doc)).toEqual([]);
+  });
 });
+
+async function waitForStoreLayout() {
+  for (let index = 0; index < 100; index += 1) {
+    const state = useDocumentStore.getState();
+    if (!state.isAutoLayoutRunning && state.past.at(-1)?.label === "Auto layout")
+      return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("Timed out waiting for auto layout.");
+}
 
 function wideRootSiblingDocument(): CapabilityDocument {
   const doc = createEmptyDocument();

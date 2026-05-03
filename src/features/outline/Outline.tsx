@@ -40,6 +40,7 @@ export function Outline() {
   const searchQuery = useUiStore((state) => state.searchQuery);
   const setSearchQuery = useUiStore((state) => state.setSearchQuery);
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
+  const [filterToSelection, setFilterToSelection] = useState(false);
 
   const rootItemId = "outline-root";
   const folderIds = useMemo(
@@ -100,6 +101,10 @@ export function Outline() {
     tree.rebuildTree();
   }, [structureSignature, tree]);
 
+  useEffect(() => {
+    if (selected.length === 0 && filterToSelection) setFilterToSelection(false);
+  }, [filterToSelection, selected.length]);
+
   return (
     <aside className="cc-outline">
       <div className="cc-outline-header">
@@ -133,9 +138,16 @@ export function Outline() {
           />
         </div>
         <button
-          className="cc-icon-btn"
+          className={`cc-icon-btn ${filterToSelection ? "active" : ""}`}
           type="button"
-          aria-label="Filter outline"
+          aria-label={
+            filterToSelection
+              ? "Show all outline capabilities"
+              : "Show selected outline path"
+          }
+          aria-pressed={filterToSelection}
+          disabled={selected.length === 0}
+          onClick={() => setFilterToSelection((enabled) => !enabled)}
         >
           <Filter />
         </button>
@@ -153,13 +165,15 @@ export function Outline() {
           .getItems()
           .filter((item) => item.getId() !== rootItemId)
           .filter((item) => {
+            const nodeId = item.getId();
             const query = searchQuery.trim().toLowerCase();
-            return (
+            const matchesSearch =
               query.length === 0 ||
-              (doc.nodesById[item.getId()]?.label
-                .toLowerCase()
-                .includes(query) ??
-                false)
+              (doc.nodesById[nodeId]?.label.toLowerCase().includes(query) ??
+                false);
+            return (
+              matchesSearch &&
+              matchesOutlineSelectionFilter(doc, nodeId, selected, filterToSelection)
             );
           })
           .map((item) => {
@@ -240,6 +254,34 @@ export function Outline() {
       </div>
     </aside>
   );
+}
+
+function matchesOutlineSelectionFilter(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+  selected: NodeId[],
+  enabled: boolean,
+) {
+  if (!enabled) return true;
+  if (selected.includes(nodeId)) return true;
+  return selected.some(
+    (selectedId) =>
+      isAncestorOf(doc, nodeId, selectedId) ||
+      isAncestorOf(doc, selectedId, nodeId),
+  );
+}
+
+function isAncestorOf(
+  doc: CapabilityDocument,
+  ancestorId: NodeId,
+  nodeId: NodeId,
+) {
+  let current = doc.nodesById[nodeId];
+  while (current?.parentId) {
+    if (current.parentId === ancestorId) return true;
+    current = doc.nodesById[current.parentId];
+  }
+  return false;
 }
 
 function arraysEqual(first: string[], second: string[]) {
