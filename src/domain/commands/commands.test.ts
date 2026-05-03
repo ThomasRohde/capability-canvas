@@ -3,11 +3,13 @@ import {
   addChild,
   alignNodes,
   fitParentToChildren,
+  lockSubtree,
   moveNodes,
   repairSiblingOverlaps,
   reparentNode,
   resizeNode,
   runTransaction,
+  setManualPositioning,
 } from "./operations";
 import { createSampleDocument } from "../fixtures/sample";
 
@@ -33,6 +35,23 @@ describe("commands", () => {
     expect(result.diagnostics.some((diag) => diag.code === "cycle")).toBe(true);
   });
 
+  it("promotes a leaf drop target to parent when reparenting into it", () => {
+    const doc = createSampleDocument();
+    const result = runTransaction(
+      doc,
+      reparentNode("fraud-risk", "operational-risk"),
+    );
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.nodesById["operational-risk"]).toMatchObject({
+      type: "parent",
+    });
+    expect(result.doc.nodesById["fraud-risk"]).toMatchObject({
+      parentId: "operational-risk",
+      type: "leaf",
+    });
+  });
+
   it("aligns sibling selections as one transaction", () => {
     const doc = createSampleDocument();
     const result = runTransaction(
@@ -52,7 +71,23 @@ describe("commands", () => {
 
     const result = runTransaction(doc, resizeNode("risk", 1, 1));
     expect(result.diagnostics).toHaveLength(0);
-    expect(result.doc.nodesById.risk).toMatchObject({ w: 436, h: 128 });
+    expect(result.doc.nodesById.risk).toMatchObject({ w: 416, h: 120 });
+  });
+
+  it("preserves explicit resize dimensions for manual-positioning parents", () => {
+    const manual = runTransaction(
+      createSampleDocument(),
+      setManualPositioning("risk", true),
+    ).doc;
+
+    const result = runTransaction(manual, resizeNode("risk", 100, 60));
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.nodesById.risk).toMatchObject({
+      w: 100,
+      h: 60,
+      isManualPositioningEnabled: true,
+    });
   });
 
   it("shrinks oversized parents when fitting to children", () => {
@@ -87,5 +122,28 @@ describe("commands", () => {
     const overlapping =
       a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
     expect(overlapping).toBe(false);
+  });
+
+  it("allows direct movement of locked capabilities while preserving resize lock semantics", () => {
+    const locked = runTransaction(
+      createSampleDocument(),
+      lockSubtree("risk", true),
+    ).doc;
+    const riskBefore = locked.nodesById.risk!;
+    const childBefore = locked.nodesById["credit-risk"]!;
+
+    const moved = runTransaction(locked, moveNodes(["risk"], 32, 16));
+
+    expect(moved.diagnostics).toHaveLength(0);
+    expect(moved.doc.nodesById.risk).toMatchObject({
+      x: riskBefore.x + 32,
+      y: riskBefore.y + 16,
+      isLockedAsIs: true,
+    });
+    expect(moved.doc.nodesById["credit-risk"]).toMatchObject({
+      x: childBefore.x + 32,
+      y: childBefore.y + 16,
+      isLockedAsIs: true,
+    });
   });
 });

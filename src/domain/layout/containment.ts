@@ -6,10 +6,6 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../document/types";
-import {
-  visibleHorizontalEdgePadding,
-  visibleVerticalEdgePadding,
-} from "./spacing";
 
 export interface ContainmentResult {
   doc: CapabilityDocument;
@@ -50,7 +46,8 @@ export function ensureParentContainment(
 
   for (const parentId of parentIds) {
     const parent = next.nodesById[parentId];
-    if (!parent || parent.isLockedAsIs) continue;
+    if (!parent || parent.isLockedAsIs || parent.isManualPositioningEnabled)
+      continue;
 
     const childBounds = boundsForIds(next, childrenOf(next, parentId));
     if (!childBounds) continue;
@@ -104,14 +101,12 @@ function containmentMargin(doc: CapabilityDocument, parentId: NodeId) {
     top:
       (parent?.layoutPreferences?.marginTop ??
         doc.settings.containerPaddingTop) + doc.settings.containerTitleHeight,
-    right: visibleHorizontalEdgePadding(
+    right:
       parent?.layoutPreferences?.marginRight ??
-        doc.settings.containerPaddingRight,
-    ),
-    bottom: visibleVerticalEdgePadding(
+      doc.settings.containerPaddingRight,
+    bottom:
       parent?.layoutPreferences?.marginBottom ??
-        doc.settings.containerPaddingBottom,
-    ),
+      doc.settings.containerPaddingBottom,
     left:
       parent?.layoutPreferences?.marginLeft ??
       doc.settings.containerPaddingLeft,

@@ -10,10 +10,6 @@ import type { Diagnostic } from "../validation/diagnostics";
 import { warning } from "../validation/diagnostics";
 import { snapCoordinate } from "./grid";
 import {
-  visibleHorizontalEdgePadding,
-  visibleVerticalEdgePadding,
-} from "./spacing";
-import {
   type LayoutPatch,
   type LayoutRequest,
   type LayoutResult,
@@ -157,9 +153,11 @@ export function applyLayoutPatches(
   if (patches.length === 0) return doc;
   const nodesById = { ...doc.nodesById };
   let changed = false;
+  const patchedIds = new Set<NodeId>();
   for (const patch of patches) {
     const node = nodesById[patch.id];
     if (!node) continue;
+    patchedIds.add(patch.id);
     const preserveCoordinates = isInsideManualSubtree(doc, patch.id);
     const nextX = preserveCoordinates ? patch.x : snapCoordinate(doc, patch.x);
     const nextY = preserveCoordinates ? patch.y : snapCoordinate(doc, patch.y);
@@ -181,6 +179,9 @@ export function applyLayoutPatches(
       updatedAt: Date.now(),
     };
   }
+  if (changed)
+    changed =
+      normalizePatchedParentBounds(doc, nodesById, patchedIds) || changed;
   if (!changed) return doc;
   const bounds = computeDocumentBounds({ ...doc, nodesById });
   return {
@@ -193,6 +194,69 @@ export function applyLayoutPatches(
     },
     timestamp: Date.now(),
   };
+}
+
+function normalizePatchedParentBounds(
+  doc: CapabilityDocument,
+  nodesById: CapabilityDocument["nodesById"],
+  patchedIds: Set<NodeId>,
+) {
+  if (patchedIds.size === 0) return false;
+  const nextDoc = { ...doc, nodesById };
+  const depths = computeDepths(nextDoc);
+  const parentIds = [...patchedIds]
+    .filter((nodeId) => childrenOf(nextDoc, nodeId).length > 0)
+    .sort((a, b) => (depths.get(b) ?? 0) - (depths.get(a) ?? 0));
+  let changed = false;
+
+  for (const parentId of parentIds) {
+    const parent = nodesById[parentId];
+    if (!parent) continue;
+    if (parent.isManualPositioningEnabled) continue;
+    const childBounds = boundsForIds(nextDoc, childrenOf(nextDoc, parentId));
+    if (!childBounds) continue;
+    const margin = {
+      top: childAreaTop(nextDoc, parent),
+      right:
+        parent.layoutPreferences?.marginRight ??
+        nextDoc.settings.containerPaddingRight,
+      bottom:
+        parent.layoutPreferences?.marginBottom ??
+        nextDoc.settings.containerPaddingBottom,
+      left:
+        parent.layoutPreferences?.marginLeft ??
+        nextDoc.settings.containerPaddingLeft,
+    };
+    const x = childBounds.x - margin.left;
+    const y = childBounds.y - margin.top;
+    const w = Math.max(
+      childBounds.w + margin.left + margin.right,
+    );
+    const h = childBounds.h + margin.top + margin.bottom;
+    if (x === parent.x && y === parent.y && w === parent.w && h === parent.h)
+      continue;
+    changed = true;
+    nodesById[parentId] = {
+      ...parent,
+      x,
+      y,
+      w,
+      h,
+      updatedAt: Date.now(),
+    };
+  }
+
+  return changed;
+}
+
+function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
+  const depths = new Map<NodeId, number>();
+  const visit = (nodeId: NodeId, depth: number) => {
+    depths.set(nodeId, depth);
+    for (const childId of childrenOf(doc, nodeId)) visit(childId, depth + 1);
+  };
+  for (const rootId of doc.childrenByParentId.__root__ ?? []) visit(rootId, 0);
+  return depths;
 }
 
 function isInsideManualSubtree(doc: CapabilityDocument, nodeId: NodeId) {
@@ -309,18 +373,12 @@ async function measureSubtree(
     id: node.id,
     x: 0,
     y: 0,
-    w: Math.max(
-      doc.settings.defaultParentWidth,
-      childBounds
-        ? childBounds.x + childBounds.w + margin.right
-        : margin.left + packed.w + margin.right,
-    ),
-    h: Math.max(
-      doc.settings.defaultParentHeight,
-      childBounds
-        ? childBounds.y + childBounds.h + margin.bottom
-        : childAreaTop(doc, node) + packed.h + margin.bottom,
-    ),
+    w: childBounds
+      ? childBounds.x + childBounds.w + margin.right
+      : margin.left + packed.w + margin.right,
+    h: childBounds
+      ? childBounds.y + childBounds.h + margin.bottom
+      : childAreaTop(doc, node) + packed.h + margin.bottom,
   };
 
   return {
@@ -388,14 +446,12 @@ async function measureAnchoredSubtree(
     id: node.id,
     x: 0,
     y: 0,
-    w: Math.max(
-      doc.settings.defaultParentWidth,
-      contentBounds ? contentBounds.x + contentBounds.w + margin.right : 0,
-    ),
-    h: Math.max(
-      doc.settings.defaultParentHeight,
-      contentBounds ? contentBounds.y + contentBounds.h + margin.bottom : 0,
-    ),
+    w: contentBounds
+      ? contentBounds.x + contentBounds.w + margin.right
+      : doc.settings.defaultParentWidth,
+    h: contentBounds
+      ? contentBounds.y + contentBounds.h + margin.bottom
+      : doc.settings.defaultParentHeight,
   };
 
   return {
@@ -426,8 +482,8 @@ function measureManualSubtree(
     id: node.id,
     x: 0,
     y: 0,
-    w: Math.max(doc.settings.defaultParentWidth, requiredW),
-    h: Math.max(doc.settings.defaultParentHeight, requiredH),
+    w: requiredW,
+    h: requiredH,
   };
   patches.push(parentPatch);
   collectCurrentSubtreePatches(doc, node.id, node.x, node.y, patches);
@@ -627,13 +683,11 @@ function nodeSize(doc: CapabilityDocument, node: CapabilityNode) {
 function nodeMargin(doc: CapabilityDocument, node: CapabilityNode) {
   return {
     top: node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop,
-    right: visibleHorizontalEdgePadding(
+    right:
       node.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight,
-    ),
-    bottom: visibleVerticalEdgePadding(
+    bottom:
       node.layoutPreferences?.marginBottom ??
-        doc.settings.containerPaddingBottom,
-    ),
+      doc.settings.containerPaddingBottom,
     left:
       node.layoutPreferences?.marginLeft ?? doc.settings.containerPaddingLeft,
   };

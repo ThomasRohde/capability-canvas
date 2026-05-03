@@ -427,22 +427,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                     toggleSelectionWithRules(doc, vm.node.id);
                   else if (!selected.includes(vm.node.id))
                     setSelection([vm.node.id]);
-                  if (readonly || vm.node.isLockedAsIs) return;
+                  if (readonly) return;
                   const selectionRoots = selected.includes(vm.node.id)
                     ? selected
                     : [vm.node.id];
                   const dragRootId = vm.node.id;
-                  const lockedDescendant = findLockedDescendant(
-                    doc,
-                    selectionRoots,
-                  );
-                  if (lockedDescendant) {
-                    pushDragDiagnostic(
-                      "drag-blocked-by-locked-descendant",
-                      `Locked descendant "${doc.nodesById[lockedDescendant]?.label ?? lockedDescendant}" anchors this subtree. Unlock it before dragging.`,
-                    );
-                    return;
-                  }
                   const activeSelection =
                     nodeIdsWithDescendants(selectionRoots);
                   const draggedSet = new Set(activeSelection);
@@ -774,26 +763,6 @@ function filterToSiblingGroup(
     if (list.length > best.length) best = list;
   }
   return best;
-}
-
-function findLockedDescendant(
-  doc: CapabilityDocument,
-  rootIds: NodeId[],
-): NodeId | null {
-  for (const rootId of rootIds) {
-    for (const id of descendantIds(doc, rootId)) {
-      if (doc.nodesById[id]?.isLockedAsIs) return id;
-    }
-  }
-  return null;
-}
-
-function pushDragDiagnostic(code: string, message: string): void {
-  const store = useDocumentStore.getState();
-  store.clearDiagnostics();
-  useDocumentStore.setState({
-    lastDiagnostics: [{ code, severity: "warning", message }],
-  });
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {

@@ -11,10 +11,6 @@ import {
 import { ensureParentContainment } from "../layout/containment";
 import { computeDocumentBounds } from "../layout/engine";
 import { snapCoordinate } from "../layout/grid";
-import {
-  visibleHorizontalEdgePadding,
-  visibleVerticalEdgePadding,
-} from "../layout/spacing";
 import { canAlign, canDistribute } from "../selection/rules";
 import {
   descendantsOf,
@@ -54,7 +50,8 @@ export function runTransaction(
     }
     next = result.doc;
   }
-  const contained = ensureParentContainment(next).doc;
+  const typed = refreshHierarchyTypes(next);
+  const contained = ensureParentContainment(typed).doc;
   const validation = validateDocument(contained);
   if (!validation.valid) {
     return { doc, diagnostics: [...diagnostics, ...validation.diagnostics] };
@@ -299,7 +296,7 @@ export function moveNodes(
         }
         for (const id of toMove) {
           const node = next.nodesById[id];
-          if (!node || node.isLockedAsIs) continue;
+          if (!node) continue;
           next.nodesById[id] = {
             ...node,
             x: node.x + dx,
@@ -335,24 +332,22 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
             "locked-node",
             "Locked capabilities cannot be resized.",
           );
-        const childBounds = boundsForNodes(doc, childrenOf(doc, nodeId));
+        const childBounds = node.isManualPositioningEnabled
+          ? null
+          : boundsForNodes(doc, childrenOf(doc, nodeId));
         const minW = childBounds
           ? childBounds.x +
             childBounds.w -
             node.x +
-            visibleHorizontalEdgePadding(
-              node.layoutPreferences?.marginRight ??
-                doc.settings.containerPaddingRight,
-            )
+            (node.layoutPreferences?.marginRight ??
+              doc.settings.containerPaddingRight)
           : 80;
         const minH = childBounds
           ? childBounds.y +
             childBounds.h -
             node.y +
-            visibleVerticalEdgePadding(
-              node.layoutPreferences?.marginBottom ??
-                doc.settings.containerPaddingBottom,
-            )
+            (node.layoutPreferences?.marginBottom ??
+              doc.settings.containerPaddingBottom)
           : 40;
         return updateOnly(doc, nodeId, {
           w: Math.max(w, minW),
@@ -611,14 +606,12 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
           (node.layoutPreferences?.marginTop ??
             doc.settings.containerPaddingTop) +
           doc.settings.containerTitleHeight,
-        right: visibleHorizontalEdgePadding(
+        right:
           node.layoutPreferences?.marginRight ??
-            doc.settings.containerPaddingRight,
-        ),
-        bottom: visibleVerticalEdgePadding(
+          doc.settings.containerPaddingRight,
+        bottom:
           node.layoutPreferences?.marginBottom ??
-            doc.settings.containerPaddingBottom,
-        ),
+          doc.settings.containerPaddingBottom,
         left:
           node.layoutPreferences?.marginLeft ??
           doc.settings.containerPaddingLeft,
@@ -777,6 +770,17 @@ export function deriveNodeType(
   node: CapabilityNode,
 ): CapabilityNode["type"] {
   if (!node.parentId) return "root";
-  if (node.isTextLabel) return "text";
+  if (node.isTextLabel || node.type === "text") return "text";
   return hasChildren(doc, node.id) ? "parent" : "leaf";
+}
+
+function refreshHierarchyTypes(doc: CapabilityDocument): CapabilityDocument {
+  let next = doc;
+  for (const node of Object.values(doc.nodesById)) {
+    const type = deriveNodeType(doc, node);
+    if (type === node.type) continue;
+    if (next === doc) next = cloneDocument(doc);
+    next.nodesById[node.id] = { ...next.nodesById[node.id]!, type };
+  }
+  return next;
 }

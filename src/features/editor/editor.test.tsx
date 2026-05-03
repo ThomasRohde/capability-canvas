@@ -9,6 +9,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import {
+  lockSubtree,
+  reparentNode,
+  runTransaction,
+} from "../../domain/commands/operations";
 import { EditorRoute } from "./EditorRoute";
 
 describe("editor shell", () => {
@@ -189,6 +194,26 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Label")).toHaveValue("Data Management");
   });
 
+  it("renders a leaf as a container after another capability is reparented into it", () => {
+    const reparentedDoc = runTransaction(
+      useDocumentStore.getState().doc,
+      reparentNode("fraud-risk", "operational-risk"),
+    ).doc;
+    useDocumentStore.setState({ doc: reparentedDoc });
+    useUiStore.setState({ selectedNodeIds: ["operational-risk"] });
+    const { container } = render(<EditorRoute />);
+
+    const operationalRisk = within(screen.getByTestId("canvas"))
+      .getByText("Operational Risk")
+      .closest(".cc-node") as HTMLElement;
+
+    expect(operationalRisk).toHaveClass("container");
+    expect(operationalRisk.querySelector(".cc-node-title")).toBeInTheDocument();
+    expect(container.querySelector(".cc-node.selected.container")).toBe(
+      operationalRisk,
+    );
+  });
+
   it("snaps drag movement to the grid and previews dragged descendants", () => {
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");
@@ -248,6 +273,68 @@ describe("editor shell", () => {
       expectedDy,
     );
     expect(after.nodesById.operations!.x % before.settings.gridSize).toBe(0);
+  });
+
+  it("allows locked capabilities to be dragged inside their parent", () => {
+    const lockedDoc = runTransaction(
+      useDocumentStore.getState().doc,
+      lockSubtree("risk", true),
+    ).doc;
+    useDocumentStore.setState({ doc: lockedDoc });
+    useUiStore.setState({ selectedNodeIds: ["risk"] });
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const risk = within(canvas)
+      .getByText("Risk")
+      .closest(".cc-node") as HTMLElement;
+    const creditRisk = within(canvas)
+      .getByText("Credit Risk")
+      .closest(".cc-node") as HTMLElement;
+    const before = useDocumentStore.getState().doc;
+    const parentBefore = before.nodesById.risk!;
+    const childBefore = before.nodesById["credit-risk"]!;
+    const expectedDx =
+      Math.round((parentBefore.x + 21) / before.settings.gridSize) *
+        before.settings.gridSize -
+      parentBefore.x;
+    const expectedDy =
+      Math.round((parentBefore.y + 21) / before.settings.gridSize) *
+        before.settings.gridSize -
+      parentBefore.y;
+
+    fireEvent(
+      risk,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: 0,
+        clientY: 0,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        buttons: 1,
+        clientX: 21,
+        clientY: 21,
+      }),
+    );
+
+    expect(risk.style.left).toBe(`${parentBefore.x + expectedDx}px`);
+    expect(risk.style.top).toBe(`${parentBefore.y + expectedDy}px`);
+    expect(creditRisk.style.left).toBe(`${childBefore.x + expectedDx}px`);
+    expect(creditRisk.style.top).toBe(`${childBefore.y + expectedDy}px`);
+
+    fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
+    const after = useDocumentStore.getState().doc;
+    expect(after.nodesById.risk!.isLockedAsIs).toBe(true);
+    expect(after.nodesById.risk!.x - parentBefore.x).toBe(expectedDx);
+    expect(after.nodesById.risk!.y - parentBefore.y).toBe(expectedDy);
+    expect(after.nodesById["credit-risk"]!.isLockedAsIs).toBe(true);
+    expect(after.nodesById["credit-risk"]!.x - childBefore.x).toBe(expectedDx);
+    expect(after.nodesById["credit-risk"]!.y - childBefore.y).toBe(expectedDy);
   });
 
   it("snaps resize handles to the grid when enabled", () => {
@@ -338,6 +425,9 @@ describe("editor shell", () => {
     expect(useDocumentStore.getState().doc.settings.containerTitleHeight).toBe(
       8,
     );
+    expect(screen.getByText("New parent defaults")).toBeInTheDocument();
+    expect(screen.getByLabelText("Width")).toHaveValue(360);
+    expect(screen.getByLabelText("Height")).toHaveValue(140);
     expect(screen.getByLabelText("Horizontal")).toBeInTheDocument();
     await waitFor(() =>
       expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),

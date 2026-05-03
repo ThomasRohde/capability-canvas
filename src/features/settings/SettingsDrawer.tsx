@@ -138,9 +138,12 @@ export function SettingsDrawer() {
                 void updateSettings({ fixedLeafHeight }, { autoLayout: true })
               }
             />
+          </div>
+          <div className="cc-section-title">New parent defaults</div>
+          <div className="cc-field-row">
             <NumberSetting
               id="parent-width"
-              label="Parent width"
+              label="Width"
               value={doc.settings.defaultParentWidth}
               min={1}
               onChange={(defaultParentWidth) =>
@@ -152,7 +155,7 @@ export function SettingsDrawer() {
             />
             <NumberSetting
               id="parent-height"
-              label="Parent height"
+              label="Height"
               value={doc.settings.defaultParentHeight}
               min={1}
               onChange={(defaultParentHeight) =>

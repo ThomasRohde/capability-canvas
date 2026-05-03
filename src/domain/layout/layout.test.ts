@@ -58,6 +58,31 @@ describe("layout engine", () => {
     ).toMatchObject({ x: 264, y: 92 });
   });
 
+  it("uses configured edge padding literally after grid snapping", async () => {
+    const doc = twoChildDocument();
+    doc.settings.containerPaddingTop = 8;
+    doc.settings.containerPaddingRight = 8;
+    doc.settings.containerPaddingBottom = 0;
+    doc.settings.containerPaddingLeft = 8;
+    doc.settings.childGapX = 24;
+
+    const result = await layoutDocument({ doc, force: true, mode: "uniform" });
+    const after = applyLayoutPatches(doc, result.patches);
+    const root = after.nodesById.root!;
+    const children = childrenOf(after, "root").map(
+      (id) => after.nodesById[id]!,
+    );
+    const childLeft = Math.min(...children.map((child) => child.x));
+    const childRight = Math.max(...children.map((child) => child.x + child.w));
+    const childTop = Math.min(...children.map((child) => child.y));
+    const childBottom = Math.max(...children.map((child) => child.y + child.h));
+
+    expect(childLeft - root.x).toBe(8);
+    expect(root.x + root.w - childRight).toBe(8);
+    expect(childTop - root.y).toBe(36);
+    expect(root.y + root.h - childBottom).toBe(0);
+  });
+
   it("uses the title area setting for the controllable top reserve inside containers", async () => {
     const doc = twoChildDocument();
     doc.settings.containerPaddingTop = 40;
@@ -158,10 +183,10 @@ describe("layout engine", () => {
     const childRight = Math.max(...children.map((child) => child.x + child.w));
     const childBottom = Math.max(...children.map((child) => child.y + child.h));
 
-    expect(root.w).toBe(1624);
-    expect(root.h).toBe(196);
-    expect(root.x + root.w - childRight).toBe(24);
-    expect(root.y + root.h - childBottom).toBe(16);
+    expect(root.w).toBe(1604);
+    expect(root.h).toBe(188);
+    expect(root.x + root.w - childRight).toBe(4);
+    expect(root.y + root.h - childBottom).toBe(8);
   });
 
   it("shrinks manual parents while preserving child positions", async () => {
@@ -177,7 +202,7 @@ describe("layout engine", () => {
     const result = await layoutDocument({ doc, force: true, mode: "uniform" });
     const after = applyLayoutPatches(doc, result.patches);
 
-    expect(after.nodesById.root).toMatchObject({ w: 1624, h: 196 });
+    expect(after.nodesById.root).toMatchObject({ w: 1604, h: 188 });
     expect(after.nodesById.servicing).toMatchObject({
       x: 12,
       y: 40,
