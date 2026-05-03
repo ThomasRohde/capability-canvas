@@ -28,9 +28,14 @@ export function App() {
     if (parsed.doc)
       useDocumentStore.getState().setDocument(parsed.doc, "Import from viewer");
   }, []);
-  const isViewer = useMemo(
-    () => window.location.pathname.startsWith("/viewer"),
-    [],
-  );
+  const isViewer = useMemo(() => currentRoutePath().startsWith("/viewer"), []);
   return isViewer ? <ViewerRoute /> : <EditorRoute />;
+}
+
+function currentRoutePath() {
+  const base = new URL(import.meta.env.BASE_URL, window.location.origin)
+    .pathname;
+  const path = window.location.pathname;
+  if (path.startsWith(base)) return `/${path.slice(base.length)}`;
+  return path;
 }
