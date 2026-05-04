@@ -10,6 +10,7 @@ import {
   resizeNode,
   runTransaction,
   setManualPositioning,
+  updateNodeColors,
 } from "./operations";
 import { createSampleDocument } from "../fixtures/sample";
 
@@ -62,6 +63,17 @@ describe("commands", () => {
     expect(result.doc.nodesById["credit-risk"]!.y).toBe(
       result.doc.nodesById["fraud-risk"]!.y,
     );
+  });
+
+  it("updates selected capability colors as one transaction", () => {
+    const doc = createSampleDocument();
+    const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
+
+    const result = runTransaction(doc, updateNodeColors(nodeIds, "lavender"));
+
+    expect(result.diagnostics).toHaveLength(0);
+    for (const nodeId of nodeIds)
+      expect(result.doc.nodesById[nodeId]!.color).toBe("lavender");
   });
 
   it("aligns centers to the selected group center", () => {

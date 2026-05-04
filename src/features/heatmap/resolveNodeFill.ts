@@ -7,6 +7,16 @@ export interface NodeFill {
   text: string;
 }
 
+export const CAPABILITY_COLORS: CapabilityColor[] = [
+  'mint',
+  'sky',
+  'coral',
+  'amber',
+  'lavender',
+  'peach',
+  'teal'
+];
+
 export const CATEGORY_STYLES: Record<CapabilityColor, NodeFill> = {
   mint: { background: '#ecfdf5', border: '#6ee7b7', dot: '#10b981', text: '#0f172a' },
   sky: { background: '#ecfeff', border: '#7dd3fc', dot: '#0ea5e9', text: '#0f172a' },

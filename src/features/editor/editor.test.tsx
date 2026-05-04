@@ -781,12 +781,43 @@ describe("editor shell", () => {
       "Match width to first selected",
       "Match height to first selected",
       "Match size to first selected",
+      "Change selected color",
       "Duplicate",
       "Delete",
     ]) {
       expect(
         within(bulkToolbar).getByRole("button", { name: label }),
       ).toBeInTheDocument();
+    }
+  });
+
+  it("updates selected colors from the floating toolbar", async () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
+    });
+    const { container } = render(<EditorRoute />);
+    const bulkToolbar = container.querySelector(
+      ".cc-bulk-toolbar",
+    ) as HTMLElement;
+
+    await userEvent.click(
+      within(bulkToolbar).getByRole("button", {
+        name: "Change selected color",
+      }),
+    );
+    await userEvent.click(
+      within(bulkToolbar).getByRole("button", {
+        name: "Set selected color lavender",
+      }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    for (const nodeId of [
+      "credit-risk",
+      "fraud-risk",
+      "operational-risk",
+    ]) {
+      expect(doc.nodesById[nodeId]!.color).toBe("lavender");
     }
   });
 

@@ -10,6 +10,7 @@ import {
   Copy,
   Maximize,
   Minus,
+  Palette,
   Plus,
   Scaling,
   StretchHorizontal,
@@ -37,10 +38,12 @@ import {
   resizeNode,
   sameSize,
   transaction,
+  updateNodeColors,
 } from "../../domain/commands/operations";
 import {
   ROOT_PARENT_ID,
   type Bounds,
+  type CapabilityColor,
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
@@ -58,6 +61,8 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import {
+  CAPABILITY_COLORS,
+  CATEGORY_STYLES,
   heatmapGradient,
   resolveNodeFill,
 } from "../heatmap/resolveNodeFill";
@@ -967,6 +972,8 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onClick={() => anchor && execute(sameSize(selected, anchor))}
       />
       <span className="cc-toolbar-separator" />
+      <BulkColorPicker selected={selected} />
+      <span className="cc-toolbar-separator" />
       <IconButton
         icon={Copy}
         label="Duplicate"
@@ -988,6 +995,98 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         label="Delete"
         onClick={() => execute(deleteNodes(selected))}
       />
+    </div>
+  );
+}
+
+function BulkColorPicker({ selected }: { selected: NodeId[] }) {
+  const doc = useDocumentStore((state) => state.doc);
+  const execute = useDocumentStore((state) => state.execute);
+  const [open, setOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const selectedNodes = selected
+    .map((nodeId) => doc.nodesById[nodeId])
+    .filter(Boolean);
+  const selectedColors = new Set(selectedNodes.map((node) => node.color));
+  const activeColor =
+    selectedColors.size === 1 ? selectedNodes[0]?.color : undefined;
+  const activeStyle = activeColor ? CATEGORY_STYLES[activeColor] : undefined;
+  const previewStyle = activeStyle
+    ? {
+        background: activeStyle.background,
+        borderColor: activeStyle.border,
+      }
+    : {
+        background:
+          "conic-gradient(#10b981 0 25%, #0ea5e9 0 50%, #f59e0b 0 75%, #8b5cf6 0)",
+        borderColor: "var(--cc-slate-300)",
+      };
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        pickerRef.current?.contains(event.target)
+      )
+        return;
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const applyColor = (color: CapabilityColor) => {
+    execute(updateNodeColors(selected, color));
+    setOpen(false);
+  };
+
+  return (
+    <div
+      ref={pickerRef}
+      className="cc-bulk-color-picker"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className={`cc-icon-btn ${open ? "active" : ""}`}
+        aria-label="Change selected color"
+        aria-expanded={open}
+        title="Change selected color"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <Palette aria-hidden="true" />
+        <span className="cc-bulk-color-preview" style={previewStyle} />
+      </button>
+      {open && (
+        <div className="cc-bulk-color-popover" aria-label="Color picker">
+          {CAPABILITY_COLORS.map((color) => {
+            const style = CATEGORY_STYLES[color];
+            return (
+              <button
+                key={color}
+                type="button"
+                aria-label={`Set selected color ${color}`}
+                aria-pressed={activeColor === color}
+                className={`cc-bulk-color-swatch ${activeColor === color ? "on" : ""}`}
+                title={`Set selected color ${color}`}
+                style={{
+                  color: style.border,
+                  background: style.background,
+                }}
+                onClick={() => applyColor(color)}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

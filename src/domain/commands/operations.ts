@@ -5,6 +5,7 @@ import {
   hasChildren,
   now,
   ROOT_PARENT_ID,
+  type CapabilityColor,
   type CapabilityDocument,
   type CapabilityNode,
   type NodeId,
@@ -198,6 +199,36 @@ export function updateNode(
       return ok(next);
     }),
   ]);
+}
+
+export function updateNodeColors(
+  nodeIds: NodeId[],
+  color: CapabilityColor,
+): Transaction {
+  return transaction(
+    "Update capability colors",
+    [
+      command("update-node-colors", { nodeIds, color }, (doc) => {
+        if (nodeIds.length === 0) return ok(doc);
+        const next = cloneDocument(doc);
+        let changed = false;
+        for (const nodeId of nodeIds) {
+          const node = next.nodesById[nodeId];
+          if (!node)
+            return fail(
+              doc,
+              "missing-node",
+              "The selected capability no longer exists.",
+            );
+          if (node.color === color) continue;
+          next.nodesById[nodeId] = { ...node, color, updatedAt: now() };
+          changed = true;
+        }
+        return ok(changed ? next : doc);
+      }),
+    ],
+    { source: "bulk" },
+  );
 }
 
 export function updateDocumentTitle(title: string): Transaction {

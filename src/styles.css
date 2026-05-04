@@ -867,6 +867,53 @@ button:focus-visible {
   background: var(--cc-slate-200);
 }
 
+.cc-bulk-color-picker {
+  position: relative;
+  display: inline-flex;
+}
+
+.cc-bulk-color-preview {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid;
+  border-radius: 2px;
+  background: var(--cc-white);
+}
+
+.cc-bulk-color-popover {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 42;
+  display: grid;
+  gap: 6px;
+  padding: 5px;
+  transform: translateX(-50%);
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-bulk-color-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 5px;
+}
+
+.cc-bulk-color-swatch:hover {
+  box-shadow: 0 0 0 2px var(--cc-slate-200);
+}
+
+.cc-bulk-color-swatch.on {
+  box-shadow: 0 0 0 2px var(--cc-brand-700);
+}
+
 .cc-inspector {
   display: flex;
   flex-direction: column;

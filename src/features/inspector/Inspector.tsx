@@ -8,24 +8,13 @@ import {
   updateNode,
 } from "../../domain/commands/operations";
 import type {
-  CapabilityColor,
   CapabilityDocument,
   CapabilityNode,
 } from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
-import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
-
-const COLORS: CapabilityColor[] = [
-  "mint",
-  "sky",
-  "coral",
-  "amber",
-  "lavender",
-  "peach",
-  "teal",
-];
+import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
 export function Inspector({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
@@ -330,7 +319,7 @@ function ColorEditor({ node }: { node: CapabilityNode }) {
     <div className="cc-field">
       <span className="cc-section-title">Color</span>
       <div className="cc-color-row">
-        {COLORS.map((color) => (
+        {CAPABILITY_COLORS.map((color) => (
           <button
             key={color}
             type="button"
