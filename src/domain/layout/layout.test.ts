@@ -62,7 +62,7 @@ describe("layout engine", () => {
     ).toMatchObject({ x: 264, y: 92 });
   });
 
-  it("keeps configured edge padding after grid snapping", async () => {
+  it("keeps configured edge padding when grid is enabled", async () => {
     const doc = twoChildDocument();
     doc.settings.containerPaddingTop = 8;
     doc.settings.containerPaddingRight = 8;
@@ -85,6 +85,29 @@ describe("layout engine", () => {
     expect(root.x + root.w - childRight).toBeGreaterThanOrEqual(8);
     expect(childTop - root.y).toBe(36);
     expect(root.y + root.h - childBottom).toBeGreaterThanOrEqual(0);
+  });
+
+  it("keeps repeated auto layout idempotent with sub-grid padding", async () => {
+    const doc = fourChildSubGridPaddingDocument();
+    const first = await applyAutoLayoutCycle(doc, "adaptive");
+    const second = await applyAutoLayoutCycle(first, "adaptive");
+    const third = await applyAutoLayoutCycle(second, "adaptive");
+
+    expect(geometryFor(second)).toEqual(geometryFor(first));
+    expect(geometryFor(third)).toEqual(geometryFor(first));
+    expect(first.nodesById.root).toMatchObject({ x: 24, y: 24, w: 384, h: 180 });
+
+    const root = first.nodesById.root!;
+    const children = childrenOf(first, "root").map((id) => first.nodesById[id]!);
+    const childLeft = Math.min(...children.map((child) => child.x));
+    const childRight = Math.max(...children.map((child) => child.x + child.w));
+    const childTop = Math.min(...children.map((child) => child.y));
+    const childBottom = Math.max(...children.map((child) => child.y + child.h));
+
+    expect(childLeft - root.x).toBe(8);
+    expect(root.x + root.w - childRight).toBe(8);
+    expect(childTop - root.y).toBe(44);
+    expect(root.y + root.h - childBottom).toBe(8);
   });
 
   it("uses the title area setting for the controllable top reserve inside containers", async () => {
@@ -319,6 +342,67 @@ function twoChildDocument() {
   doc.childrenByParentId["child-a"] = [];
   doc.childrenByParentId["child-b"] = [];
   return doc;
+}
+
+function fourChildSubGridPaddingDocument() {
+  const doc = createEmptyDocument();
+  doc.layout.preservePositions = false;
+  doc.layout.isUserArranged = false;
+  doc.settings.gridEnabled = true;
+  doc.settings.gridSize = 16;
+  doc.settings.fixedLeafWidth = 168;
+  doc.settings.fixedLeafHeight = 56;
+  doc.settings.defaultParentWidth = 200;
+  doc.settings.defaultParentHeight = 140;
+  doc.settings.containerPaddingTop = 8;
+  doc.settings.containerPaddingRight = 8;
+  doc.settings.containerPaddingBottom = 8;
+  doc.settings.containerPaddingLeft = 8;
+  doc.settings.containerTitleHeight = 36;
+  doc.settings.childGapX = 32;
+  doc.settings.childGapY = 16;
+
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Root",
+    type: "root",
+    x: 24,
+    y: 24,
+    w: 704,
+    h: 436,
+  });
+  for (let index = 0; index < 4; index += 1) {
+    const id = `child-${index + 1}`;
+    doc.nodesById[id] = createNode({
+      id,
+      parentId: "root",
+      label: `Child ${index + 1}`,
+    });
+    doc.childrenByParentId[id] = [];
+  }
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+  doc.childrenByParentId.root = ["child-1", "child-2", "child-3", "child-4"];
+  return doc;
+}
+
+async function applyAutoLayoutCycle(
+  doc: CapabilityDocument,
+  mode: "uniform" | "flow" | "adaptive",
+) {
+  const result = await layoutDocument({ doc, force: true, mode });
+  return ensureParentContainment(applyLayoutPatches(doc, result.patches)).doc;
+}
+
+function geometryFor(doc: CapabilityDocument) {
+  type Geometry = Record<string, { x: number; y: number; w: number; h: number }>;
+  const entries: Array<[string, Geometry[string]]> = Object.values(
+    doc.nodesById,
+  ).map((node) => [
+    node.id,
+    { x: node.x, y: node.y, w: node.w, h: node.h },
+  ]);
+  entries.sort(([left], [right]) => left.localeCompare(right));
+  return Object.fromEntries(entries) as Geometry;
 }
 
 function nestedBrowserCase() {
