@@ -1,4 +1,5 @@
 import { Download, ExternalLink } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useEffect } from "react";
 import { decodeBase64Text } from "../../app/base64";
 import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
@@ -15,6 +16,10 @@ export function ViewerRoute() {
   const doc = useDocumentStore((state) => state.doc);
   const setDocument = useDocumentStore((state) => state.setDocument);
   const setViewport = useUiStore((state) => state.setViewport);
+  const outlineWidth = useUiStore((state) => state.outlineWidth);
+  const workspaceStyle = {
+    "--cc-outline-width": `${outlineWidth}px`,
+  } as CSSProperties;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -59,9 +64,7 @@ export function ViewerRoute() {
           <span className="cc-brand-name">Capability Canvas Viewer</span>
         </div>
         <span className="cc-readonly-chip">Read-only</span>
-        <span className="cc-doc-picker cc-doc-label">
-          {doc.title}
-        </span>
+        <span className="cc-doc-picker cc-doc-label">{doc.title}</span>
         <span className="cc-spacer" />
         <button
           className="cc-btn"
@@ -132,7 +135,7 @@ export function ViewerRoute() {
           Import into editor <ExternalLink size={14} />
         </button>
       </header>
-      <div className="cc-workspace">
+      <div className="cc-workspace" style={workspaceStyle}>
         <Outline readonly />
         <Canvas readonly />
         <Inspector readonly />

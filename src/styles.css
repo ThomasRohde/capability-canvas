@@ -373,11 +373,55 @@ button:disabled {
 }
 
 .cc-outline {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   border-right: 1px solid var(--cc-slate-200);
+}
+
+.cc-outline-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  z-index: 30;
+  width: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.cc-outline-resize-handle::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+  content: "";
+}
+
+.cc-outline-resize-handle:hover::before,
+.cc-outline-resize-handle:focus-visible::before,
+body.cc-is-resizing-outline .cc-outline-resize-handle::before {
+  background: var(--cc-brand-500);
+}
+
+.cc-outline-resize-handle:focus-visible {
+  outline: none;
+}
+
+body.cc-is-resizing-outline {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.cc-is-resizing-outline * {
+  cursor: col-resize !important;
 }
 
 .cc-outline-header,
@@ -1371,12 +1415,14 @@ button:focus-visible {
 
 @media (max-width: 960px) {
   .cc-viewer .cc-workspace {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: var(--cc-outline-width) minmax(0, 1fr);
   }
 
   .cc-editor-workspace,
   .cc-editor-workspace.inspector-closed {
-    grid-template-columns: var(--cc-rail-width) 220px minmax(0, 1fr) 0;
+    grid-template-columns:
+      var(--cc-rail-width) var(--cc-outline-width) minmax(0, 1fr)
+      0;
   }
 
   .cc-editor-workspace.outline-closed,

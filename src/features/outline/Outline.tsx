@@ -12,6 +12,10 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addChild,
@@ -33,7 +37,12 @@ import {
 } from "../../domain/document/types";
 import { canMultiSelect } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import { useUiStore } from "../../app/stores/uiStore";
+import {
+  MAX_OUTLINE_WIDTH,
+  MIN_OUTLINE_WIDTH,
+  clampOutlineWidth,
+  useUiStore,
+} from "../../app/stores/uiStore";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
 export function Outline({ readonly = false }: { readonly?: boolean }) {
@@ -42,6 +51,8 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
   const setOutlineOpen = useUiStore((state) => state.setOutlineOpen);
+  const outlineWidth = useUiStore((state) => state.outlineWidth);
+  const setOutlineWidth = useUiStore((state) => state.setOutlineWidth);
   const viewport = useUiStore((state) => state.viewport);
   const canvasSize = useUiStore((state) => state.canvasSize);
   const searchQuery = useUiStore((state) => state.searchQuery);
@@ -118,6 +129,51 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
   useEffect(() => {
     if (selected.length === 0 && filterToSelection) setFilterToSelection(false);
   }, [filterToSelection, selected.length]);
+
+  const startOutlineResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 && event.button !== undefined) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const workspace = event.currentTarget.closest(
+      ".cc-workspace",
+    ) as HTMLElement | null;
+    const startClientX = event.clientX;
+    const startWidth = outlineWidth;
+    let nextWidth = startWidth;
+    document.body.classList.add("cc-is-resizing-outline");
+
+    const onMove = (move: PointerEvent) => {
+      nextWidth = clampOutlineWidth(startWidth + move.clientX - startClientX);
+      workspace?.style.setProperty("--cc-outline-width", `${nextWidth}px`);
+    };
+
+    const onEnd = () => {
+      document.body.classList.remove("cc-is-resizing-outline");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      setOutlineWidth(nextWidth);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+  };
+
+  const resizeOutlineFromKeyboard = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) => {
+    const step = event.shiftKey ? 48 : 16;
+    const keyWidths: Record<string, number> = {
+      ArrowLeft: outlineWidth - step,
+      ArrowRight: outlineWidth + step,
+      Home: MIN_OUTLINE_WIDTH,
+      End: MAX_OUTLINE_WIDTH,
+    };
+    if (!(event.key in keyWidths)) return;
+    event.preventDefault();
+    setOutlineWidth(keyWidths[event.key]!);
+  };
 
   return (
     <aside className="cc-outline">
@@ -294,6 +350,18 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
           </button>
         </div>
       )}
+      <div
+        className="cc-outline-resize-handle"
+        role="separator"
+        aria-label="Resize outline"
+        aria-orientation="vertical"
+        aria-valuemin={MIN_OUTLINE_WIDTH}
+        aria-valuemax={MAX_OUTLINE_WIDTH}
+        aria-valuenow={outlineWidth}
+        tabIndex={0}
+        onPointerDown={startOutlineResize}
+        onKeyDown={resizeOutlineFromKeyboard}
+      />
     </aside>
   );
 }
@@ -382,7 +450,9 @@ function OutlineActionsMenu({
           role="menuitem"
           onClick={() =>
             run(() =>
-              execute(addChild(nodeId, "New capability", { isOnCanvas: false })),
+              execute(
+                addChild(nodeId, "New capability", { isOnCanvas: false }),
+              ),
             )
           }
         >

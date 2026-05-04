@@ -1,9 +1,15 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_VERSION } from "../../app/version";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import { useUiStore } from "../../app/stores/uiStore";
+import { DEFAULT_OUTLINE_WIDTH, useUiStore } from "../../app/stores/uiStore";
 import {
   lockSubtree,
   reparentNode,
@@ -24,6 +30,7 @@ describe("editor shell", () => {
     useUiStore.setState({
       selectedNodeIds: ["digital-onboarding"],
       outlineOpen: true,
+      outlineWidth: DEFAULT_OUTLINE_WIDTH,
       inspectorOpen: true,
       activeDrawer: null,
       exportFormat: "json",
@@ -254,6 +261,42 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Toggle outline" }),
     );
     expect(screen.getByText("Outline")).toBeInTheDocument();
+  });
+
+  it("resizes the outline from the panel edge", () => {
+    const { container } = render(<EditorRoute />);
+    const workspace = container.querySelector(
+      ".cc-editor-workspace",
+    ) as HTMLElement;
+    const handle = screen.getByRole("separator", { name: "Resize outline" });
+
+    expect(workspace.style.getPropertyValue("--cc-outline-width")).toBe(
+      `${DEFAULT_OUTLINE_WIDTH}px`,
+    );
+
+    fireEvent(
+      handle,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        clientX: DEFAULT_OUTLINE_WIDTH,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        clientX: DEFAULT_OUTLINE_WIDTH + 120,
+      }),
+    );
+    fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
+
+    expect(useUiStore.getState().outlineWidth).toBe(
+      DEFAULT_OUTLINE_WIDTH + 120,
+    );
+    expect(workspace.style.getPropertyValue("--cc-outline-width")).toBe(
+      `${DEFAULT_OUTLINE_WIDTH + 120}px`,
+    );
   });
 
   it("collapses and restores the inspector even with no selection", async () => {
@@ -824,11 +867,7 @@ describe("editor shell", () => {
     );
 
     const doc = useDocumentStore.getState().doc;
-    for (const nodeId of [
-      "credit-risk",
-      "fraud-risk",
-      "operational-risk",
-    ]) {
+    for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
       expect(doc.nodesById[nodeId]!.color).toBe("lavender");
     }
   });
@@ -944,7 +983,9 @@ describe("editor shell", () => {
     fireEvent.change(within(dialog).getByRole("textbox"), {
       target: { value: stringifyDocument(importedDoc) },
     });
-    await userEvent.click(within(dialog).getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
 
     expect(useDocumentStore.getState().doc.title).toBe(
       "Pasted capability model",
