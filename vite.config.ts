@@ -10,7 +10,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: [
+        "favicon.svg",
+        "apple-touch-icon.png",
+        "pwa-192x192.png",
+        "pwa-512x512.png",
+        "maskable-icon-512x512.png",
+      ],
       manifest: {
         name: "Capability Canvas",
         short_name: "Capability Canvas",
@@ -23,6 +29,24 @@ export default defineConfig({
             src: `${base}favicon.svg`,
             sizes: "any",
             type: "image/svg+xml",
+          },
+          {
+            src: `${base}pwa-192x192.png`,
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: `${base}pwa-512x512.png`,
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: `${base}maskable-icon-512x512.png`,
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
