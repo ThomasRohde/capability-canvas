@@ -4,6 +4,7 @@ import { runTransaction, updateNode } from "../commands/operations";
 import {
   childrenOf,
   ROOT_PARENT_ID,
+  type LayoutMode,
   type CapabilityDocument,
 } from "../document/types";
 import {
@@ -11,7 +12,11 @@ import {
   createThousandNodeDocument,
 } from "../fixtures/sample";
 import { ensureParentContainment } from "./containment";
-import { applyLayoutPatches, computeDocumentBounds, layoutDocument } from "./engine";
+import {
+  applyLayoutPatches,
+  computeDocumentBounds,
+  layoutDocument,
+} from "./engine";
 
 describe("layout engine", () => {
   it("does not patch locked nodes, even when force bypasses document position preservation", async () => {
@@ -21,6 +26,17 @@ describe("layout engine", () => {
     ).doc;
     const result = await layoutDocument({ doc, force: true, mode: "adaptive" });
     expect(result.patches.find((patch) => patch.id === "risk")).toBeUndefined();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "locked-subtree-preserved",
+      }),
+    );
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "layout-partial",
+        severity: "info",
+      }),
+    );
   });
 
   it("preserves manual child positions under manual parents", async () => {
@@ -36,15 +52,45 @@ describe("layout engine", () => {
     expect(after.nodesById["credit-risk"]!.y - after.nodesById.risk!.y).toBe(
       doc.nodesById["credit-risk"]!.y - doc.nodesById.risk!.y,
     );
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "manual-subtree-preserved",
+        severity: "info",
+        nodeId: "risk",
+      }),
+    );
   });
 
-  it("lays out a large fixture within the budget", async () => {
+  it("lays out full and scoped large fixtures within explicit budgets", async () => {
     const doc = createThousandNodeDocument();
     const start = performance.now();
     const result = await layoutDocument({ doc, force: true, mode: "adaptive" });
     const elapsed = performance.now() - start;
     expect(result.patches.length).toBeGreaterThan(900);
     expect(elapsed).toBeLessThan(2500);
+
+    const scopedStart = performance.now();
+    const scoped = await layoutDocument({
+      doc,
+      affectedNodeIds: ["root-0-parent-0"],
+      force: true,
+      mode: "adaptive",
+    });
+    const scopedElapsed = performance.now() - scopedStart;
+    expect(scoped.patches.map((patch) => patch.id).sort()).toEqual([
+      "root-0-parent-0",
+      "root-0-parent-0-leaf-0",
+      "root-0-parent-0-leaf-1",
+      "root-0-parent-0-leaf-2",
+      "root-0-parent-0-leaf-3",
+      "root-0-parent-0-leaf-4",
+      "root-0-parent-0-leaf-5",
+      "root-0-parent-0-leaf-6",
+      "root-0-parent-0-leaf-7",
+      "root-0-parent-0-leaf-8",
+      "root-0-parent-0-leaf-9",
+    ]);
+    expect(scopedElapsed).toBeLessThan(1000);
   });
 
   it("uses global padding and gap settings when node preferences are absent", async () => {
@@ -75,7 +121,9 @@ describe("layout engine", () => {
     const after = applyLayoutPatches(doc, result.patches);
     const bounds = computeDocumentBounds(after);
 
-    expect(result.patches.find((patch) => patch.id === "child-b")).toBeUndefined();
+    expect(
+      result.patches.find((patch) => patch.id === "child-b"),
+    ).toBeUndefined();
     expect(bounds.x + bounds.w).toBeLessThan(1000);
     expect(bounds.y + bounds.h).toBeLessThan(1000);
   });
@@ -113,10 +161,17 @@ describe("layout engine", () => {
 
     expect(geometryFor(second)).toEqual(geometryFor(first));
     expect(geometryFor(third)).toEqual(geometryFor(first));
-    expect(first.nodesById.root).toMatchObject({ x: 24, y: 24, w: 384, h: 180 });
+    expect(first.nodesById.root).toMatchObject({
+      x: 24,
+      y: 24,
+      w: 384,
+      h: 180,
+    });
 
     const root = first.nodesById.root!;
-    const children = childrenOf(first, "root").map((id) => first.nodesById[id]!);
+    const children = childrenOf(first, "root").map(
+      (id) => first.nodesById[id]!,
+    );
     const childLeft = Math.min(...children.map((child) => child.x));
     const childRight = Math.max(...children.map((child) => child.x + child.w));
     const childTop = Math.min(...children.map((child) => child.y));
@@ -161,14 +216,39 @@ describe("layout engine", () => {
     ).toMatchObject({ x: 219, y: 68 });
   });
 
-  it("uses ELK packing for the nested browser scenario without containment violations or sibling overlaps", async () => {
-    const doc = nestedBrowserCase();
-    const result = await layoutDocument({ doc, force: true, mode: "uniform" });
-    const after = applyLayoutPatches(doc, result.patches);
+  it("limits scoped layout patches to the requested subtree", async () => {
+    const doc = twoRootScopedDocument();
+    const result = await layoutDocument({
+      doc,
+      affectedNodeIds: ["a-group"],
+      force: true,
+      mode: "adaptive",
+    });
 
-    expect(findContainmentViolations(after)).toEqual([]);
-    expect(findSiblingOverlaps(after)).toEqual([]);
+    expect(result.patches.map((patch) => patch.id).sort()).toEqual([
+      "a-group",
+      "a-leaf-1",
+      "a-leaf-2",
+    ]);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "layout-applied",
+        severity: "info",
+      }),
+    );
   });
+
+  it.each(["uniform", "flow", "adaptive"] as const)(
+    "uses ELK packing for the nested browser scenario without containment violations or sibling overlaps in %s mode",
+    async (mode) => {
+      const doc = nestedBrowserCase();
+      const result = await layoutDocument({ doc, force: true, mode });
+      const after = applyLayoutPatches(doc, result.patches);
+
+      expect(findContainmentViolations(after)).toEqual([]);
+      expect(findSiblingOverlaps(after)).toEqual([]);
+    },
+  );
 
   it.each(["uniform", "flow", "adaptive"] as const)(
     "sizes parents from actual placed child rectangles in %s mode",
@@ -272,6 +352,16 @@ describe("layout engine", () => {
     },
   );
 
+  it.each(["uniform", "flow", "adaptive"] as const)(
+    "is idempotent after applying %s layout",
+    async (mode) => {
+      const doc = nestedBrowserCase();
+      const first = await applyAutoLayoutCycle(doc, mode);
+      const second = await applyAutoLayoutCycle(first, mode);
+      expect(geometryFor(second)).toEqual(geometryFor(first));
+    },
+  );
+
   it("returns an informational diagnostic without patches in free mode", async () => {
     const result = await layoutDocument({
       doc: createSampleDocument(),
@@ -283,6 +373,21 @@ describe("layout engine", () => {
       expect.objectContaining({
         code: "free-layout-preserved",
         severity: "info",
+      }),
+    );
+  });
+
+  it("preserves imported or user-arranged positions unless layout is forced", async () => {
+    const result = await layoutDocument({
+      doc: createSampleDocument(),
+      mode: "adaptive",
+    });
+
+    expect(result.patches).toEqual([]);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "positions-preserved",
+        severity: "warning",
       }),
     );
   });
@@ -403,22 +508,19 @@ function fourChildSubGridPaddingDocument() {
   return doc;
 }
 
-async function applyAutoLayoutCycle(
-  doc: CapabilityDocument,
-  mode: "uniform" | "flow" | "adaptive",
-) {
+async function applyAutoLayoutCycle(doc: CapabilityDocument, mode: LayoutMode) {
   const result = await layoutDocument({ doc, force: true, mode });
   return ensureParentContainment(applyLayoutPatches(doc, result.patches)).doc;
 }
 
 function geometryFor(doc: CapabilityDocument) {
-  type Geometry = Record<string, { x: number; y: number; w: number; h: number }>;
+  type Geometry = Record<
+    string,
+    { x: number; y: number; w: number; h: number }
+  >;
   const entries: Array<[string, Geometry[string]]> = Object.values(
     doc.nodesById,
-  ).map((node) => [
-    node.id,
-    { x: node.x, y: node.y, w: node.w, h: node.h },
-  ]);
+  ).map((node) => [node.id, { x: node.x, y: node.y, w: node.w, h: node.h }]);
   entries.sort(([left], [right]) => left.localeCompare(right));
   return Object.fromEntries(entries) as Geometry;
 }
@@ -455,6 +557,66 @@ function nestedBrowserCase() {
   });
   doc.childrenByParentId["digital-onboarding"] = ["new-capability"];
   doc.childrenByParentId["new-capability"] = [];
+  return doc;
+}
+
+function twoRootScopedDocument() {
+  const doc = createEmptyDocument();
+  doc.layout.preservePositions = false;
+  doc.layout.isUserArranged = false;
+
+  for (const rootId of ["root-a", "root-b"] as const) {
+    doc.nodesById[rootId] = createNode({
+      id: rootId,
+      label: rootId,
+      type: "root",
+      x: rootId === "root-a" ? 0 : 800,
+      y: 0,
+      w: 500,
+      h: 260,
+    });
+    doc.childrenByParentId[rootId] = [];
+  }
+
+  for (const [id, parentId, x] of [
+    ["a-group", "root-a", 24],
+    ["b-group", "root-b", 824],
+  ] as const) {
+    doc.nodesById[id] = createNode({
+      id,
+      parentId,
+      label: id,
+      type: "parent",
+      x,
+      y: 48,
+      w: 320,
+      h: 160,
+    });
+    doc.childrenByParentId[parentId]!.push(id);
+    doc.childrenByParentId[id] = [];
+  }
+
+  for (const [id, parentId, x] of [
+    ["a-leaf-1", "a-group", 48],
+    ["a-leaf-2", "a-group", 220],
+    ["b-leaf-1", "b-group", 848],
+    ["b-leaf-2", "b-group", 1020],
+  ] as const) {
+    doc.nodesById[id] = createNode({
+      id,
+      parentId,
+      label: id,
+      type: "leaf",
+      x,
+      y: 112,
+      w: 140,
+      h: 48,
+    });
+    doc.childrenByParentId[parentId]!.push(id);
+    doc.childrenByParentId[id] = [];
+  }
+
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root-a", "root-b"];
   return doc;
 }
 

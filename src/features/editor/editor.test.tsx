@@ -763,6 +763,20 @@ describe("editor shell", () => {
     ).toBeDisabled();
   });
 
+  it("reports forced auto layout diagnostics in the status bar", async () => {
+    render(<EditorRoute />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Auto layout" }));
+    await waitFor(() =>
+      expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Diagnostics" }));
+    const dialog = screen.getByRole("dialog", { name: "Diagnostics" });
+    expect(within(dialog).getByText("layout-applied")).toBeInTheDocument();
+    expect(within(dialog).getByText(/with force/)).toBeInTheDocument();
+  });
+
   it("does not delete the selected node when Delete is pressed inside an inspector field", () => {
     render(<EditorRoute />);
     const description = screen.getByLabelText("Description");

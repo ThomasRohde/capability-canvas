@@ -1,9 +1,17 @@
-import { CheckCircle2, Layers, MessageSquare, PanelRight, TriangleAlert, X } from 'lucide-react';
-import { useState } from 'react';
-import { APP_VERSION } from '../../app/version';
-import { useDocumentStore } from '../../app/stores/documentStore';
-import { useUiStore } from '../../app/stores/uiStore';
-import { IconButton } from '../shared/IconButton';
+import {
+  CheckCircle2,
+  Info,
+  Layers,
+  MessageSquare,
+  PanelRight,
+  TriangleAlert,
+  X,
+} from "lucide-react";
+import { useState } from "react";
+import { APP_VERSION } from "../../app/version";
+import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
+import { IconButton } from "../shared/IconButton";
 
 export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
@@ -22,9 +30,9 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       <span className="cc-dot" />
       <span className="cc-version">v{APP_VERSION}</span>
       <span className="cc-divider" style={{ height: 14 }} />
-      <span>{readonly ? 'Loaded from URL' : 'Local autosaved'}</span>
+      <span>{readonly ? "Loaded from URL" : "Local autosaved"}</span>
       <span className="cc-divider" style={{ height: 14 }} />
-      <span>{readonly ? 'Read-only' : 'All changes saved locally'}</span>
+      <span>{readonly ? "Read-only" : "All changes saved locally"}</span>
       {diagnostics.length > 0 && (
         <>
           <span className="cc-divider" style={{ height: 14 }} />
@@ -32,7 +40,11 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
         </>
       )}
       <span className="cc-spacer" />
-      <span>{readonly ? `${Object.keys(doc.nodesById).length} capabilities` : `${selected.length} selected`}</span>
+      <span>
+        {readonly
+          ? `${Object.keys(doc.nodesById).length} capabilities`
+          : `${selected.length} selected`}
+      </span>
       {!readonly && (
         <span className="cc-status-actions">
           <IconButton
@@ -63,7 +75,11 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
         </span>
       )}
       {diagnosticsOpen && !readonly && (
-        <div className="cc-status-popover" role="dialog" aria-label="Diagnostics">
+        <div
+          className="cc-status-popover"
+          role="dialog"
+          aria-label="Diagnostics"
+        >
           <div className="cc-status-popover-head">
             <div className="cc-panel-title">Diagnostics</div>
             <div className="cc-status-popover-actions">
@@ -91,8 +107,14 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
           ) : (
             <ul className="cc-diagnostic-list">
               {diagnostics.map((diagnostic, index) => (
-                <li key={`${diagnostic.code}-${diagnostic.nodeId ?? "document"}-${index}`}>
-                  <TriangleAlert size={15} />
+                <li
+                  key={`${diagnostic.code}-${diagnostic.nodeId ?? "document"}-${index}`}
+                >
+                  {diagnostic.severity === "info" ? (
+                    <Info size={15} />
+                  ) : (
+                    <TriangleAlert size={15} />
+                  )}
                   <span>
                     <strong>{diagnostic.code}</strong>
                     <span>{diagnostic.message}</span>

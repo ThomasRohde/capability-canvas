@@ -9,7 +9,7 @@ import {
   type NodeId,
 } from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
-import { warning } from "../validation/diagnostics";
+import { info, warning } from "../validation/diagnostics";
 import {
   type LayoutPatch,
   type LayoutRequest,
@@ -89,6 +89,21 @@ export async function layoutDocument(
         isNodeOnCanvas(doc.nodesById[nodeId]),
       )
     : canvasRootChildren(doc);
+  if (roots.length === 0) {
+    return {
+      patches: [],
+      diagnostics: [
+        info(
+          request.affectedNodeIds?.length
+            ? "layout-scope-empty"
+            : "layout-document-empty",
+          request.affectedNodeIds?.length
+            ? "Auto layout skipped because no visible nodes matched the requested scope."
+            : "Auto layout skipped because the document has no visible root capabilities.",
+        ),
+      ],
+    };
+  }
   const measuredRoots = await Promise.all(
     roots.map((rootId) => measureSubtree(doc, rootId, mode)),
   );
@@ -101,7 +116,13 @@ export async function layoutDocument(
       if (!node) continue;
       translatePatches(measured.patches, node.x, node.y, patches);
     }
-    return { patches: stablePatches(patches), diagnostics };
+    return finishLayoutResult(
+      request,
+      mode,
+      patches,
+      diagnostics,
+      measuredRoots,
+    );
   }
 
   if (measuredRoots.some((measured) => measured.blocked)) {
@@ -117,7 +138,13 @@ export async function layoutDocument(
       translatePatches(measured.patches, ROOT_OFFSET, cursorY, patches);
       cursorY += measured.h + ROOT_GAP_Y;
     }
-    return { patches: stablePatches(patches), diagnostics };
+    return finishLayoutResult(
+      request,
+      mode,
+      patches,
+      diagnostics,
+      measuredRoots,
+    );
   }
 
   const packedRoots = await packBoxes(
@@ -146,7 +173,7 @@ export async function layoutDocument(
     );
   }
 
-  return { patches: stablePatches(patches), diagnostics };
+  return finishLayoutResult(request, mode, patches, diagnostics, measuredRoots);
 }
 
 export function applyLayoutPatches(
@@ -510,8 +537,53 @@ function measureManualSubtree(
     h: parentPatch.h,
     patches,
     blocked: true,
-    diagnostics: [],
+    diagnostics: [
+      info(
+        "manual-subtree-preserved",
+        `Manual child positions under "${node.label}" were preserved.`,
+        node.id,
+      ),
+    ],
   };
+}
+
+function finishLayoutResult(
+  request: LayoutRequest,
+  mode: LayoutMode,
+  patches: LayoutPatch[],
+  diagnostics: Diagnostic[],
+  measuredRoots: MeasuredSubtree[],
+): LayoutResult {
+  const stable = stablePatches(patches);
+  if (measuredRoots.some((measured) => measured.blocked)) {
+    diagnostics.push(
+      info(
+        "layout-partial",
+        "Auto layout preserved locked or manual areas and arranged the remaining eligible nodes.",
+      ),
+    );
+  }
+  diagnostics.push(
+    info(
+      stable.length === 0 ? "layout-noop" : "layout-applied",
+      layoutOutcomeMessage(request, mode, stable.length),
+    ),
+  );
+  return { patches: stable, diagnostics };
+}
+
+function layoutOutcomeMessage(
+  request: LayoutRequest,
+  mode: LayoutMode,
+  patchCount: number,
+): string {
+  const scope = request.affectedNodeIds?.length ? "Scoped" : "Full";
+  const force = request.force ? " with force" : "";
+  const changes =
+    patchCount === 0
+      ? "made no geometry changes"
+      : `applied ${patchCount} geometry ${patchCount === 1 ? "change" : "changes"}`;
+  return `${scope} ${mode} auto layout ${changes}${force}.`;
 }
 
 async function packBoxes(
