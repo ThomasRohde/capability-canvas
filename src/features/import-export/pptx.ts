@@ -1,7 +1,7 @@
 import pptxgen from 'pptxgenjs';
 import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
-import type { CapabilityDocument } from '../../domain/document/types';
+import { isNodeOnCanvas, type CapabilityDocument } from '../../domain/document/types';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import type { ExportAdapter, ExportResult } from './types';
 
@@ -20,7 +20,7 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
   const offsetX = 0.5 - bounds.x * scale;
   const offsetY = 0.7 - bounds.y * scale;
 
-  for (const node of sortedNodes(doc)) {
+  for (const node of sortedNodes(doc).filter(isNodeOnCanvas)) {
     const fill = resolveNodeFill(node, doc.heatmap);
     slide.addShape(deck.ShapeType.roundRect, {
       x: offsetX + node.x * scale,

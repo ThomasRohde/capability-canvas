@@ -1,11 +1,12 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
-import type { CapabilityDocument } from '../../domain/document/types';
+import { isNodeOnCanvas, type CapabilityDocument } from '../../domain/document/types';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function archimateExport(doc: CapabilityDocument): ExportResult {
-  const nodes = sortedNodes(doc);
+  const nodes = sortedNodes(doc).filter(isNodeOnCanvas);
+  const visibleNodeIds = new Set(nodes.map((node) => node.id));
   const elements = nodes
     .map(
       (node) =>
@@ -13,7 +14,7 @@ export function archimateExport(doc: CapabilityDocument): ExportResult {
     )
     .join('');
   const relationships = nodes
-    .filter((node) => node.parentId)
+    .filter((node) => node.parentId && visibleNodeIds.has(node.parentId))
     .map(
       (node) =>
         `<relationship identifier="rel-${escapeXml(node.parentId!)}-${escapeXml(node.id)}" source="${escapeXml(node.parentId!)}" target="${escapeXml(node.id)}" xsi:type="CompositionRelationship"/>`

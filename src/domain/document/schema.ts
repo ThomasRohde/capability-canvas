@@ -43,6 +43,7 @@ export const NodeSchema = z
     isManualPositioningEnabled: z.boolean().default(false),
     isLockedAsIs: z.boolean().default(false),
     isTextLabel: z.boolean().default(false),
+    isOnCanvas: z.boolean().default(true),
     textStyle: z
       .object({
         fontFamily: z.string().optional(),

@@ -30,6 +30,7 @@ describe("editor shell", () => {
       inspectorTab: "inspector",
       searchQuery: "",
       viewport: { x: 0, y: 0, zoom: 1 },
+      canvasSize: { w: 1200, h: 800 },
     });
   });
 
@@ -862,6 +863,58 @@ describe("editor shell", () => {
     expect(within(outlineTree).queryAllByText("New capability")).toHaveLength(
       before + 1,
     );
+    expect(
+      within(screen.getByTestId("canvas")).queryByText("New capability"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("adds root capabilities to the outline without drawing them on the canvas", async () => {
+    render(<EditorRoute />);
+
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Add root capability" })[0]!,
+    );
+
+    expect(screen.getByText("New capability")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("canvas")).queryByText("New capability"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("adds an outline subtree to the canvas from the row actions menu", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Add root capability" })[0]!,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for New capability" }),
+    );
+
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Add subtree to canvas" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId("canvas")).getByText("New capability"),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("removes a visible outline subtree from the canvas without deleting it", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    expect(within(canvas).getByText("Customer")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for Customer" }),
+    );
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Remove subtree from canvas" }),
+    );
+
+    expect(screen.getByText("Customer")).toBeInTheDocument();
+    expect(within(canvas).queryByText("Customer")).not.toBeInTheDocument();
   });
 
   it("imports pasted JSON from a textarea dialog", async () => {

@@ -1,17 +1,25 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
-import type { CapabilityDocument } from '../../domain/document/types';
+import { isNodeOnCanvas, type CapabilityDocument } from '../../domain/document/types';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function drawioExport(doc: CapabilityDocument): ExportResult {
+  const visibleNodeIds = new Set(
+    sortedNodes(doc)
+      .filter(isNodeOnCanvas)
+      .map((node) => node.id),
+  );
   const cells = [
     '<mxCell id="0"/>',
     '<mxCell id="1" parent="0"/>',
-    ...sortedNodes(doc).map((node) => {
+    ...sortedNodes(doc).filter(isNodeOnCanvas).map((node) => {
       const fill = resolveNodeFill(node, doc.heatmap);
-      const parentNode = node.parentId ? doc.nodesById[node.parentId] : null;
+      const parentNode =
+        node.parentId && visibleNodeIds.has(node.parentId)
+          ? doc.nodesById[node.parentId]
+          : null;
       const parent = parentNode?.id ?? '1';
       const x = parentNode ? node.x - parentNode.x : node.x;
       const y = parentNode ? node.y - parentNode.y : node.y;

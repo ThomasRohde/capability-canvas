@@ -1,7 +1,8 @@
 import ELK, { type ElkNode } from "elkjs/lib/elk.bundled.js";
 import {
-  childrenOf,
-  ROOT_PARENT_ID,
+  canvasChildrenOf,
+  canvasRootChildren,
+  isNodeOnCanvas,
   type CapabilityDocument,
   type CapabilityNode,
   type LayoutMode,
@@ -84,8 +85,10 @@ export async function layoutDocument(
   const patches: LayoutPatch[] = [];
   const diagnostics: Diagnostic[] = [];
   const roots = request.affectedNodeIds?.length
-    ? request.affectedNodeIds
-    : childrenOf(doc, null);
+    ? request.affectedNodeIds.filter((nodeId) =>
+        isNodeOnCanvas(doc.nodesById[nodeId]),
+      )
+    : canvasRootChildren(doc);
   const measuredRoots = await Promise.all(
     roots.map((rootId) => measureSubtree(doc, rootId, mode)),
   );
@@ -204,7 +207,7 @@ function normalizePatchedParentBounds(
   const nextDoc = { ...doc, nodesById };
   const depths = computeDepths(nextDoc);
   const parentIds = [...patchedIds]
-    .filter((nodeId) => childrenOf(nextDoc, nodeId).length > 0)
+    .filter((nodeId) => canvasChildrenOf(nextDoc, nodeId).length > 0)
     .sort((a, b) => (depths.get(b) ?? 0) - (depths.get(a) ?? 0));
   let changed = false;
 
@@ -212,7 +215,10 @@ function normalizePatchedParentBounds(
     const parent = nodesById[parentId];
     if (!parent) continue;
     if (parent.isManualPositioningEnabled) continue;
-    const childBounds = boundsForIds(nextDoc, childrenOf(nextDoc, parentId));
+    const childBounds = boundsForIds(
+      nextDoc,
+      canvasChildrenOf(nextDoc, parentId),
+    );
     if (!childBounds) continue;
     const margin = {
       top: childAreaTop(nextDoc, parent),
@@ -258,15 +264,15 @@ function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   const depths = new Map<NodeId, number>();
   const visit = (nodeId: NodeId, depth: number) => {
     depths.set(nodeId, depth);
-    for (const childId of childrenOf(doc, nodeId)) visit(childId, depth + 1);
+    for (const childId of canvasChildrenOf(doc, nodeId))
+      visit(childId, depth + 1);
   };
-  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? [])
-    visit(rootId, 0);
+  for (const rootId of canvasRootChildren(doc)) visit(rootId, 0);
   return depths;
 }
 
 export function computeDocumentBounds(doc: CapabilityDocument) {
-  const nodes = Object.values(doc.nodesById);
+  const nodes = Object.values(doc.nodesById).filter(isNodeOnCanvas);
   if (nodes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
   const minX = Math.min(...nodes.map((node) => node.x));
   const minY = Math.min(...nodes.map((node) => node.y));
@@ -282,6 +288,7 @@ async function measureSubtree(
 ): Promise<MeasuredSubtree> {
   const node = doc.nodesById[nodeId];
   if (!node) return emptyMeasured(nodeId);
+  if (!isNodeOnCanvas(node)) return emptyMeasured(nodeId);
 
   if (node.isLockedAsIs) {
     return {
@@ -300,7 +307,7 @@ async function measureSubtree(
     };
   }
 
-  const childIds = childrenOf(doc, node.id);
+  const childIds = canvasChildrenOf(doc, node.id);
   if (childIds.length === 0) {
     const size = nodeSize(doc, node);
     return {
@@ -480,7 +487,7 @@ function measureManualSubtree(
 ): MeasuredSubtree {
   const patches: LayoutPatch[] = [];
   const margin = nodeMargin(doc, node);
-  const childIds = childrenOf(doc, node.id);
+  const childIds = canvasChildrenOf(doc, node.id);
   const childBounds = boundsForIds(doc, childIds);
   const requiredW = childBounds
     ? childBounds.x - node.x + childBounds.w + margin.right
@@ -717,7 +724,7 @@ function collectCurrentSubtreePatches(
   originY: number,
   patches: LayoutPatch[],
 ) {
-  for (const childId of childrenOf(doc, nodeId)) {
+  for (const childId of canvasChildrenOf(doc, nodeId)) {
     const child = doc.nodesById[childId];
     if (!child) continue;
     patches.push({
@@ -732,7 +739,9 @@ function collectCurrentSubtreePatches(
 }
 
 function boundsForIds(doc: CapabilityDocument, ids: NodeId[]) {
-  const nodes = ids.map((id) => doc.nodesById[id]).filter(Boolean);
+  const nodes = ids
+    .map((id) => doc.nodesById[id])
+    .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
   if (nodes.length === 0) return null;
   const x = Math.min(...nodes.map((node) => node.x));
   const y = Math.min(...nodes.map((node) => node.y));

@@ -1,5 +1,6 @@
 import {
   childrenOf,
+  isNodeOnCanvas,
   type CapabilityDocument,
   type CapabilityNode,
   type NodeId,
@@ -23,7 +24,7 @@ export function findDropTarget(
   const { doc, pointDocX, pointDocY, draggedIds } = options;
   const depths = computeDepths(doc);
   const candidates = Object.values(doc.nodesById).filter((node) =>
-    couldBeParent(node, draggedIds),
+    isNodeOnCanvas(node) && couldBeParent(node, draggedIds),
   );
   candidates.sort((a, b) => (depths.get(b.id) ?? 0) - (depths.get(a.id) ?? 0));
   for (const node of candidates) {

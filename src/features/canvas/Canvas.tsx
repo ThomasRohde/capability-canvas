@@ -41,6 +41,8 @@ import {
   updateNodeColors,
 } from "../../domain/commands/operations";
 import {
+  hasCanvasChildren,
+  isNodeOnCanvas,
   ROOT_PARENT_ID,
   type Bounds,
   type CapabilityColor,
@@ -86,6 +88,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const clearSelection = useUiStore((state) => state.clearSelection);
   const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
+  const setCanvasSize = useUiStore((state) => state.setCanvasSize);
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const setInspectorTab = useUiStore((state) => state.setInspectorTab);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
@@ -112,18 +115,28 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     () => viewModels.filter((vm) => vm.visible || selected.includes(vm.node.id)),
     [selected, viewModels],
   );
+  const canvasSelected = useMemo(
+    () => selected.filter((id) => isNodeOnCanvas(doc.nodesById[id])),
+    [doc.nodesById, selected],
+  );
   const contextNode = contextMenu ? doc.nodesById[contextMenu.nodeId] : null;
 
   useEffect(() => {
     const element = canvasRef.current;
     if (!element) return;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry)
-        setSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      if (entry) {
+        const nextSize = {
+          w: entry.contentRect.width,
+          h: entry.contentRect.height,
+        };
+        setSize(nextSize);
+        setCanvasSize(nextSize);
+      }
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [setCanvasSize]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -237,7 +250,12 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       ) {
         event.preventDefault();
         const ids = Object.values(useDocumentStore.getState().doc.nodesById)
-          .filter((node) => !node.isTextLabel && node.type !== "text")
+          .filter(
+            (node) =>
+              isNodeOnCanvas(node) &&
+              !node.isTextLabel &&
+              node.type !== "text",
+          )
           .map((node) => node.id);
         useUiStore.getState().setSelection(ids);
       }
@@ -338,6 +356,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       if (!rectBounds || rectBounds.w < 4 || rectBounds.h < 4) return;
       const candidate = new Set(baseSelection);
       for (const node of Object.values(doc.nodesById)) {
+        if (!isNodeOnCanvas(node)) continue;
         if (node.isTextLabel || node.type === "text") continue;
         if (intersects(node, rectBounds)) candidate.add(node.id);
       }
@@ -758,7 +777,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           >
             Duplicate
           </button>
-          {(doc.childrenByParentId[contextMenu.nodeId]?.length ?? 0) > 0 && (
+          {hasCanvasChildren(doc, contextMenu.nodeId) && (
             <button
               type="button"
               role="menuitem"
@@ -794,7 +813,9 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           }}
         />
       )}
-      {selected.length > 1 && !readonly && <BulkToolbar selected={selected} />}
+      {canvasSelected.length > 1 && !readonly && (
+        <BulkToolbar selected={canvasSelected} />
+      )}
       {doc.heatmap.enabled && doc.heatmap.showLegend && (
         <HeatmapLegend palette={doc.heatmap.palette} />
       )}
@@ -855,6 +876,7 @@ function filterToSiblingGroup(
   for (const id of ids) {
     const node = doc.nodesById[id];
     if (!node) continue;
+    if (!isNodeOnCanvas(node)) continue;
     if (node.isTextLabel || node.type === "text") continue;
     const key = String(node.parentId ?? ROOT_PARENT_ID);
     const list = buckets.get(key) ?? [];
@@ -887,7 +909,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const fitAllowed =
     fitTargetId &&
     !anchorNode?.isLockedAsIs &&
-    (doc.childrenByParentId[fitTargetId]?.length ?? 0) > 0;
+    hasCanvasChildren(doc, fitTargetId);
   return (
     <div className="cc-bulk-toolbar">
       <span className="count">{selected.length} selected</span>

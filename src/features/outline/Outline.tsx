@@ -16,13 +16,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addChild,
   addRoot,
+  addSubtreeToCanvas,
   deleteNodes,
   duplicateNodes,
   fitParentToChildren,
+  removeSubtreeFromCanvas,
 } from "../../domain/commands/operations";
 import {
+  canvasChildrenOf,
   childrenOf,
+  isNodeOnCanvas,
   ROOT_PARENT_ID,
+  subtreeNodeIds,
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
@@ -37,12 +42,21 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
   const setOutlineOpen = useUiStore((state) => state.setOutlineOpen);
+  const viewport = useUiStore((state) => state.viewport);
+  const canvasSize = useUiStore((state) => state.canvasSize);
   const searchQuery = useUiStore((state) => state.searchQuery);
   const setSearchQuery = useUiStore((state) => state.setSearchQuery);
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
   const [filterToSelection, setFilterToSelection] = useState(false);
 
   const rootItemId = "outline-root";
+  const canvasTargetCenter = useMemo(
+    () => ({
+      x: (canvasSize.w / 2 - viewport.x) / viewport.zoom,
+      y: (canvasSize.h / 2 - viewport.y) / viewport.zoom,
+    }),
+    [canvasSize.h, canvasSize.w, viewport.x, viewport.y, viewport.zoom],
+  );
   const folderIds = useMemo(
     () =>
       Object.keys(doc.nodesById).filter((id) => childrenOf(doc, id).length > 0),
@@ -156,7 +170,9 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
             className="cc-icon-btn active"
             type="button"
             aria-label="Add root capability"
-            onClick={() => execute(addRoot())}
+            onClick={() =>
+              execute(addRoot("New capability", { isOnCanvas: false }))
+            }
           >
             <Plus />
           </button>
@@ -175,7 +191,12 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
                 false);
             return (
               matchesSearch &&
-              matchesOutlineSelectionFilter(doc, nodeId, selected, filterToSelection)
+              matchesOutlineSelectionFilter(
+                doc,
+                nodeId,
+                selected,
+                filterToSelection,
+              )
             );
           })
           .map((item) => {
@@ -184,6 +205,13 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
             const active = selected.includes(node.id);
             const style = CATEGORY_STYLES[node.color];
             const itemProps = item.getProps();
+            const subtreeIds = subtreeNodeIds(doc, node.id);
+            const hasHiddenCanvasNodes = subtreeIds.some(
+              (id) => !isNodeOnCanvas(doc.nodesById[id]),
+            );
+            const hasVisibleCanvasNodes = subtreeIds.some((id) =>
+              isNodeOnCanvas(doc.nodesById[id]),
+            );
             return (
               <div
                 {...itemProps}
@@ -239,7 +267,13 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
                   <OutlineActionsMenu
                     nodeId={node.id}
                     canAddChild={!node.isTextLabel && node.type !== "text"}
-                    canFitParent={childrenOf(doc, node.id).length > 0}
+                    canAddToCanvas={hasHiddenCanvasNodes}
+                    canRemoveFromCanvas={hasVisibleCanvasNodes}
+                    canFitParent={
+                      isNodeOnCanvas(node) &&
+                      canvasChildrenOf(doc, node.id).length > 0
+                    }
+                    canvasTargetCenter={canvasTargetCenter}
                     onClose={() => setMenuNodeId(null)}
                   />
                 )}
@@ -252,7 +286,9 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
           <button
             className="cc-btn cc-add-root"
             type="button"
-            onClick={() => execute(addRoot())}
+            onClick={() =>
+              execute(addRoot("New capability", { isOnCanvas: false }))
+            }
           >
             <Plus /> Add root capability
           </button>
@@ -313,12 +349,18 @@ function toggleOutlineSelection(doc: CapabilityDocument, nodeId: NodeId) {
 function OutlineActionsMenu({
   nodeId,
   canAddChild,
+  canAddToCanvas,
+  canRemoveFromCanvas,
   canFitParent,
+  canvasTargetCenter,
   onClose,
 }: {
   nodeId: NodeId;
   canAddChild: boolean;
+  canAddToCanvas: boolean;
+  canRemoveFromCanvas: boolean;
   canFitParent: boolean;
+  canvasTargetCenter: { x: number; y: number };
   onClose: () => void;
 }) {
   const execute = useDocumentStore((state) => state.execute);
@@ -338,9 +380,33 @@ function OutlineActionsMenu({
         <button
           type="button"
           role="menuitem"
-          onClick={() => run(() => execute(addChild(nodeId)))}
+          onClick={() =>
+            run(() =>
+              execute(addChild(nodeId, "New capability", { isOnCanvas: false })),
+            )
+          }
         >
           Add child
+        </button>
+      )}
+      {canAddToCanvas && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() =>
+            run(() => execute(addSubtreeToCanvas(nodeId, canvasTargetCenter)))
+          }
+        >
+          Add subtree to canvas
+        </button>
+      )}
+      {canRemoveFromCanvas && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => run(() => execute(removeSubtreeFromCanvas(nodeId)))}
+        >
+          Remove subtree from canvas
         </button>
       )}
       <button

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   addChild,
+  addSubtreeToCanvas,
   alignNodes,
   fitParentToChildren,
   lockSubtree,
   moveNodes,
   repairSiblingOverlaps,
+  removeSubtreeFromCanvas,
   reparentNode,
   resizeNode,
   runTransaction,
@@ -138,6 +140,33 @@ describe("commands", () => {
     const txn = addChild("risk");
     expect(txn.meta?.relayout).toBeDefined();
     expect(txn.meta?.relayout?.scope).toEqual(["risk"]);
+  });
+
+  it("can add and remove a subtree from the canvas without changing hierarchy", () => {
+    const doc = createSampleDocument();
+    const hidden = runTransaction(
+      doc,
+      removeSubtreeFromCanvas("digital"),
+    ).doc;
+
+    expect(hidden.nodesById.digital!.isOnCanvas).toBe(false);
+    expect(hidden.nodesById["digital-onboarding"]!.isOnCanvas).toBe(false);
+    expect(hidden.nodesById.digital!.parentId).toBe(
+      doc.nodesById.digital!.parentId,
+    );
+
+    const visible = runTransaction(
+      hidden,
+      addSubtreeToCanvas("digital", { x: 500, y: 400 }),
+    ).doc;
+
+    expect(visible.nodesById.digital!.isOnCanvas).toBe(true);
+    expect(visible.nodesById["digital-onboarding"]!.isOnCanvas).toBe(true);
+    expect(visible.nodesById.digital!.parentId).toBe(
+      doc.nodesById.digital!.parentId,
+    );
+    expect(visible.nodesById.digital!.x).toBeGreaterThan(200);
+    expect(visible.nodesById.digital!.y).toBeGreaterThan(200);
   });
 
   it("repairs sibling overlaps after a drag in auto mode", () => {

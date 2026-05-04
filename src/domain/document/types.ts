@@ -43,6 +43,7 @@ export interface CapabilityNode extends Bounds {
   isManualPositioningEnabled: boolean;
   isLockedAsIs: boolean;
   isTextLabel: boolean;
+  isOnCanvas: boolean;
   textStyle?: {
     fontFamily?: string;
     fontSize?: number;
@@ -124,6 +125,77 @@ export function childrenOf(
 
 export function hasChildren(doc: CapabilityDocument, nodeId: NodeId): boolean {
   return childrenOf(doc, nodeId).length > 0;
+}
+
+export function isNodeOnCanvas(node: CapabilityNode | undefined): boolean {
+  return node?.isOnCanvas ?? true;
+}
+
+export function canvasChildrenOf(
+  doc: CapabilityDocument,
+  parentId: NodeId | null,
+): NodeId[] {
+  return childrenOf(doc, parentId).filter((id) =>
+    isNodeOnCanvas(doc.nodesById[id]),
+  );
+}
+
+export function canvasRootChildren(doc: CapabilityDocument): NodeId[] {
+  const roots: NodeId[] = [];
+  const visit = (parentId: NodeId | null, parentIsOnCanvas: boolean) => {
+    for (const childId of childrenOf(doc, parentId)) {
+      const child = doc.nodesById[childId];
+      if (!child) continue;
+      const childIsOnCanvas = isNodeOnCanvas(child);
+      if (childIsOnCanvas && !parentIsOnCanvas) roots.push(childId);
+      visit(childId, childIsOnCanvas);
+    }
+  };
+  visit(null, false);
+  return roots;
+}
+
+export function canvasDescendantsOf(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): NodeId[] {
+  const out: NodeId[] = [];
+  const walk = (id: NodeId) => {
+    for (const childId of canvasChildrenOf(doc, id)) {
+      out.push(childId);
+      walk(childId);
+    }
+  };
+  walk(nodeId);
+  return out;
+}
+
+export function subtreeNodeIds(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): NodeId[] {
+  if (!doc.nodesById[nodeId]) return [];
+  const out: NodeId[] = [nodeId];
+  const walk = (id: NodeId) => {
+    for (const childId of childrenOf(doc, id)) {
+      if (!doc.nodesById[childId]) continue;
+      out.push(childId);
+      walk(childId);
+    }
+  };
+  walk(nodeId);
+  return out;
+}
+
+export function hasCanvasChildren(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): boolean {
+  return canvasChildrenOf(doc, nodeId).length > 0;
+}
+
+export function hasCanvasNodes(doc: CapabilityDocument): boolean {
+  return Object.values(doc.nodesById).some(isNodeOnCanvas);
 }
 
 export function now(): number {

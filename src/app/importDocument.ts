@@ -1,4 +1,5 @@
 import type { ParseResult } from "../domain/document/parse";
+import { hasCanvasNodes } from "../domain/document/types";
 import { useDocumentStore } from "./stores/documentStore";
 import { useUiStore } from "./stores/uiStore";
 
@@ -11,5 +12,6 @@ export function applyImportedDocument(parsed: ParseResult, label: string) {
 
   store.setDocument(parsed.doc, label, parsed.diagnostics);
   useUiStore.getState().clearSelection();
-  if (!parsed.doc.layout.preservePositions) void store.autoLayout(true);
+  if (!parsed.doc.layout.preservePositions && hasCanvasNodes(parsed.doc))
+    void store.autoLayout(true);
 }

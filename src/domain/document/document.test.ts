@@ -46,6 +46,9 @@ describe("document JSON adapter", () => {
     expect(parsed.doc!.nodesById.edm!.type).toBe("root");
     expect(parsed.doc!.nodesById.channels!.type).toBe("parent");
     expect(parsed.doc!.nodesById["human-channels"]!.type).toBe("leaf");
+    expect(parsed.doc!.nodesById.edm!.isOnCanvas).toBe(false);
+    expect(parsed.doc!.nodesById.channels!.isOnCanvas).toBe(false);
+    expect(parsed.doc!.nodesById["human-channels"]!.isOnCanvas).toBe(false);
     expect(parsed.doc!.nodesById.channels!.parentId).toBe("edm");
     expect(parsed.doc!.nodesById["human-channels"]!.parentId).toBe(
       "channels",
@@ -110,6 +113,34 @@ describe("document JSON adapter", () => {
     );
     expect(parsed.doc!.settings.childGapX).toBe(DEFAULT_SETTINGS.childGapX);
     expect(parsed.doc!.settings.childGapY).toBe(DEFAULT_SETTINGS.childGapY);
+  });
+
+  it("defaults legacy nodes without canvas membership to visible", () => {
+    const wire = serializeDocument(createSampleDocument());
+    for (const node of wire.nodes) {
+      delete (node as Partial<typeof node>).isOnCanvas;
+    }
+
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc).not.toBeNull();
+    expect(
+      Object.values(parsed.doc!.nodesById).every((node) => node.isOnCanvas),
+    ).toBe(true);
+  });
+
+  it("preserves canvas membership through JSON round-trip", () => {
+    const doc = createSampleDocument();
+    doc.nodesById["digital-onboarding"] = {
+      ...doc.nodesById["digital-onboarding"]!,
+      isOnCanvas: false,
+    };
+
+    const parsed = parseDocument(serializeDocument(doc));
+
+    expect(parsed.doc?.nodesById["digital-onboarding"]?.isOnCanvas).toBe(
+      false,
+    );
   });
 
   it("preserves spacing settings through JSON round-trip", () => {

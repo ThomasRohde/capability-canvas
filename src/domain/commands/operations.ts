@@ -1,10 +1,13 @@
 import { createNode, makeId, nextColor } from "../document/defaults";
 import { cloneDocument, rebuildChildren } from "../document/normalize";
 import {
+  canvasChildrenOf,
   childrenOf,
   hasChildren,
+  isNodeOnCanvas,
   now,
   ROOT_PARENT_ID,
+  subtreeNodeIds,
   type CapabilityColor,
   type CapabilityDocument,
   type CapabilityNode,
@@ -29,6 +32,14 @@ import {
 } from "./types";
 
 type MutableDoc = CapabilityDocument;
+interface AddCapabilityOptions {
+  isOnCanvas?: boolean;
+}
+
+interface DocumentPoint {
+  x: number;
+  y: number;
+}
 
 export function transaction(
   label: string,
@@ -71,11 +82,15 @@ export function runTransaction(
   };
 }
 
-export function addRoot(label = "New capability"): Transaction {
+export function addRoot(
+  label = "New capability",
+  options: AddCapabilityOptions = {},
+): Transaction {
   return transaction("Add root capability", [
     command("add-root", { label }, (doc) => {
       const next = cloneDocument(doc);
       const rootCount = childrenOf(next, null).length;
+      const isOnCanvas = options.isOnCanvas ?? true;
       const id = makeId("root");
       next.nodesById[id] = createNode({
         id,
@@ -83,6 +98,7 @@ export function addRoot(label = "New capability"): Transaction {
         parentId: null,
         type: "root",
         color: nextColor(rootCount),
+        isOnCanvas,
         x: snapCoordinate(next, 48),
         y: snapCoordinate(next, 48 + rootCount * 168),
         w: next.settings.defaultParentWidth * 2,
@@ -98,7 +114,9 @@ export function addRoot(label = "New capability"): Transaction {
 export function addChild(
   parentId: NodeId,
   label = "New capability",
+  options: AddCapabilityOptions = {},
 ): Transaction {
+  const isOnCanvas = options.isOnCanvas ?? true;
   return transaction(
     "Add child capability",
     [
@@ -125,6 +143,7 @@ export function addChild(
           parentId,
           type: "leaf",
           color: parent.color,
+          isOnCanvas,
           x: snapCoordinate(next, parent.x + 32 + childCount * 184),
           y: snapCoordinate(next, parent.y + 64),
           w: next.settings.fixedLeafWidth,
@@ -141,7 +160,109 @@ export function addChild(
         return ok(next);
       }),
     ],
-    { relayout: { scope: [parentId], force: true } },
+    isOnCanvas ? { relayout: { scope: [parentId], force: true } } : undefined,
+  );
+}
+
+export function addSubtreeToCanvas(
+  nodeId: NodeId,
+  targetCenter: DocumentPoint,
+): Transaction {
+  return transaction(
+    "Add subtree to canvas",
+    [
+      command("add-subtree-to-canvas", { nodeId, targetCenter }, (doc) => {
+        const node = doc.nodesById[nodeId];
+        if (!node)
+          return fail(
+            doc,
+            "missing-node",
+            "The selected capability no longer exists.",
+          );
+        const next = cloneDocument(doc);
+        const ids = subtreeNodeIds(next, nodeId);
+        const shouldPlaceSubtree = !isNodeOnCanvas(node);
+        const bounds = shouldPlaceSubtree
+          ? boundsForNodesIncludingHidden(next, ids)
+          : null;
+        const dx = bounds ? targetCenter.x - bounds.x - bounds.w / 2 : 0;
+        const dy = bounds ? targetCenter.y - bounds.y - bounds.h / 2 : 0;
+        let changed = false;
+
+        for (const id of ids) {
+          const current = next.nodesById[id];
+          if (!current) continue;
+          const patch = {
+            ...current,
+            isOnCanvas: true,
+            x: current.x + dx,
+            y: current.y + dy,
+            updatedAt: now(),
+          };
+          if (
+            current.isOnCanvas === patch.isOnCanvas &&
+            current.x === patch.x &&
+            current.y === patch.y
+          )
+            continue;
+          next.nodesById[id] = patch;
+          changed = true;
+        }
+
+        return ok(changed ? next : doc);
+      }),
+    ],
+    {
+      relayout: {
+        scope: (_beforeDoc, afterDoc) => {
+          const node = afterDoc.nodesById[nodeId];
+          const parent = node?.parentId
+            ? afterDoc.nodesById[node.parentId]
+            : undefined;
+          return parent && isNodeOnCanvas(parent) ? [parent.id] : [nodeId];
+        },
+        force: true,
+      },
+    },
+  );
+}
+
+export function removeSubtreeFromCanvas(nodeId: NodeId): Transaction {
+  return transaction(
+    "Remove subtree from canvas",
+    [
+      command("remove-subtree-from-canvas", { nodeId }, (doc) => {
+        if (!doc.nodesById[nodeId])
+          return fail(
+            doc,
+            "missing-node",
+            "The selected capability no longer exists.",
+          );
+        const next = cloneDocument(doc);
+        let changed = false;
+        for (const id of subtreeNodeIds(next, nodeId)) {
+          const node = next.nodesById[id];
+          if (!node || !isNodeOnCanvas(node)) continue;
+          next.nodesById[id] = {
+            ...node,
+            isOnCanvas: false,
+            updatedAt: now(),
+          };
+          changed = true;
+        }
+        return ok(changed ? next : doc);
+      }),
+    ],
+    {
+      relayout: {
+        scope: (beforeDoc) => {
+          const parentId = beforeDoc.nodesById[nodeId]?.parentId ?? null;
+          const parent = parentId ? beforeDoc.nodesById[parentId] : undefined;
+          return parent && isNodeOnCanvas(parent) ? [parent.id] : [];
+        },
+        force: true,
+      },
+    },
   );
 }
 
@@ -366,7 +487,7 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
           );
         const childBounds = node.isManualPositioningEnabled
           ? null
-          : boundsForNodes(doc, childrenOf(doc, nodeId));
+          : boundsForNodes(doc, canvasChildrenOf(doc, nodeId));
         const minW = childBounds
           ? childBounds.x +
             childBounds.w -
@@ -393,7 +514,7 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
           const node =
             afterDoc.nodesById[nodeId] ?? beforeDoc.nodesById[nodeId];
           if (!node) return [];
-          if (childrenOf(afterDoc, nodeId).length === 0) return [];
+          if (canvasChildrenOf(afterDoc, nodeId).length === 0) return [];
           if (node.isManualPositioningEnabled) return [];
           return [nodeId];
         },
@@ -631,7 +752,7 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
           "locked-node",
           "Locked capabilities cannot be resized.",
         );
-      const bounds = boundsForNodes(doc, childrenOf(doc, nodeId));
+      const bounds = boundsForNodes(doc, canvasChildrenOf(doc, nodeId));
       if (!bounds) return ok(doc);
       const margin = {
         top:
@@ -665,7 +786,7 @@ export function repairSiblingOverlaps(parentId: NodeId): Transaction {
     command("repair-sibling-overlaps", { parentId }, (doc) => {
       const parent = doc.nodesById[parentId];
       if (!parent) return ok(doc);
-      const childIds = childrenOf(doc, parentId);
+      const childIds = canvasChildrenOf(doc, parentId);
       if (childIds.length < 2) return ok(doc);
       const next = cloneDocument(doc);
       const movable = childIds
@@ -791,8 +912,22 @@ function alignTarget(
 }
 
 function boundsForNodes(doc: CapabilityDocument, ids: NodeId[]) {
-  const nodes = ids.map((id) => doc.nodesById[id]).filter(Boolean);
+  const nodes = ids
+    .map((id) => doc.nodesById[id])
+    .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
   if (nodes.length === 0) return null;
+  return boundsForNodeList(nodes);
+}
+
+function boundsForNodesIncludingHidden(doc: CapabilityDocument, ids: NodeId[]) {
+  const nodes = ids
+    .map((id) => doc.nodesById[id])
+    .filter((node): node is CapabilityNode => !!node);
+  if (nodes.length === 0) return null;
+  return boundsForNodeList(nodes);
+}
+
+function boundsForNodeList(nodes: CapabilityNode[]) {
   const x = Math.min(...nodes.map((node) => node.x));
   const y = Math.min(...nodes.map((node) => node.y));
   const maxX = Math.max(...nodes.map((node) => node.x + node.w));

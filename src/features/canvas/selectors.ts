@@ -1,4 +1,12 @@
-import { childrenOf, ROOT_PARENT_ID, type Bounds, type CapabilityDocument, type CapabilityNode, type NodeId } from '../../domain/document/types';
+import {
+  canvasChildrenOf,
+  canvasRootChildren,
+  isNodeOnCanvas,
+  type Bounds,
+  type CapabilityDocument,
+  type CapabilityNode,
+  type NodeId,
+} from '../../domain/document/types';
 
 export interface NodeViewModel {
   node: CapabilityNode;
@@ -12,6 +20,7 @@ export interface NodeViewModel {
 export function createNodeViewModels(doc: CapabilityDocument, viewport?: Bounds): NodeViewModel[] {
   const depths = computeDepths(doc);
   return Object.values(doc.nodesById)
+    .filter(isNodeOnCanvas)
     .map((node) => {
       const depth = depths.get(node.id) ?? 0;
       const bounds = { x: node.x, y: node.y, w: node.w, h: node.h };
@@ -31,16 +40,16 @@ export function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   const depths = new Map<NodeId, number>();
   const visit = (nodeId: NodeId, depth: number) => {
     depths.set(nodeId, depth);
-    for (const childId of childrenOf(doc, nodeId)) visit(childId, depth + 1);
+    for (const childId of canvasChildrenOf(doc, nodeId)) visit(childId, depth + 1);
   };
-  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? []) visit(rootId, 0);
+  for (const rootId of canvasRootChildren(doc)) visit(rootId, 0);
   return depths;
 }
 
 export function descendantIds(doc: CapabilityDocument, nodeId: NodeId): NodeId[] {
   const out: NodeId[] = [];
   const walk = (id: NodeId) => {
-    for (const childId of childrenOf(doc, id)) {
+    for (const childId of canvasChildrenOf(doc, id)) {
       out.push(childId);
       walk(childId);
     }
@@ -64,4 +73,3 @@ export function viewportToDocumentBounds(
 function intersects(a: Bounds, b: Bounds): boolean {
   return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
 }
-

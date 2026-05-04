@@ -11,7 +11,7 @@ import {
   createThousandNodeDocument,
 } from "../fixtures/sample";
 import { ensureParentContainment } from "./containment";
-import { applyLayoutPatches, layoutDocument } from "./engine";
+import { applyLayoutPatches, computeDocumentBounds, layoutDocument } from "./engine";
 
 describe("layout engine", () => {
   it("does not patch locked nodes, even when force bypasses document position preservation", async () => {
@@ -60,6 +60,24 @@ describe("layout engine", () => {
     expect(
       result.patches.find((patch) => patch.id === "child-b"),
     ).toMatchObject({ x: 264, y: 92 });
+  });
+
+  it("ignores hidden canvas nodes in layout patches and document bounds", async () => {
+    const doc = twoChildDocument();
+    doc.nodesById["child-b"] = {
+      ...doc.nodesById["child-b"]!,
+      isOnCanvas: false,
+      x: 2000,
+      y: 2000,
+    };
+
+    const result = await layoutDocument({ doc, force: true, mode: "uniform" });
+    const after = applyLayoutPatches(doc, result.patches);
+    const bounds = computeDocumentBounds(after);
+
+    expect(result.patches.find((patch) => patch.id === "child-b")).toBeUndefined();
+    expect(bounds.x + bounds.w).toBeLessThan(1000);
+    expect(bounds.y + bounds.h).toBeLessThan(1000);
   });
 
   it("keeps configured edge padding when grid is enabled", async () => {

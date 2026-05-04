@@ -1,6 +1,6 @@
 import { sortedNodes } from '../../domain/document/normalize';
 import { safeFileBaseName } from '../../domain/document/fileName';
-import type { CapabilityDocument, CapabilityNode } from '../../domain/document/types';
+import { isNodeOnCanvas, type CapabilityDocument, type CapabilityNode } from '../../domain/document/types';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
@@ -17,7 +17,7 @@ export function svgExport(doc: CapabilityDocument): ExportResult {
 
 export function renderSvg(doc: CapabilityDocument): string {
   const bounds = doc.layout.boundingBox.w > 0 ? doc.layout.boundingBox : { x: 0, y: 0, w: 1200, h: 800 };
-  const nodes = sortedNodes(doc);
+  const nodes = sortedNodes(doc).filter(isNodeOnCanvas);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${bounds.w + 96}" height="${bounds.h + 96}" viewBox="${bounds.x - 48} ${bounds.y - 48} ${bounds.w + 96} ${bounds.h + 96}">
   <style>

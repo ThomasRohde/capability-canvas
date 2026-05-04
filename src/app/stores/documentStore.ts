@@ -454,9 +454,14 @@ function settingsLabel(patch: Partial<CapabilityDocument["settings"]>) {
 }
 
 function ensureLayoutBounds(doc: CapabilityDocument): CapabilityDocument {
-  if (doc.layout.boundingBox.w > 0 && doc.layout.boundingBox.h > 0) return doc;
   const boundingBox = computeDocumentBounds(doc);
-  if (boundingBox.w === 0 && boundingBox.h === 0) return doc;
+  if (
+    doc.layout.boundingBox.x === boundingBox.x &&
+    doc.layout.boundingBox.y === boundingBox.y &&
+    doc.layout.boundingBox.w === boundingBox.w &&
+    doc.layout.boundingBox.h === boundingBox.h
+  )
+    return doc;
   return {
     ...doc,
     layout: {

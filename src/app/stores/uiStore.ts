@@ -8,11 +8,17 @@ export interface ViewportState {
   zoom: number;
 }
 
+export interface CanvasSizeState {
+  w: number;
+  h: number;
+}
+
 export type ActiveDrawer = 'settings' | 'export' | null;
 
 interface UiState {
   selectedNodeIds: NodeId[];
   viewport: ViewportState;
+  canvasSize: CanvasSizeState;
   outlineOpen: boolean;
   inspectorOpen: boolean;
   activeDrawer: ActiveDrawer;
@@ -23,6 +29,7 @@ interface UiState {
   toggleSelection: (id: NodeId) => void;
   clearSelection: () => void;
   setViewport: (viewport: ViewportState) => void;
+  setCanvasSize: (size: CanvasSizeState) => void;
   setOutlineOpen: (open: boolean) => void;
   toggleOutline: () => void;
   setInspectorOpen: (open: boolean) => void;
@@ -36,6 +43,7 @@ interface UiState {
 export const useUiStore = create<UiState>((set, get) => ({
   selectedNodeIds: [],
   viewport: { x: 0, y: 0, zoom: 1 },
+  canvasSize: { w: 1200, h: 800 },
   outlineOpen: true,
   inspectorOpen: true,
   activeDrawer: null,
@@ -49,6 +57,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
   clearSelection: () => set({ selectedNodeIds: [] }),
   setViewport: (viewport) => set({ viewport }),
+  setCanvasSize: (canvasSize) => set({ canvasSize }),
   setOutlineOpen: (open) => set({ outlineOpen: open }),
   toggleOutline: () => set({ outlineOpen: !get().outlineOpen }),
   setInspectorOpen: (open) => set({ inspectorOpen: open }),

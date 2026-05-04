@@ -63,4 +63,17 @@ describe('exports', () => {
     expect(xml).toContain(`x="${child.x - parent.x}"`);
     expect(xml).toContain(`y="${child.y - parent.y}"`);
   });
+
+  it('keeps JSON full-fidelity while visual exports omit hidden canvas nodes', () => {
+    const doc = createSampleDocument();
+    doc.nodesById['digital-onboarding'] = {
+      ...doc.nodesById['digital-onboarding']!,
+      isOnCanvas: false,
+    };
+
+    expect(jsonExport(doc).data).toContain('digital-onboarding');
+    expect(svgExport(doc).data).not.toContain('digital-onboarding');
+    expect(drawioExport(doc).data).not.toContain('digital-onboarding');
+    expect(archimateExport(doc).data).not.toContain('digital-onboarding');
+  });
 });

@@ -114,6 +114,37 @@ describe("parent containment", () => {
     expect(repaired.changedNodeIds).toEqual([]);
     expect(repaired.doc.nodesById.root).toMatchObject({ w: 100, h: 80 });
   });
+
+  it("ignores hidden canvas children when repairing containment", () => {
+    const doc = createEmptyDocument();
+    doc.nodesById.root = createNode({
+      id: "root",
+      label: "Root",
+      type: "root",
+      x: 0,
+      y: 0,
+      w: 100,
+      h: 100,
+    });
+    doc.nodesById.child = createNode({
+      id: "child",
+      label: "Child",
+      parentId: "root",
+      isOnCanvas: false,
+      x: 400,
+      y: 400,
+      w: 80,
+      h: 40,
+    });
+    doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+    doc.childrenByParentId.root = ["child"];
+    doc.childrenByParentId.child = [];
+
+    const repaired = ensureParentContainment(doc);
+
+    expect(repaired.changedNodeIds).toEqual([]);
+    expect(repaired.doc.nodesById.root).toMatchObject({ w: 100, h: 100 });
+  });
 });
 
 function findContainmentViolations(doc: CapabilityDocument): string[] {

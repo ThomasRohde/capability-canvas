@@ -64,7 +64,7 @@ describe("document store layout settings", () => {
     expect(child.y + child.h).toBeLessThanOrEqual(parent.y + parent.h);
   });
 
-  it("runs auto layout after importing documents that do not preserve positions", async () => {
+  it("keeps external capability-list imports outline-only without auto layout", async () => {
     const parsed = parseDocument([
       { id: "root", name: "Imported Root", parent: null },
       { id: "domain", name: "Imported Domain", parent: "root" },
@@ -75,13 +75,18 @@ describe("document store layout settings", () => {
     expect(parsed.doc?.layout.preservePositions).toBe(false);
 
     applyImportedDocument(parsed, "Import capability list");
-    await waitForStoreLayout();
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const doc = useDocumentStore.getState().doc;
     const root = doc.nodesById[childrenOf(doc, null)[0]!]!;
-    expect(useDocumentStore.getState().past.at(-1)?.label).toBe("Auto layout");
-    expect(root.x).toBeGreaterThanOrEqual(0);
-    expect(root.y).toBeGreaterThanOrEqual(0);
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Import capability list",
+    );
+    expect(root.isOnCanvas).toBe(false);
+    expect(
+      Object.values(doc.nodesById).every((node) => !node.isOnCanvas),
+    ).toBe(true);
+    expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false);
     expect(findParentContainmentViolations(doc)).toEqual([]);
   });
 
@@ -110,16 +115,6 @@ describe("document store layout settings", () => {
     ).toEqual(["root->child"]);
   });
 });
-
-async function waitForStoreLayout() {
-  for (let index = 0; index < 100; index += 1) {
-    const state = useDocumentStore.getState();
-    if (!state.isAutoLayoutRunning && state.past.at(-1)?.label === "Auto layout")
-      return;
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-  throw new Error("Timed out waiting for auto layout.");
-}
 
 function wideRootSiblingDocument(): CapabilityDocument {
   const doc = createEmptyDocument();

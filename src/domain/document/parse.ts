@@ -159,6 +159,7 @@ function parseCapabilityList(input: unknown): ParseResult | null {
       description: stringValue(item.description) ?? undefined,
       color: nextColor(0),
       metadata: externalMetadata(item),
+      isOnCanvas: false,
       x: DEFAULT_SETTINGS.containerPaddingLeft,
       y:
         DEFAULT_SETTINGS.containerPaddingTop +
