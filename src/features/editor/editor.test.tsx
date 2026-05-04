@@ -35,6 +35,7 @@ describe("editor shell", () => {
   it("renders the fixed workspace regions", () => {
     render(<EditorRoute />);
     expect(screen.getByText("Capability Canvas")).toBeInTheDocument();
+    expect(screen.getByText("v0.1.0")).toBeInTheDocument();
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
@@ -365,9 +366,10 @@ describe("editor shell", () => {
 
     expect(operationalRisk).toHaveClass("container");
     expect(operationalRisk.querySelector(".cc-node-title")).toBeInTheDocument();
-    expect(container.querySelector(".cc-node.selected.container")).toBe(
-      operationalRisk,
-    );
+    expect(operationalRisk).not.toHaveClass("selected");
+    expect(
+      container.querySelector(".cc-container-frame.selected"),
+    ).toBeInTheDocument();
   });
 
   it("renders container frames above node cards so containment remains visible", () => {
@@ -557,6 +559,36 @@ describe("editor shell", () => {
     const after = useDocumentStore.getState().doc;
     expect(after.nodesById.operations!.w).toBe(expectedW);
     expect(after.nodesById.operations!.h).toBe(expectedH);
+  });
+
+  it("uses one selected outline for small selected containers", () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        nodesById: {
+          ...doc.nodesById,
+          customer: {
+            ...doc.nodesById.customer!,
+            h: 32,
+          },
+        },
+      },
+    });
+    useUiStore.setState({ selectedNodeIds: ["customer"] });
+    const { container } = render(<EditorRoute />);
+
+    const node = within(screen.getByTestId("canvas"))
+      .getByText("Customer")
+      .closest(".cc-node") as HTMLElement;
+    const frame = container.querySelector(
+      ".cc-container-frame.selected",
+    ) as HTMLElement;
+
+    expect(node).toHaveClass("container");
+    expect(node).not.toHaveClass("selected");
+    expect(node.style.height).toBe("32px");
+    expect(frame.style.height).toBe("32px");
   });
 
   it("switches settings and export drawers from the rail", async () => {

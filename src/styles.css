@@ -651,7 +651,7 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-height: 44px;
+  min-height: 0;
   padding: 10px;
   border: 1px solid var(--node-border);
   border-radius: 6px;
@@ -660,6 +660,7 @@ button:focus-visible {
   font-size: 13px;
   font-weight: 500;
   text-align: center;
+  overflow: hidden;
   transition: box-shadow 120ms;
 }
 
@@ -722,9 +723,19 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
   min-height: 18px;
   font-size: 14px;
   font-weight: 600;
+}
+
+.cc-node > span:not(.cc-resize):not(.cc-node-score),
+.cc-node-title span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cc-node-score {
@@ -985,6 +996,12 @@ button:focus-visible {
   border-top: 1px solid var(--cc-slate-200);
   color: var(--cc-slate-600);
   font-size: 12px;
+}
+
+.cc-version {
+  color: var(--cc-slate-700);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .cc-status-actions {
