@@ -195,6 +195,8 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
     expect(screen.getByLabelText("Leaf width")).toHaveValue(175);
     expect(screen.getByLabelText("Leaf height")).toHaveValue(50);
+    expect(screen.getByLabelText("Title area")).toHaveValue(28);
+    expect(screen.getByLabelText("Label top offset")).toHaveValue(4);
   });
 
   it("opens document title editing from the title chip", async () => {

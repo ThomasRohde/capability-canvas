@@ -720,7 +720,7 @@ button:focus-visible {
 
 .cc-node-title {
   position: absolute;
-  top: var(--container-label-offset-top, 12px);
+  top: var(--container-label-offset-top, 4px);
   right: 14px;
   left: 14px;
   display: flex;
