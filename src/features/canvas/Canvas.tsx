@@ -70,6 +70,8 @@ import {
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2.5;
+const MIN_NODE_WIDTH = 40;
+const MIN_NODE_HEIGHT = 32;
 
 export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
@@ -436,6 +438,8 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
             const selectedState = selected.includes(vm.node.id);
             const fill = resolveNodeFill(vm.node, doc.heatmap);
             const isContainer = vm.node.type !== "leaf" && !vm.node.isTextLabel;
+            const selectedNodeClass =
+              selectedState && !isContainer ? "selected" : "";
             const dragDelta = drag?.nodeIds.includes(vm.node.id)
               ? { x: drag.dx / viewport.zoom, y: drag.dy / viewport.zoom }
               : { x: 0, y: 0 };
@@ -446,13 +450,16 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
             return (
               <div
                 key={vm.node.id}
-                className={`cc-node ${isContainer ? "container" : ""} ${selectedState ? "selected" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                className={`cc-node ${isContainer ? "container" : ""} ${selectedNodeClass} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
                 style={
                   {
                     left: vm.node.x + dragDelta.x,
                     top: vm.node.y + dragDelta.y,
-                    width: Math.max(40, vm.node.w + resizeDelta.w),
-                    height: Math.max(32, vm.node.h + resizeDelta.h),
+                    width: Math.max(MIN_NODE_WIDTH, vm.node.w + resizeDelta.w),
+                    height: Math.max(
+                      MIN_NODE_HEIGHT,
+                      vm.node.h + resizeDelta.h,
+                    ),
                     zIndex: vm.zIndex,
                     "--node-bg": fill.background,
                     "--node-border": fill.border,
@@ -690,8 +697,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                   {
                     left: vm.node.x + dragDelta.x,
                     top: vm.node.y + dragDelta.y,
-                    width: Math.max(40, vm.node.w + resizeDelta.w),
-                    height: Math.max(32, vm.node.h + resizeDelta.h),
+                    width: Math.max(MIN_NODE_WIDTH, vm.node.w + resizeDelta.w),
+                    height: Math.max(
+                      MIN_NODE_HEIGHT,
+                      vm.node.h + resizeDelta.h,
+                    ),
                     zIndex: vm.zIndex + 1,
                     pointerEvents: "none",
                     "--node-border": fill.border,

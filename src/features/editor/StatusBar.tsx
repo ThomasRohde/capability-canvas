@@ -1,5 +1,6 @@
 import { CheckCircle2, Layers, MessageSquare, PanelRight, TriangleAlert, X } from 'lucide-react';
 import { useState } from 'react';
+import { APP_VERSION } from '../../app/version';
 import { useDocumentStore } from '../../app/stores/documentStore';
 import { useUiStore } from '../../app/stores/uiStore';
 import { IconButton } from '../shared/IconButton';
@@ -19,6 +20,8 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   return (
     <footer className="cc-status">
       <span className="cc-dot" />
+      <span className="cc-version">v{APP_VERSION}</span>
+      <span className="cc-divider" style={{ height: 14 }} />
       <span>{readonly ? 'Loaded from URL' : 'Local autosaved'}</span>
       <span className="cc-divider" style={{ height: 14 }} />
       <span>{readonly ? 'Read-only' : 'All changes saved locally'}</span>
