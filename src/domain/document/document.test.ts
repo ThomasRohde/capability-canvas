@@ -87,6 +87,7 @@ describe("document JSON adapter", () => {
     delete legacySettings.containerPaddingBottom;
     delete legacySettings.containerPaddingLeft;
     delete legacySettings.containerTitleHeight;
+    delete legacySettings.containerLabelOffsetTop;
     delete legacySettings.childGapX;
     delete legacySettings.childGapY;
 
@@ -110,6 +111,9 @@ describe("document JSON adapter", () => {
     );
     expect(parsed.doc!.settings.containerTitleHeight).toBe(
       DEFAULT_SETTINGS.containerTitleHeight,
+    );
+    expect(parsed.doc!.settings.containerLabelOffsetTop).toBe(
+      DEFAULT_SETTINGS.containerLabelOffsetTop,
     );
     expect(parsed.doc!.settings.childGapX).toBe(DEFAULT_SETTINGS.childGapX);
     expect(parsed.doc!.settings.childGapY).toBe(DEFAULT_SETTINGS.childGapY);
@@ -155,6 +159,7 @@ describe("document JSON adapter", () => {
         containerPaddingBottom: 36,
         containerPaddingLeft: 44,
         containerTitleHeight: 12,
+        containerLabelOffsetTop: 6,
         childGapX: 52,
         childGapY: 20,
       },
@@ -169,6 +174,7 @@ describe("document JSON adapter", () => {
       containerPaddingBottom: 36,
       containerPaddingLeft: 44,
       containerTitleHeight: 12,
+      containerLabelOffsetTop: 6,
       childGapX: 52,
       childGapY: 20,
     });

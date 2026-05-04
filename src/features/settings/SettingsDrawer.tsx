@@ -223,6 +223,14 @@ export function SettingsDrawer() {
                 )
               }
             />
+            <NumberSetting
+              id="container-label-offset-top"
+              label="Label top offset"
+              value={doc.settings.containerLabelOffsetTop}
+              onChange={(containerLabelOffsetTop) =>
+                execute(updateDocumentSettings({ containerLabelOffsetTop }))
+              }
+            />
           </div>
           <div className="cc-section-title">Child gaps</div>
           <div className="cc-field-row">

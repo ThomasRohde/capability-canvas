@@ -193,6 +193,8 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Show grid")).toBeChecked();
     expect(screen.getByLabelText("Grid size")).toHaveValue(16);
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
+    expect(screen.getByLabelText("Leaf width")).toHaveValue(175);
+    expect(screen.getByLabelText("Leaf height")).toHaveValue(50);
   });
 
   it("opens document title editing from the title chip", async () => {
@@ -630,6 +632,10 @@ describe("editor shell", () => {
     );
     const topPadding = screen.getByLabelText("Top");
     const titleArea = screen.getByLabelText("Title area");
+    const labelOffset = screen.getByLabelText("Label top offset");
+    await userEvent.clear(labelOffset);
+    await userEvent.type(labelOffset, "16");
+    fireEvent.blur(labelOffset);
     await userEvent.clear(topPadding);
     await userEvent.type(topPadding, "48");
     fireEvent.blur(topPadding);
@@ -643,6 +649,9 @@ describe("editor shell", () => {
     expect(useDocumentStore.getState().doc.settings.containerTitleHeight).toBe(
       8,
     );
+    expect(
+      useDocumentStore.getState().doc.settings.containerLabelOffsetTop,
+    ).toBe(16);
     expect(screen.getByText("New parent defaults")).toBeInTheDocument();
     expect(screen.getByLabelText("Width")).toHaveValue(360);
     expect(screen.getByLabelText("Height")).toHaveValue(140);

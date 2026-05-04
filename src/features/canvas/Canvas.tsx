@@ -487,6 +487,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                     zIndex: vm.zIndex,
                     "--node-bg": fill.background,
                     "--node-border": fill.border,
+                    "--container-label-offset-top": `${Math.max(
+                      0,
+                      doc.settings.containerLabelOffsetTop,
+                    )}px`,
                   } as React.CSSProperties
                 }
                 onPointerDown={(event) => {

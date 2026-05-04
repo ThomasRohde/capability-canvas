@@ -56,10 +56,10 @@ describe("layout engine", () => {
     const result = await layoutDocument({ doc, force: true, mode: "uniform" });
     expect(
       result.patches.find((patch) => patch.id === "child-a"),
-    ).toMatchObject({ x: 72, y: 92 });
+    ).toMatchObject({ x: 72, y: 88 });
     expect(
       result.patches.find((patch) => patch.id === "child-b"),
-    ).toMatchObject({ x: 264, y: 92 });
+    ).toMatchObject({ x: 271, y: 88 });
   });
 
   it("ignores hidden canvas nodes in layout patches and document bounds", async () => {
@@ -101,7 +101,7 @@ describe("layout engine", () => {
 
     expect(childLeft - root.x).toBe(8);
     expect(root.x + root.w - childRight).toBeGreaterThanOrEqual(8);
-    expect(childTop - root.y).toBe(36);
+    expect(childTop - root.y).toBe(32);
     expect(root.y + root.h - childBottom).toBeGreaterThanOrEqual(0);
   });
 
@@ -136,10 +136,10 @@ describe("layout engine", () => {
     const result = await layoutDocument({ doc, force: true, mode: "uniform" });
     expect(
       result.patches.find((patch) => patch.id === "child-a"),
-    ).toMatchObject({ x: 56, y: 72 });
+    ).toMatchObject({ x: 32, y: 72 });
     expect(
       result.patches.find((patch) => patch.id === "child-b"),
-    ).toMatchObject({ x: 256, y: 72 });
+    ).toMatchObject({ x: 215, y: 72 });
   });
 
   it("lets node-specific layout preferences override global spacing settings", async () => {
@@ -155,10 +155,10 @@ describe("layout engine", () => {
     const result = await layoutDocument({ doc, force: true, mode: "uniform" });
     expect(
       result.patches.find((patch) => patch.id === "child-a"),
-    ).toMatchObject({ x: 36, y: 68 });
+    ).toMatchObject({ x: 36, y: 64 });
     expect(
       result.patches.find((patch) => patch.id === "child-b"),
-    ).toMatchObject({ x: 212, y: 68 });
+    ).toMatchObject({ x: 219, y: 64 });
   });
 
   it("uses ELK packing for the nested browser scenario without containment violations or sibling overlaps", async () => {

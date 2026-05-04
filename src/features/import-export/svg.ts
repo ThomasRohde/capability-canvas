@@ -34,7 +34,7 @@ function renderNode(doc: CapabilityDocument, node: CapabilityNode): string {
   const fill = resolveNodeFill(node, doc.heatmap);
   const isContainer = node.type === 'root' || node.type === 'parent';
   const radius = isContainer ? 8 : 6;
-  const label = renderLabel(node, isContainer);
+  const label = renderLabel(doc, node, isContainer);
   return `<g data-node-id="${escapeXml(node.id)}">
     <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" fill="${fill.background}" stroke="${fill.border}" stroke-width="${isContainer ? 1.5 : 1}" />
     ${label}
@@ -42,14 +42,18 @@ function renderNode(doc: CapabilityDocument, node: CapabilityNode): string {
   </g>`;
 }
 
-function renderLabel(node: CapabilityNode, isContainer: boolean): string {
+function renderLabel(
+  doc: CapabilityDocument,
+  node: CapabilityNode,
+  isContainer: boolean,
+): string {
   const className = isContainer ? 'container-label' : 'node-label';
   const x = node.x + node.w / 2;
   const maxChars = Math.max(8, Math.floor((node.w - 16) / (isContainer ? 8 : 7)));
   const lines = wrapLabel(node.label, maxChars, isContainer ? 2 : 3);
   const lineHeight = isContainer ? 17 : 15;
   const firstY = isContainer
-    ? node.y + 22
+    ? node.y + doc.settings.containerLabelOffsetTop + 12
     : node.y + node.h / 2 - ((lines.length - 1) * lineHeight) / 2 + 5;
   const tspans = lines
     .map(

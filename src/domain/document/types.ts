@@ -68,6 +68,7 @@ export interface DiagramSettings {
   containerPaddingBottom: number;
   containerPaddingLeft: number;
   containerTitleHeight: number;
+  containerLabelOffsetTop: number;
   childGapX: number;
   childGapY: number;
   fontFamily: string;

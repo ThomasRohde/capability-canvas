@@ -667,7 +667,7 @@ button:focus-visible {
 .cc-node.container {
   align-items: stretch;
   justify-content: flex-start;
-  padding: 12px 14px;
+  padding: 0 14px 12px;
   border-width: 1.5px;
   border-radius: 8px;
 }
@@ -719,15 +719,19 @@ button:focus-visible {
 }
 
 .cc-node-title {
+  position: absolute;
+  top: var(--container-label-offset-top, 12px);
+  right: 14px;
+  left: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
-  min-height: 18px;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .cc-node > span:not(.cc-resize):not(.cc-node-score),

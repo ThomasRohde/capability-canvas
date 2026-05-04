@@ -83,6 +83,9 @@ export const SettingsSchema = z
     containerTitleHeight: spacingNumber.default(
       DEFAULT_SETTINGS.containerTitleHeight,
     ),
+    containerLabelOffsetTop: spacingNumber.default(
+      DEFAULT_SETTINGS.containerLabelOffsetTop,
+    ),
     childGapX: spacingNumber.default(DEFAULT_SETTINGS.childGapX),
     childGapY: spacingNumber.default(DEFAULT_SETTINGS.childGapY),
     fontFamily: z.string(),
