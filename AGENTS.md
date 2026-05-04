@@ -21,9 +21,16 @@ changes unless the user explicitly asks for a branch or PR.
 
 - Do not create feature branches or PRs by default.
 - Commit intended changes on `master`.
-- Push `master` to `origin` to deploy; GitHub Pages is triggered by pushes to
-  `master` via `.github/workflows/pages.yml`.
-- After pushing, check the Pages workflow and confirm the public site updates.
+- Do not push `master` after every change.
+- Publishing is triggered by an explicit user request for a version bump.
+- When the user asks for a version bump, run the appropriate version script
+  (`npm run version:patch`, `npm run version:minor`, or
+  `npm run version:major`), commit the version bump and intended changes on
+  `master`, then push `master` to `origin`.
+- GitHub Pages is triggered by pushes to `master` via
+  `.github/workflows/pages.yml`.
+- After a version-bump push, check the Pages workflow and confirm the public
+  site updates.
 
 ## Architecture
 
