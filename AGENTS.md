@@ -14,6 +14,17 @@ npm run test:run     # Vitest (CI, single pass)
 npm run test:e2e     # Playwright E2E
 ```
 
+## Git / Deployment Workflow
+
+This is a single-developer project. Work directly on `master` for future
+changes unless the user explicitly asks for a branch or PR.
+
+- Do not create feature branches or PRs by default.
+- Commit intended changes on `master`.
+- Push `master` to `origin` to deploy; GitHub Pages is triggered by pushes to
+  `master` via `.github/workflows/pages.yml`.
+- After pushing, check the Pages workflow and confirm the public site updates.
+
 ## Architecture
 
 Five layers with strict import direction (no upward imports):
