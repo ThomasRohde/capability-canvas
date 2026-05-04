@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_VERSION } from "../../app/version";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import {
@@ -35,7 +36,7 @@ describe("editor shell", () => {
   it("renders the fixed workspace regions", () => {
     render(<EditorRoute />);
     expect(screen.getByText("Capability Canvas")).toBeInTheDocument();
-    expect(screen.getByText("v0.1.0")).toBeInTheDocument();
+    expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
@@ -653,14 +654,17 @@ describe("editor shell", () => {
         "Update layout settings",
       ),
     );
+    const historyLength = useDocumentStore.getState().past.length;
 
     await userEvent.click(
       screen.getByRole("button", { name: "Apply auto layout" }),
     );
     await waitFor(() =>
-      expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
-        "Auto layout",
-      ),
+      expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),
+    );
+    expect(useDocumentStore.getState().past.length).toBe(historyLength);
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Update layout settings",
     );
   });
 

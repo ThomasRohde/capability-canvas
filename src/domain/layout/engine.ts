@@ -9,7 +9,6 @@ import {
 } from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 import { warning } from "../validation/diagnostics";
-import { snapCoordinate } from "./grid";
 import {
   type LayoutPatch,
   type LayoutRequest,
@@ -159,9 +158,8 @@ export function applyLayoutPatches(
     const node = nodesById[patch.id];
     if (!node) continue;
     patchedIds.add(patch.id);
-    const preserveCoordinates = isInsideManualSubtree(doc, patch.id);
-    const nextX = preserveCoordinates ? patch.x : snapCoordinate(doc, patch.x);
-    const nextY = preserveCoordinates ? patch.y : snapCoordinate(doc, patch.y);
+    const nextX = Math.round(patch.x);
+    const nextY = Math.round(patch.y);
     if (
       node.x === nextX &&
       node.y === nextY &&
@@ -267,15 +265,6 @@ function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   return depths;
 }
 
-function isInsideManualSubtree(doc: CapabilityDocument, nodeId: NodeId) {
-  let current: CapabilityNode | undefined = doc.nodesById[nodeId];
-  while (current) {
-    if (current.isManualPositioningEnabled) return true;
-    current = current.parentId ? doc.nodesById[current.parentId] : undefined;
-  }
-  return false;
-}
-
 export function computeDocumentBounds(doc: CapabilityDocument) {
   const nodes = Object.values(doc.nodesById);
   if (nodes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
@@ -377,18 +366,19 @@ async function measureSubtree(
   }
 
   const childBounds = boundsForBoxes(childBoxes);
+  const minSize = nodeSize(doc, node);
   const next = {
     id: node.id,
     x: 0,
     y: 0,
     w: Math.max(
-      node.w,
+      minSize.w,
       childBounds
         ? childBounds.x + childBounds.w + margin.right
         : margin.left + packed.w + margin.right,
     ),
     h: Math.max(
-      node.h,
+      minSize.h,
       childBounds
         ? childBounds.y + childBounds.h + margin.bottom
         : childAreaTop(doc, node) + packed.h + margin.bottom,
