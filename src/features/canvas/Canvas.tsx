@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -37,10 +38,11 @@ import {
   sameSize,
   transaction,
 } from "../../domain/commands/operations";
-import type {
-  Bounds,
-  CapabilityDocument,
-  NodeId,
+import {
+  ROOT_PARENT_ID,
+  type Bounds,
+  type CapabilityDocument,
+  type NodeId,
 } from "../../domain/document/types";
 import { gridSizeFor, snapToGrid } from "../../domain/layout/grid";
 import {
@@ -55,7 +57,10 @@ import {
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
-import { resolveNodeFill } from "../heatmap/resolveNodeFill";
+import {
+  heatmapGradient,
+  resolveNodeFill,
+} from "../heatmap/resolveNodeFill";
 import { IconButton } from "../shared/IconButton";
 import {
   createNodeViewModels,
@@ -188,6 +193,19 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     setContextMenu(null);
   };
 
+  const fitView = useCallback(() => {
+    const bounds = doc.layout.boundingBox;
+    if (bounds.w === 0 || bounds.h === 0) return;
+    const zoom = Math.max(
+      MIN_ZOOM,
+      Math.min(
+        1.5,
+        Math.min((size.w - 80) / bounds.w, (size.h - 80) / bounds.h),
+      ),
+    );
+    setViewport({ zoom, x: 40 - bounds.x * zoom, y: 40 - bounds.y * zoom });
+  }, [doc.layout.boundingBox, setViewport, size.h, size.w]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (readonly) return;
@@ -199,11 +217,22 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         execute(deleteNodes(selected));
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
-        useDocumentStore.getState().undo();
+        if (event.shiftKey) useDocumentStore.getState().redo();
+        else useDocumentStore.getState().undo();
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
         event.preventDefault();
         useDocumentStore.getState().redo();
+      }
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "a"
+      ) {
+        event.preventDefault();
+        const ids = Object.values(useDocumentStore.getState().doc.nodesById)
+          .filter((node) => !node.isTextLabel && node.type !== "text")
+          .map((node) => node.id);
+        useUiStore.getState().setSelection(ids);
       }
       if (
         (event.ctrlKey || event.metaKey) &&
@@ -241,20 +270,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  });
-
-  const fitView = () => {
-    const bounds = doc.layout.boundingBox;
-    if (bounds.w === 0 || bounds.h === 0) return;
-    const zoom = Math.max(
-      MIN_ZOOM,
-      Math.min(
-        1.5,
-        Math.min((size.w - 80) / bounds.w, (size.h - 80) / bounds.h),
-      ),
-    );
-    setViewport({ zoom, x: 40 - bounds.x * zoom, y: 40 - bounds.y * zoom });
-  };
+  }, [doc, execute, fitView, readonly, selected]);
 
   const zoomBy = (delta: number) => {
     zoomAround(delta, size.w / 2, size.h / 2);
@@ -642,9 +658,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                         }
                         window.removeEventListener("pointermove", onMove);
                         window.removeEventListener("pointerup", onUp);
+                        window.removeEventListener("pointercancel", onUp);
                       };
                       window.addEventListener("pointermove", onMove);
                       window.addEventListener("pointerup", onUp);
+                      window.addEventListener("pointercancel", onUp);
                     }}
                   />
                 )}
@@ -674,7 +692,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                     top: vm.node.y + dragDelta.y,
                     width: Math.max(40, vm.node.w + resizeDelta.w),
                     height: Math.max(32, vm.node.h + resizeDelta.h),
-                    zIndex: 10000 + vm.depth,
+                    zIndex: vm.zIndex + 1,
                     pointerEvents: "none",
                     "--node-border": fill.border,
                   } as React.CSSProperties
@@ -762,7 +780,9 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         />
       )}
       {selected.length > 1 && !readonly && <BulkToolbar selected={selected} />}
-      {doc.heatmap.enabled && doc.heatmap.showLegend && <HeatmapLegend />}
+      {doc.heatmap.enabled && doc.heatmap.showLegend && (
+        <HeatmapLegend palette={doc.heatmap.palette} />
+      )}
       <Minimap
         bounds={doc.layout.boundingBox}
         viewport={docViewport}
@@ -821,7 +841,7 @@ function filterToSiblingGroup(
     const node = doc.nodesById[id];
     if (!node) continue;
     if (node.isTextLabel || node.type === "text") continue;
-    const key = String(node.parentId ?? "__root__");
+    const key = String(node.parentId ?? ROOT_PARENT_ID);
     const list = buckets.get(key) ?? [];
     list.push(id);
     buckets.set(key, list);
@@ -858,114 +878,81 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
       <span className="count">{selected.length} selected</span>
       <IconButton
         icon={AlignHorizontalJustifyStart}
-        label={
-          alignAllowed.valid
-            ? "Align left"
-            : `Align left - ${alignAllowed.reason}`
-        }
+        label="Align left"
+        tooltip={alignAllowed.reason}
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "left"))}
       />
       <IconButton
         icon={AlignHorizontalJustifyCenter}
-        label={
-          alignAllowed.valid
-            ? "Align center"
-            : `Align center - ${alignAllowed.reason}`
-        }
+        label="Align center"
+        tooltip={alignAllowed.reason}
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "center"))}
       />
       <IconButton
         icon={AlignHorizontalJustifyEnd}
-        label={
-          alignAllowed.valid
-            ? "Align right"
-            : `Align right - ${alignAllowed.reason}`
-        }
+        label="Align right"
+        tooltip={alignAllowed.reason}
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "right"))}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
         icon={AlignVerticalJustifyStart}
-        label={
-          alignAllowed.valid
-            ? "Align top"
-            : `Align top - ${alignAllowed.reason}`
-        }
+        label="Align top"
+        tooltip={alignAllowed.reason}
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "top"))}
       />
       <IconButton
         icon={AlignVerticalJustifyCenter}
-        label={
-          alignAllowed.valid
-            ? "Align middle"
-            : `Align middle - ${alignAllowed.reason}`
-        }
+        label="Align middle"
+        tooltip={alignAllowed.reason}
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "middle"))}
       />
       <IconButton
         icon={AlignVerticalJustifyEnd}
-        label={
-          alignAllowed.valid
-            ? "Align bottom"
-            : `Align bottom - ${alignAllowed.reason}`
-        }
+        label="Align bottom"
+        tooltip={alignAllowed.reason}
         disabled={!alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "bottom"))}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
         icon={AlignHorizontalSpaceBetween}
-        label={
-          distributeAllowed.valid
-            ? "Distribute horizontal"
-            : `Distribute horizontal - ${distributeAllowed.reason}`
-        }
+        label="Distribute horizontal"
+        tooltip={distributeAllowed.reason}
         disabled={!distributeAllowed.valid}
         onClick={() => execute(distributeNodes(selected, "horizontal"))}
       />
       <IconButton
         icon={AlignVerticalSpaceBetween}
-        label={
-          distributeAllowed.valid
-            ? "Distribute vertical"
-            : `Distribute vertical - ${distributeAllowed.reason}`
-        }
+        label="Distribute vertical"
+        tooltip={distributeAllowed.reason}
         disabled={!distributeAllowed.valid}
         onClick={() => execute(distributeNodes(selected, "vertical"))}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
         icon={StretchHorizontal}
-        label={
-          sameSizeAllowed.valid
-            ? "Match width to first selected"
-            : `Match width - ${sameSizeAllowed.reason}`
-        }
+        label="Match width to first selected"
+        tooltip={sameSizeAllowed.reason}
         disabled={!sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor, "width"))}
       />
       <IconButton
         icon={StretchVertical}
-        label={
-          sameSizeAllowed.valid
-            ? "Match height to first selected"
-            : `Match height - ${sameSizeAllowed.reason}`
-        }
+        label="Match height to first selected"
+        tooltip={sameSizeAllowed.reason}
         disabled={!sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor, "height"))}
       />
       <IconButton
         icon={Scaling}
-        label={
-          sameSizeAllowed.valid
-            ? "Match size to first selected"
-            : `Match size - ${sameSizeAllowed.reason}`
-        }
+        label="Match size to first selected"
+        tooltip={sameSizeAllowed.reason}
         disabled={!sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor))}
       />
@@ -977,10 +964,11 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
       />
       <IconButton
         icon={Maximize}
-        label={
+        label="Fit parent to children"
+        tooltip={
           fitAllowed
-            ? "Fit parent to children"
-            : "Fit parent to children - select a single parent capability"
+            ? undefined
+            : "Select a single parent capability to fit it to its children."
         }
         disabled={!fitAllowed}
         onClick={() => fitTargetId && execute(fitParentToChildren(fitTargetId))}
@@ -994,11 +982,18 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
   );
 }
 
-function HeatmapLegend() {
+function HeatmapLegend({
+  palette,
+}: {
+  palette: Parameters<typeof heatmapGradient>[0];
+}) {
   return (
     <div className="cc-heat-legend">
       <div className="cc-section-title">Heatmap</div>
-      <div className="cc-heat-bar" />
+      <div
+        className="cc-heat-bar"
+        style={{ background: heatmapGradient(palette) }}
+      />
       <div
         style={{
           display: "flex",

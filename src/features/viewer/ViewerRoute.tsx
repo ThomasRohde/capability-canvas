@@ -1,5 +1,6 @@
 import { Download, ExternalLink } from "lucide-react";
 import { useEffect } from "react";
+import { decodeBase64Text } from "../../app/base64";
 import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
 import { serializeDocument } from "../../domain/document/serialize";
 import { useDocumentStore } from "../../app/stores/documentStore";
@@ -13,16 +14,16 @@ import { StatusBar } from "../editor/StatusBar";
 export function ViewerRoute() {
   const doc = useDocumentStore((state) => state.doc);
   const setDocument = useDocumentStore((state) => state.setDocument);
-  const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get("doc");
     const source = params.get("src");
+    const storageKey = params.get("storage");
     if (encoded) {
       try {
-        const json = decodeURIComponent(escape(atob(encoded)));
+        const json = decodeBase64Text(encoded);
         const parsed = parseDocumentJson(json);
         if (parsed.doc) setDocument(parsed.doc, "Load viewer document");
       } catch {
@@ -36,6 +37,13 @@ export function ViewerRoute() {
           const parsed = parseDocument(data);
           if (parsed.doc) setDocument(parsed.doc, "Load viewer source");
         });
+    } else if (storageKey) {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        localStorage.removeItem(storageKey);
+        const parsed = parseDocumentJson(stored);
+        if (parsed.doc) setDocument(parsed.doc, "Load viewer storage");
+      }
     }
   }, [setDocument]);
 
@@ -63,8 +71,8 @@ export function ViewerRoute() {
             if (bounds.w > 0)
               setViewport({
                 zoom: 1,
-                x: 40 - bounds.x * viewport.zoom,
-                y: 40 - bounds.y * viewport.zoom,
+                x: 40 - bounds.x,
+                y: 40 - bounds.y,
               });
           }}
         >
@@ -125,7 +133,7 @@ export function ViewerRoute() {
         </button>
       </header>
       <div className="cc-workspace">
-        <Outline />
+        <Outline readonly />
         <Canvas readonly />
         <Inspector readonly />
       </div>

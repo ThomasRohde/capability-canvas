@@ -19,8 +19,8 @@ export interface ParseResult {
 }
 
 export function parseDocument(input: unknown): ParseResult {
-  const tasted = tasteDocumentShape(input);
-  if (tasted) return tasted;
+  const externalShape = parseCapabilityList(input);
+  if (externalShape) return externalShape;
 
   const parsed = WireDocumentSchema.safeParse(input);
   if (!parsed.success) {
@@ -80,12 +80,6 @@ export function parseDocument(input: unknown): ParseResult {
   }
 
   return finalizeDocument(doc, diagnostics);
-}
-
-function tasteDocumentShape(input: unknown): ParseResult | null {
-  const capabilityList = parseCapabilityList(input);
-  if (capabilityList) return capabilityList;
-  return null;
 }
 
 function parseCapabilityList(input: unknown): ParseResult | null {

@@ -34,7 +34,7 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
-  selectedNodeIds: ['digital-onboarding'],
+  selectedNodeIds: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   outlineOpen: true,
   inspectorOpen: true,

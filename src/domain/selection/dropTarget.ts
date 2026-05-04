@@ -21,10 +21,11 @@ export function findDropTarget(
   options: DropTargetOptions,
 ): DropTargetCandidate {
   const { doc, pointDocX, pointDocY, draggedIds } = options;
+  const depths = computeDepths(doc);
   const candidates = Object.values(doc.nodesById).filter((node) =>
     couldBeParent(node, draggedIds),
   );
-  candidates.sort((a, b) => depthOf(doc, b.id) - depthOf(doc, a.id));
+  candidates.sort((a, b) => (depths.get(b.id) ?? 0) - (depths.get(a.id) ?? 0));
   for (const node of candidates) {
     if (
       pointDocX >= node.x &&
@@ -45,14 +46,20 @@ function couldBeParent(node: CapabilityNode, draggedIds: Set<NodeId>): boolean {
   return true;
 }
 
-function depthOf(doc: CapabilityDocument, nodeId: NodeId): number {
-  let depth = 0;
-  let current: CapabilityNode | undefined = doc.nodesById[nodeId];
-  while (current?.parentId) {
-    depth += 1;
-    current = doc.nodesById[current.parentId];
+function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
+  const depths = new Map<NodeId, number>();
+  for (const node of Object.values(doc.nodesById)) {
+    let depth = 0;
+    let current: CapabilityNode | undefined = node;
+    const seen = new Set<NodeId>();
+    while (current?.parentId && !seen.has(current.id)) {
+      seen.add(current.id);
+      depth += 1;
+      current = doc.nodesById[current.parentId];
+    }
+    depths.set(node.id, depth);
   }
-  return depth;
+  return depths;
 }
 
 export function isAcceptableDropTarget(

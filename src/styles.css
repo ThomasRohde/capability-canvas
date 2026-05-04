@@ -568,6 +568,45 @@ button:focus-visible {
   color: var(--cc-danger);
 }
 
+.cc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.cc-modal {
+  display: grid;
+  gap: 12px;
+  width: min(680px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  padding: 14px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-modal-head,
+.cc-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cc-modal-actions {
+  justify-content: flex-end;
+}
+
+.cc-paste-json {
+  min-height: 260px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
 .cc-outline-footer {
   padding: 10px 12px;
   border-top: 1px solid var(--cc-slate-200);
@@ -865,6 +904,25 @@ button:focus-visible {
   color: var(--cc-slate-600);
   font-size: 12px;
   font-weight: 500;
+}
+
+.cc-field-error {
+  color: var(--cc-danger);
+  font-size: 12px;
+}
+
+.cc-file-label {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.cc-file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .cc-field-row {

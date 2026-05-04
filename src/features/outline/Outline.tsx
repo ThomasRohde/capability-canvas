@@ -31,7 +31,7 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
-export function Outline() {
+export function Outline({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
   const execute = useDocumentStore((state) => state.execute);
   const selected = useUiStore((state) => state.selectedNodeIds);
@@ -151,14 +151,16 @@ export function Outline() {
         >
           <Filter />
         </button>
-        <button
-          className="cc-icon-btn active"
-          type="button"
-          aria-label="Add root capability"
-          onClick={() => execute(addRoot())}
-        >
-          <Plus />
-        </button>
+        {!readonly && (
+          <button
+            className="cc-icon-btn active"
+            type="button"
+            aria-label="Add root capability"
+            onClick={() => execute(addRoot())}
+          >
+            <Plus />
+          </button>
+        )}
       </div>
       <div {...tree.getContainerProps()} className="cc-outline-tree">
         {tree
@@ -218,20 +220,22 @@ export function Outline() {
                     {node.heatmapValue.toFixed(2)}
                   </span>
                 )}
-                <button
-                  className="cc-tree-actions"
-                  type="button"
-                  aria-label={`Actions for ${node.label}`}
-                  aria-haspopup="menu"
-                  aria-expanded={menuNodeId === node.id}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setMenuNodeId(menuNodeId === node.id ? null : node.id);
-                  }}
-                >
-                  <MoreHorizontal size={14} />
-                </button>
-                {menuNodeId === node.id && (
+                {!readonly && (
+                  <button
+                    className="cc-tree-actions"
+                    type="button"
+                    aria-label={`Actions for ${node.label}`}
+                    aria-haspopup="menu"
+                    aria-expanded={menuNodeId === node.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setMenuNodeId(menuNodeId === node.id ? null : node.id);
+                    }}
+                  >
+                    <MoreHorizontal size={14} />
+                  </button>
+                )}
+                {!readonly && menuNodeId === node.id && (
                   <OutlineActionsMenu
                     nodeId={node.id}
                     canAddChild={!node.isTextLabel && node.type !== "text"}
@@ -243,15 +247,17 @@ export function Outline() {
             );
           })}
       </div>
-      <div className="cc-outline-footer">
-        <button
-          className="cc-btn cc-add-root"
-          type="button"
-          onClick={() => execute(addRoot())}
-        >
-          <Plus /> Add root capability
-        </button>
-      </div>
+      {!readonly && (
+        <div className="cc-outline-footer">
+          <button
+            className="cc-btn cc-add-root"
+            type="button"
+            onClick={() => execute(addRoot())}
+          >
+            <Plus /> Add root capability
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

@@ -11,8 +11,10 @@ import {
   Trash2,
   Upload,
   Undo2,
+  X,
   ZoomIn,
 } from "lucide-react";
+import { useState } from "react";
 import {
   addChild,
   addRoot,
@@ -39,6 +41,8 @@ export function Toolbar() {
   const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteDraft, setPasteDraft] = useState("");
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
   const importDocument = () => {
     void openDocumentFile().then((parsed) =>
@@ -46,7 +50,18 @@ export function Toolbar() {
     );
   };
 
+  const importPastedJson = () => {
+    if (pasteDraft.trim().length === 0) return;
+    const parsed = parseDocumentJson(pasteDraft);
+    applyImportedDocument(parsed, "Import pasted JSON");
+    if (parsed.doc) {
+      setPasteOpen(false);
+      setPasteDraft("");
+    }
+  };
+
   return (
+    <>
     <header className="cc-toolbar">
       <div className="cc-brand">
         <img
@@ -119,9 +134,9 @@ export function Toolbar() {
           const bounds = doc.layout.boundingBox;
           if (bounds.w > 0)
             setViewport({
-              x: 280 - bounds.x * viewport.zoom,
-              y: 60 - bounds.y * viewport.zoom,
               zoom: 1,
+              x: 280 - bounds.x,
+              y: 60 - bounds.y,
             });
         }}
       >
@@ -189,13 +204,7 @@ export function Toolbar() {
       <IconButton
         icon={FileJson}
         label="Import pasted JSON"
-        onClick={() => {
-          const raw = window.prompt("Paste Capability Canvas JSON");
-          if (raw) {
-            const parsed = parseDocumentJson(raw);
-            applyImportedDocument(parsed, "Import pasted JSON");
-          }
-        }}
+        onClick={() => setPasteOpen(true)}
       />
       <IconButton
         icon={Settings}
@@ -203,5 +212,55 @@ export function Toolbar() {
         onClick={() => setActiveDrawer("settings")}
       />
     </header>
+    {pasteOpen && (
+      <div
+        className="cc-modal-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setPasteOpen(false);
+        }}
+      >
+        <section className="cc-modal" role="dialog" aria-label="Import pasted JSON">
+          <div className="cc-modal-head">
+            <div className="cc-panel-title">Import pasted JSON</div>
+            <IconButton
+              icon={X}
+              label="Close pasted JSON import"
+              onClick={() => setPasteOpen(false)}
+            />
+          </div>
+          <textarea
+            className="cc-textarea cc-paste-json"
+            value={pasteDraft}
+            autoFocus
+            onChange={(event) => setPasteDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setPasteOpen(false);
+              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault();
+                importPastedJson();
+              }
+            }}
+          />
+          <div className="cc-modal-actions">
+            <button
+              className="cc-btn"
+              type="button"
+              onClick={() => setPasteOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="cc-btn cc-btn-primary"
+              type="button"
+              onClick={importPastedJson}
+            >
+              <Upload /> Import
+            </button>
+          </div>
+        </section>
+      </div>
+    )}
+    </>
   );
 }

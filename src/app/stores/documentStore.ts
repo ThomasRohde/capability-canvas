@@ -13,7 +13,11 @@ import { cloneDocument } from "../../domain/document/normalize";
 import type { CapabilityDocument, NodeId } from "../../domain/document/types";
 import { createSampleDocument } from "../../domain/fixtures/sample";
 import { ensureParentContainment } from "../../domain/layout/containment";
-import { applyLayoutPatches, layoutDocument } from "../../domain/layout/engine";
+import {
+  applyLayoutPatches,
+  computeDocumentBounds,
+  layoutDocument,
+} from "../../domain/layout/engine";
 import { warning, type Diagnostic } from "../../domain/validation/diagnostics";
 
 interface DocumentState {
@@ -64,6 +68,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
               label: txn.label,
               before: cloneDocument(before),
               after: cloneDocument(result.doc),
+              relayout: txn.meta?.relayout
+                ? {
+                    scope: txn.meta.relayout.scope,
+                    force: txn.meta.relayout.force ?? false,
+                  }
+                : undefined,
             },
           ]
         : get().past,
@@ -97,17 +107,29 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   redo: () => {
     const entry = get().future[0];
     if (!entry) return;
+    const after = cloneDocument(entry.after);
     set({
-      doc: cloneDocument(entry.after),
+      doc: after,
       past: [...get().past, entry],
       future: get().future.slice(1),
       dirty: true,
       lastDiagnostics: [],
     });
+    if (entry.relayout) {
+      void runRelayout({
+        before: entry.before,
+        after,
+        scope: entry.relayout.scope,
+        force: entry.relayout.force,
+        label: entry.label,
+        get,
+        set,
+      });
+    }
   },
   setDocument: (doc, label = "Import document", diagnostics = []) => {
     const before = get().doc;
-    const repaired = ensureParentContainment(doc).doc;
+    const repaired = ensureLayoutBounds(ensureParentContainment(doc).doc);
     set({
       doc: repaired,
       past: [
@@ -277,11 +299,21 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const before = get().doc;
     const repaired = ensureParentContainment(before);
     if (repaired.changedNodeIds.length === 0) return;
+    const after = {
+      ...repaired.doc,
+      timestamp: Date.now(),
+    };
     set({
-      doc: {
-        ...repaired.doc,
-        timestamp: Date.now(),
-      },
+      doc: after,
+      past: [
+        ...get().past,
+        {
+          label: "Repair containment",
+          before: cloneDocument(before),
+          after: cloneDocument(after),
+        },
+      ],
+      future: [],
       dirty: true,
       lastDiagnostics: [
         ...get().lastDiagnostics,
@@ -338,11 +370,13 @@ async function runRelayout(args: {
           label: last.label,
           before: last.before,
           after: cloneDocument(repaired),
+          relayout: last.relayout,
         }
       : {
           label: args.label,
           before: cloneDocument(before),
           after: cloneDocument(repaired),
+          relayout: { scope, force },
         };
 
     set({
@@ -419,6 +453,19 @@ function settingsLabel(patch: Partial<CapabilityDocument["settings"]>) {
   return "Update layout settings";
 }
 
+function ensureLayoutBounds(doc: CapabilityDocument): CapabilityDocument {
+  if (doc.layout.boundingBox.w > 0 && doc.layout.boundingBox.h > 0) return doc;
+  const boundingBox = computeDocumentBounds(doc);
+  if (boundingBox.w === 0 && boundingBox.h === 0) return doc;
+  return {
+    ...doc,
+    layout: {
+      ...doc.layout,
+      boundingBox,
+    },
+  };
+}
+
 export function executeMany(
   label: string,
   transactions: Transaction[],
@@ -427,7 +474,7 @@ export function executeMany(
     undefined
   > = "edit",
 ) {
-  useDocumentStore.getState().execute(
+  return useDocumentStore.getState().execute(
     transaction(
       label,
       transactions.flatMap((txn) => txn.commands),

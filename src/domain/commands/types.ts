@@ -30,6 +30,7 @@ export interface HistoryEntry {
   label: string;
   before: CapabilityDocument;
   after: CapabilityDocument;
+  relayout?: { scope: RelayoutScope; force: boolean };
 }
 
 export type AlignDirection =
