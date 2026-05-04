@@ -28,6 +28,5 @@ export async function saveExportResult(result: Awaited<ReturnType<ExportAdapter[
   anchor.href = url;
   anchor.download = result.filename;
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
-

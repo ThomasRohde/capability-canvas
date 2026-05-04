@@ -17,13 +17,16 @@ export const CATEGORY_STYLES: Record<CapabilityColor, NodeFill> = {
   teal: { background: '#f0fdfa', border: '#14b8a6', dot: '#0f766e', text: '#0f172a' }
 };
 
-const HEATMAP = ['#86efac', '#bef264', '#fde047', '#fb923c', '#ef4444'];
+const HEATMAP_PALETTES: Record<HeatmapState['palette'], string[]> = {
+  'green-yellow-red': ['#86efac', '#bef264', '#fde047', '#fb923c', '#ef4444'],
+  'mint-amber-coral': ['#5eead4', '#99f6e4', '#fcd34d', '#fb923c', '#f87171']
+};
 
 export function resolveNodeFill(node: CapabilityNode, heatmap: HeatmapState): NodeFill {
   if (!heatmap.enabled || node.heatmapValue === undefined) {
     return CATEGORY_STYLES[node.color] ?? CATEGORY_STYLES[heatmap.fallbackColor];
   }
-  const color = interpolateHeatmap(node.heatmapValue);
+  const color = interpolateHeatmap(node.heatmapValue, heatmap.palette);
   return {
     background: tint(color, 0.26),
     border: color,
@@ -32,13 +35,22 @@ export function resolveNodeFill(node: CapabilityNode, heatmap: HeatmapState): No
   };
 }
 
-export function interpolateHeatmap(value: number): string {
+export function interpolateHeatmap(
+  value: number,
+  palette: HeatmapState['palette'] = 'green-yellow-red'
+): string {
+  const stops = HEATMAP_PALETTES[palette] ?? HEATMAP_PALETTES['green-yellow-red'];
   const clamped = Math.max(0, Math.min(1, value));
-  const index = clamped * (HEATMAP.length - 1);
+  const index = clamped * (stops.length - 1);
   const left = Math.floor(index);
-  const right = Math.min(HEATMAP.length - 1, Math.ceil(index));
+  const right = Math.min(stops.length - 1, Math.ceil(index));
   const t = index - left;
-  return mix(HEATMAP[left]!, HEATMAP[right]!, t);
+  return mix(stops[left]!, stops[right]!, t);
+}
+
+export function heatmapGradient(palette: HeatmapState['palette']): string {
+  const stops = HEATMAP_PALETTES[palette] ?? HEATMAP_PALETTES['green-yellow-red'];
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
 }
 
 function mix(a: string, b: string, t: number): string {
@@ -67,4 +79,3 @@ function parseHex(color: string): [number, number, number] {
 function toHex(parts: number[]): string {
   return `#${parts.map((part) => part.toString(16).padStart(2, '0')).join('')}`;
 }
-

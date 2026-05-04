@@ -1,13 +1,14 @@
 import { sortedNodes } from '../../domain/document/normalize';
+import { safeFileBaseName } from '../../domain/document/fileName';
 import type { CapabilityDocument, CapabilityNode } from '../../domain/document/types';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
-import { safeName } from './json';
+import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function svgExport(doc: CapabilityDocument): ExportResult {
   return {
     format: 'svg',
-    filename: `${safeName(doc.title)}.svg`,
+    filename: `${safeFileBaseName(doc.title)}.svg`,
     mimeType: 'image/svg+xml',
     data: renderSvg(doc),
     diagnostics: []
@@ -33,15 +34,56 @@ function renderNode(doc: CapabilityDocument, node: CapabilityNode): string {
   const fill = resolveNodeFill(node, doc.heatmap);
   const isContainer = node.type === 'root' || node.type === 'parent';
   const radius = isContainer ? 8 : 6;
+  const label = renderLabel(node, isContainer);
   return `<g data-node-id="${escapeXml(node.id)}">
     <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" fill="${fill.background}" stroke="${fill.border}" stroke-width="${isContainer ? 1.5 : 1}" />
-    <text x="${node.x + node.w / 2}" y="${node.y + (isContainer ? 26 : node.h / 2 + 5)}" text-anchor="middle" class="${isContainer ? 'container-label' : 'node-label'}">${escapeXml(node.label)}</text>
+    ${label}
     ${node.heatmapValue !== undefined ? `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 20}" text-anchor="middle" font-size="11">${node.heatmapValue.toFixed(2)}</text>` : ''}
   </g>`;
 }
 
-export function escapeXml(input: string): string {
-  return input.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+function renderLabel(node: CapabilityNode, isContainer: boolean): string {
+  const className = isContainer ? 'container-label' : 'node-label';
+  const x = node.x + node.w / 2;
+  const maxChars = Math.max(8, Math.floor((node.w - 16) / (isContainer ? 8 : 7)));
+  const lines = wrapLabel(node.label, maxChars, isContainer ? 2 : 3);
+  const lineHeight = isContainer ? 17 : 15;
+  const firstY = isContainer
+    ? node.y + 22
+    : node.y + node.h / 2 - ((lines.length - 1) * lineHeight) / 2 + 5;
+  const tspans = lines
+    .map(
+      (line, index) =>
+        `<tspan x="${x}" ${index === 0 ? `y="${firstY}"` : `dy="${lineHeight}"`}>${escapeXml(line)}</tspan>`,
+    )
+    .join('');
+  return `<text text-anchor="middle" class="${className}">${tspans}</text>`;
+}
+
+function wrapLabel(label: string, maxChars: number, maxLines: number): string[] {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [''];
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxChars) {
+      current = candidate;
+      continue;
+    }
+    if (current) lines.push(current);
+    current = word.length > maxChars ? `${word.slice(0, Math.max(1, maxChars - 3))}...` : word;
+    if (lines.length === maxLines - 1) break;
+  }
+  if (current && lines.length < maxLines) lines.push(current);
+  if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
+    const last = lines[maxLines - 1]!;
+    lines[maxLines - 1] =
+      last.length > maxChars - 3
+        ? `${last.slice(0, Math.max(1, maxChars - 3))}...`
+        : `${last}...`;
+  }
+  return lines;
 }
 
 export const svgAdapter: ExportAdapter = {
@@ -49,4 +91,3 @@ export const svgAdapter: ExportAdapter = {
   label: 'SVG',
   exportDocument: svgExport
 };
-

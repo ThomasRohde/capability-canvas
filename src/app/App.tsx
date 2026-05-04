@@ -8,11 +8,14 @@ import { useAutosave } from "./persistence/autosave";
 import { useDocumentStore } from "./stores/documentStore";
 
 export function App() {
-  useAutosave();
+  const isViewer = useMemo(() => currentRoutePath().startsWith("/viewer"), []);
+  useAutosave(!isViewer);
   useEffect(() => {
+    if (isViewer) return;
     useDocumentStore.getState().repairContainment();
-  }, []);
+  }, [isViewer]);
   useEffect(() => {
+    if (isViewer) return undefined;
     if (!import.meta.env.DEV) return undefined;
     return useDocumentStore.subscribe((state) => {
       const violations = findParentContainmentViolations(state.doc);
@@ -20,15 +23,15 @@ export function App() {
         console.warn("Capability Canvas containment violations", violations);
       }
     });
-  }, []);
+  }, [isViewer]);
   useEffect(() => {
+    if (isViewer) return;
     const pending = localStorage.getItem("capability-canvas.import");
     if (!pending) return;
     localStorage.removeItem("capability-canvas.import");
     const parsed = parseDocumentJson(pending);
     applyImportedDocument(parsed, "Import from viewer");
-  }, []);
-  const isViewer = useMemo(() => currentRoutePath().startsWith("/viewer"), []);
+  }, [isViewer]);
   return isViewer ? <ViewerRoute /> : <EditorRoute />;
 }
 

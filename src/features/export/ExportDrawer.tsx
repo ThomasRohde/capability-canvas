@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { encodeBase64Text } from "../../app/base64";
 import { validateDocument } from "../../domain/validation/validate";
 import { serializeDocument } from "../../domain/document/serialize";
 import { useDocumentStore } from "../../app/stores/documentStore";
@@ -49,6 +50,8 @@ const FORMATS: Array<{ format: ExportFormat; tab: string; desc: string }> = [
   },
 ];
 
+const MAX_VIEWER_URL_LENGTH = 8000;
+
 export function ExportDrawer() {
   const doc = useDocumentStore((state) => state.doc);
   const open = useUiStore((state) => state.activeDrawer === "export");
@@ -62,7 +65,19 @@ export function ExportDrawer() {
   if (!open) return null;
   const selected = FORMATS.find((item) => item.format === format)!;
   const validationRows = validationChecks(validation.diagnostics);
-  const viewerUrl = `${window.location.origin}${import.meta.env.BASE_URL}viewer?doc=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(serializeDocument(doc))))))}`;
+  const serializedDocument = JSON.stringify(serializeDocument(doc));
+  const viewerPayload = encodeBase64Text(serializedDocument);
+  const viewerUrl = `${window.location.origin}${import.meta.env.BASE_URL}viewer?doc=${encodeURIComponent(viewerPayload)}`;
+  const viewerUrlTooLong = viewerUrl.length > MAX_VIEWER_URL_LENGTH;
+  const viewerUrlValue = viewerUrlTooLong
+    ? "Document is too large for a portable viewer URL."
+    : viewerUrl;
+  const openViewerUrl = () => {
+    if (!viewerUrlTooLong) return viewerUrl;
+    const key = `capability-canvas.viewer.${Date.now()}`;
+    localStorage.setItem(key, serializedDocument);
+    return `${window.location.origin}${import.meta.env.BASE_URL}viewer?storage=${encodeURIComponent(key)}`;
+  };
 
   return (
     <aside className="cc-export-drawer" aria-label="Export">
@@ -147,10 +162,16 @@ export function ExportDrawer() {
         <div className="cc-field">
           <span className="cc-section-title">Viewer link</span>
           <div style={{ display: "flex", gap: 8 }}>
-            <input className="cc-input" value={viewerUrl} readOnly />
+            <input className="cc-input" value={viewerUrlValue} readOnly />
             <IconButton
               icon={Copy}
               label="Copy viewer link"
+              disabled={viewerUrlTooLong}
+              tooltip={
+                viewerUrlTooLong
+                  ? "Export JSON or use Open viewer for this large document."
+                  : undefined
+              }
               onClick={() => void navigator.clipboard.writeText(viewerUrl)}
             />
           </div>
@@ -160,7 +181,7 @@ export function ExportDrawer() {
             className="cc-btn"
             type="button"
             onClick={() =>
-              window.open(viewerUrl, "_blank", "noopener,noreferrer")
+              window.open(openViewerUrl(), "_blank", "noopener,noreferrer")
             }
           >
             Open viewer <ExternalLink size={14} />

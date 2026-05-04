@@ -1,6 +1,7 @@
 import ELK, { type ElkNode } from "elkjs/lib/elk.bundled.js";
 import {
   childrenOf,
+  ROOT_PARENT_ID,
   type CapabilityDocument,
   type CapabilityNode,
   type LayoutMode,
@@ -227,12 +228,18 @@ function normalizePatchedParentBounds(
         parent.layoutPreferences?.marginLeft ??
         nextDoc.settings.containerPaddingLeft,
     };
-    const x = childBounds.x - margin.left;
-    const y = childBounds.y - margin.top;
-    const w = Math.max(
-      childBounds.w + margin.left + margin.right,
+    const x = Math.min(parent.x, childBounds.x - margin.left);
+    const y = Math.min(parent.y, childBounds.y - margin.top);
+    const right = Math.max(
+      parent.x + parent.w,
+      childBounds.x + childBounds.w + margin.right,
     );
-    const h = childBounds.h + margin.top + margin.bottom;
+    const bottom = Math.max(
+      parent.y + parent.h,
+      childBounds.y + childBounds.h + margin.bottom,
+    );
+    const w = right - x;
+    const h = bottom - y;
     if (x === parent.x && y === parent.y && w === parent.w && h === parent.h)
       continue;
     changed = true;
@@ -255,7 +262,8 @@ function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
     depths.set(nodeId, depth);
     for (const childId of childrenOf(doc, nodeId)) visit(childId, depth + 1);
   };
-  for (const rootId of doc.childrenByParentId.__root__ ?? []) visit(rootId, 0);
+  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? [])
+    visit(rootId, 0);
   return depths;
 }
 
@@ -373,12 +381,18 @@ async function measureSubtree(
     id: node.id,
     x: 0,
     y: 0,
-    w: childBounds
-      ? childBounds.x + childBounds.w + margin.right
-      : margin.left + packed.w + margin.right,
-    h: childBounds
-      ? childBounds.y + childBounds.h + margin.bottom
-      : childAreaTop(doc, node) + packed.h + margin.bottom,
+    w: Math.max(
+      node.w,
+      childBounds
+        ? childBounds.x + childBounds.w + margin.right
+        : margin.left + packed.w + margin.right,
+    ),
+    h: Math.max(
+      node.h,
+      childBounds
+        ? childBounds.y + childBounds.h + margin.bottom
+        : childAreaTop(doc, node) + packed.h + margin.bottom,
+    ),
   };
 
   return {
@@ -446,12 +460,18 @@ async function measureAnchoredSubtree(
     id: node.id,
     x: 0,
     y: 0,
-    w: contentBounds
-      ? contentBounds.x + contentBounds.w + margin.right
-      : doc.settings.defaultParentWidth,
-    h: contentBounds
-      ? contentBounds.y + contentBounds.h + margin.bottom
-      : doc.settings.defaultParentHeight,
+    w: Math.max(
+      node.w,
+      contentBounds
+        ? contentBounds.x + contentBounds.w + margin.right
+        : doc.settings.defaultParentWidth,
+    ),
+    h: Math.max(
+      node.h,
+      contentBounds
+        ? contentBounds.y + contentBounds.h + margin.bottom
+        : doc.settings.defaultParentHeight,
+    ),
   };
 
   return {
@@ -482,8 +502,8 @@ function measureManualSubtree(
     id: node.id,
     x: 0,
     y: 0,
-    w: requiredW,
-    h: requiredH,
+    w: Math.max(node.w, requiredW),
+    h: Math.max(node.h, requiredH),
   };
   patches.push(parentPatch);
   collectCurrentSubtreePatches(doc, node.id, node.x, node.y, patches);

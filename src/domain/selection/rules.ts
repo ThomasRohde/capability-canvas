@@ -46,32 +46,3 @@ export function canDistribute(
     ? { valid: true }
     : { valid: false, reason: "Distribution requires at least three nodes." };
 }
-
-export function canMoveSelection(
-  doc: CapabilityDocument,
-  nodeIds: NodeId[],
-): SelectionRuleResult {
-  const base = canMultiSelect(doc, nodeIds);
-  if (!base.valid) return base;
-  const first = doc.nodesById[nodeIds[0]!];
-  if (!first?.parentId) return { valid: true };
-  const parent = doc.nodesById[first.parentId];
-  return parent?.isManualPositioningEnabled
-    ? { valid: true }
-    : {
-        valid: false,
-        reason:
-          "Enable manual positioning on the parent before moving children.",
-      };
-}
-
-export function canReparentSelection(
-  doc: CapabilityDocument,
-  nodeIds: NodeId[],
-): SelectionRuleResult {
-  const base = canMultiSelect(doc, nodeIds);
-  if (!base.valid) return base;
-  return nodeIds.length === 1
-    ? { valid: true }
-    : { valid: false, reason: "Reparenting supports one node at a time." };
-}

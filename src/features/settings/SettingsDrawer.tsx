@@ -1,12 +1,14 @@
-import { Grid3X3, LayoutTemplate, X } from "lucide-react";
+import { Grid3X3, LayoutTemplate, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import {
   updateDocumentSettings,
   updateDocumentTitle,
   updateHeatmapSettings,
 } from "../../domain/commands/operations";
 import type { LayoutMode } from "../../domain/document/types";
-import { useDocumentStore } from "../../app/stores/documentStore";
+import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { importHeatmapCsv } from "../heatmap/csvImport";
 import { IconButton } from "../shared/IconButton";
 
 const LAYOUT_MODES: Array<{ value: LayoutMode; label: string }> = [
@@ -21,6 +23,7 @@ export function SettingsDrawer() {
   const execute = useDocumentStore((state) => state.execute);
   const updateSettings = useDocumentStore((state) => state.updateSettings);
   const autoLayout = useDocumentStore((state) => state.autoLayout);
+  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const isAutoLayoutRunning = useDocumentStore(
     (state) => state.isAutoLayoutRunning,
   );
@@ -47,13 +50,10 @@ export function SettingsDrawer() {
           </div>
           <div className="cc-field">
             <label htmlFor="document-title">Title</label>
-            <input
+            <TextSetting
               id="document-title"
-              className="cc-input"
               value={doc.title}
-              onChange={(event) =>
-                execute(updateDocumentTitle(event.target.value))
-              }
+              onCommit={(title) => execute(updateDocumentTitle(title))}
             />
           </div>
           <div className="cc-field">
@@ -288,6 +288,42 @@ export function SettingsDrawer() {
               <option value="mint-amber-coral">Mint to amber to coral</option>
             </select>
           </div>
+          <div className="cc-field">
+            <span className="cc-section-title">Data</span>
+            <label className="cc-btn cc-file-label" htmlFor="heatmap-csv">
+              <Upload /> Import CSV
+            </label>
+            <input
+              id="heatmap-csv"
+              className="cc-file-input-hidden"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.currentTarget.value = "";
+                if (!file) return;
+                void file.text().then((csv) => {
+                  const result = importHeatmapCsv(doc, csv);
+                  const transactionDiagnostics =
+                    result.transactions.length > 0
+                      ? executeMany(
+                          "Import heatmap CSV",
+                          result.transactions,
+                          "import",
+                        )
+                      : [];
+                  if (result.transactions.length > 0) {
+                    setDiagnostics([
+                      ...result.diagnostics,
+                      ...transactionDiagnostics,
+                    ]);
+                  } else {
+                    setDiagnostics(result.diagnostics);
+                  }
+                });
+              }}
+            />
+          </div>
         </section>
       </div>
     </aside>
@@ -299,15 +335,35 @@ function NumberSetting({
   label,
   value,
   min = 0,
+  step = 1,
   onChange,
 }: {
   id: string;
   label: string;
   value: number;
   min?: number;
+  step?: number | "any";
   onChange: (value: number) => void;
 }) {
-  const displayValue = Math.max(min, value);
+  const [draft, setDraft] = useState(() => String(Math.max(min, value)));
+  const skipCommit = useRef(false);
+  useEffect(() => {
+    setDraft(String(Math.max(min, value)));
+  }, [min, value]);
+  const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    const parsed = Number(draft);
+    if (!Number.isFinite(parsed)) {
+      setDraft(String(Math.max(min, value)));
+      return;
+    }
+    const next = Math.max(min, parsed);
+    setDraft(String(next));
+    if (next !== value) onChange(next);
+  };
   return (
     <div className="cc-field">
       <label htmlFor={id}>{label}</label>
@@ -316,12 +372,65 @@ function NumberSetting({
         className="cc-input"
         type="number"
         min={min}
-        step={4}
-        value={Math.round(displayValue)}
-        onChange={(event) =>
-          onChange(Math.max(min, Number(event.target.value) || 0))
-        }
+        step={step}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            (event.target as HTMLInputElement).blur();
+          }
+          if (event.key === "Escape") {
+            skipCommit.current = true;
+            setDraft(String(Math.max(min, value)));
+            (event.target as HTMLInputElement).blur();
+          }
+        }}
       />
     </div>
+  );
+}
+
+function TextSetting({
+  id,
+  value,
+  onCommit,
+}: {
+  id: string;
+  value: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const skipCommit = useRef(false);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    if (draft !== value) onCommit(draft);
+  };
+  return (
+    <input
+      id={id}
+      className="cc-input"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          (event.target as HTMLInputElement).blur();
+        }
+        if (event.key === "Escape") {
+          skipCommit.current = true;
+          setDraft(value);
+          (event.target as HTMLInputElement).blur();
+        }
+      }}
+    />
   );
 }

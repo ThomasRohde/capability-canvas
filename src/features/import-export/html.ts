@@ -1,5 +1,6 @@
+import { safeFileBaseName } from '../../domain/document/fileName';
 import type { CapabilityDocument } from '../../domain/document/types';
-import { safeName } from './json';
+import { escapeXml } from './escape';
 import { renderSvg } from './svg';
 import type { ExportAdapter, ExportResult } from './types';
 
@@ -10,7 +11,7 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${doc.title}</title>
+    <title>${escapeXml(doc.title)}</title>
     <style>
       body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Inter, system-ui, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
@@ -21,7 +22,7 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
 </html>`;
   return {
     format: 'html',
-    filename: `${safeName(doc.title)}.html`,
+    filename: `${safeFileBaseName(doc.title)}.html`,
     mimeType: 'text/html',
     data: html,
     diagnostics: []
@@ -33,4 +34,3 @@ export const htmlAdapter: ExportAdapter = {
   label: 'HTML',
   exportDocument: htmlExport
 };
-

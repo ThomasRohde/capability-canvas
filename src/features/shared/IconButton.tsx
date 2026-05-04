@@ -8,16 +8,17 @@ interface IconButtonProps {
   active?: boolean;
   disabled?: boolean;
   className?: string;
+  tooltip?: string;
 }
 
-export function IconButton({ icon: Icon, label, onClick, active, disabled, className }: IconButtonProps) {
+export function IconButton({ icon: Icon, label, onClick, active, disabled, className, tooltip }: IconButtonProps) {
   return (
     <button
       type="button"
       className={`cc-icon-btn ${active ? 'active' : ''} ${className ?? ''}`}
       aria-label={label}
       aria-pressed={active === undefined ? undefined : active}
-      title={label}
+      title={tooltip ?? label}
       onClick={onClick}
       disabled={disabled}
     >

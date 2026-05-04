@@ -1,7 +1,7 @@
+import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
 import type { CapabilityDocument } from '../../domain/document/types';
-import { safeName } from './json';
-import { escapeXml } from './svg';
+import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function archimateExport(doc: CapabilityDocument): ExportResult {
@@ -9,7 +9,7 @@ export function archimateExport(doc: CapabilityDocument): ExportResult {
   const elements = nodes
     .map(
       (node) =>
-        `<element identifier="${escapeXml(node.id)}" xsi:type="BusinessCapability"><name>${escapeXml(node.label)}</name><documentation>${escapeXml(node.description ?? '')}</documentation></element>`
+        `<element identifier="${escapeXml(node.id)}" xsi:type="Capability"><name>${escapeXml(node.label)}</name><documentation>${escapeXml(node.description ?? '')}</documentation></element>`
     )
     .join('');
   const relationships = nodes
@@ -20,14 +20,14 @@ export function archimateExport(doc: CapabilityDocument): ExportResult {
     )
     .join('');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" identifier="${escapeXml(safeName(doc.title))}">
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" identifier="${escapeXml(safeFileBaseName(doc.title))}">
   <name>${escapeXml(doc.title)}</name>
   <elements>${elements}</elements>
   <relationships>${relationships}</relationships>
 </model>`;
   return {
     format: 'archimate',
-    filename: `${safeName(doc.title)}.archimate.xml`,
+    filename: `${safeFileBaseName(doc.title)}.archimate.xml`,
     mimeType: 'application/xml',
     data: xml,
     diagnostics: []
@@ -39,4 +39,3 @@ export const archimateAdapter: ExportAdapter = {
   label: 'ArchiMate',
   exportDocument: archimateExport
 };
-

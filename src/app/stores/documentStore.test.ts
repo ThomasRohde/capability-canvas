@@ -8,6 +8,7 @@ import {
 import { parseDocument } from "../../domain/document/parse";
 import {
   childrenOf,
+  ROOT_PARENT_ID,
   type CapabilityDocument,
 } from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
@@ -82,6 +83,31 @@ describe("document store layout settings", () => {
     expect(root.x).toBeGreaterThanOrEqual(0);
     expect(root.y).toBeGreaterThanOrEqual(0);
     expect(findParentContainmentViolations(doc)).toEqual([]);
+  });
+
+  it("records containment repair in undo history", () => {
+    useDocumentStore.setState({
+      doc: containmentRepairDocument(),
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+
+    useDocumentStore.getState().repairContainment();
+
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Repair containment",
+    );
+    expect(
+      findParentContainmentViolations(useDocumentStore.getState().doc),
+    ).toEqual([]);
+
+    useDocumentStore.getState().undo();
+    expect(
+      findParentContainmentViolations(useDocumentStore.getState().doc),
+    ).toEqual(["root->child"]);
   });
 });
 
@@ -169,7 +195,7 @@ function wideRootSiblingDocument(): CapabilityDocument {
     });
   }
 
-  doc.childrenByParentId.__root__ = ["root"];
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
   doc.childrenByParentId.root = ["servicing", "risk", "operations"];
   doc.childrenByParentId.servicing = [
     "account-management",
@@ -201,5 +227,31 @@ function wideRootSiblingDocument(): CapabilityDocument {
   ]) {
     doc.childrenByParentId[id] = [];
   }
+  return doc;
+}
+
+function containmentRepairDocument(): CapabilityDocument {
+  const doc = createEmptyDocument();
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Root",
+    type: "root",
+    x: 0,
+    y: 0,
+    w: 100,
+    h: 100,
+  });
+  doc.nodesById.child = createNode({
+    id: "child",
+    parentId: "root",
+    label: "Child",
+    x: 160,
+    y: 160,
+    w: 80,
+    h: 40,
+  });
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+  doc.childrenByParentId.root = ["child"];
+  doc.childrenByParentId.child = [];
   return doc;
 }

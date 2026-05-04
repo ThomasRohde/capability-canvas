@@ -11,6 +11,7 @@ import {
 import { stringifyDocument } from "../../domain/document/serialize";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
+import { ViewerRoute } from "../viewer/ViewerRoute";
 
 describe("editor shell", () => {
   afterEach(() => {
@@ -221,9 +222,11 @@ describe("editor shell", () => {
       "transparent",
     );
 
-    fireEvent.change(screen.getByLabelText("Grid size"), {
+    const gridSize = screen.getByLabelText("Grid size");
+    fireEvent.change(gridSize, {
       target: { value: "32" },
     });
+    fireEvent.blur(gridSize);
     expect(useDocumentStore.getState().doc.settings.gridSize).toBe(32);
     expect(canvas.style.getPropertyValue("--cc-grid-size")).toBe("32px");
 
@@ -595,8 +598,10 @@ describe("editor shell", () => {
     const titleArea = screen.getByLabelText("Title area");
     await userEvent.clear(topPadding);
     await userEvent.type(topPadding, "48");
+    fireEvent.blur(topPadding);
     await userEvent.clear(titleArea);
     await userEvent.type(titleArea, "8");
+    fireEvent.blur(titleArea);
 
     expect(useDocumentStore.getState().doc.settings.containerPaddingTop).toBe(
       48,
@@ -625,6 +630,33 @@ describe("editor shell", () => {
         "Auto layout",
       ),
     );
+  });
+
+  it("preserves heatmap CSV diagnostics after applying valid rows", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const input = document.querySelector("#heatmap-csv") as HTMLInputElement;
+    const file = {
+      text: async () => "id,value\ndigital-onboarding,0.91\nmissing-node,0.5",
+    } as File;
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(
+        useDocumentStore.getState().doc.nodesById["digital-onboarding"]
+          ?.heatmapValue,
+      ).toBe(0.91),
+    );
+    expect(
+      useDocumentStore
+        .getState()
+        .lastDiagnostics.some(
+          (diagnostic) => diagnostic.code === "csv-node-not-found",
+        ),
+    ).toBe(true);
   });
 
   it("disables toolbar and settings layout actions while auto layout is running", async () => {
@@ -667,6 +699,20 @@ describe("editor shell", () => {
     expect(
       useDocumentStore.getState().doc.nodesById["digital-onboarding"]!.x,
     ).toBe(beforeX);
+  });
+
+  it("selects all non-text capabilities with Ctrl+A on the canvas", () => {
+    useUiStore.setState({ selectedNodeIds: [] });
+    render(<EditorRoute />);
+    fireEvent.keyDown(window, { key: "a", ctrlKey: true });
+
+    const doc = useDocumentStore.getState().doc;
+    const expected = Object.values(doc.nodesById)
+      .filter((node) => !node.isTextLabel && node.type !== "text")
+      .map((node) => node.id);
+    expect(useUiStore.getState().selectedNodeIds.sort()).toEqual(
+      expected.sort(),
+    );
   });
 
   it("disables align controls when fewer than two siblings are selected", () => {
@@ -749,6 +795,40 @@ describe("editor shell", () => {
     expect(within(outlineTree).queryAllByText("New capability")).toHaveLength(
       before + 1,
     );
+  });
+
+  it("imports pasted JSON from a textarea dialog", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const importedDoc = {
+      ...useDocumentStore.getState().doc,
+      title: "Pasted capability model",
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: stringifyDocument(importedDoc) },
+    });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Import" }));
+
+    expect(useDocumentStore.getState().doc.title).toBe(
+      "Pasted capability model",
+    );
+  });
+
+  it("hides outline mutation controls in the viewer route", () => {
+    render(<ViewerRoute />);
+
+    expect(
+      screen.queryByRole("button", { name: "Add root capability" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Actions for Customer" }),
+    ).not.toBeInTheDocument();
   });
 });
 

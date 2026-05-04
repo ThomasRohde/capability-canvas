@@ -311,22 +311,6 @@ export function createSampleDocument(): CapabilityDocument {
   return contained;
 }
 
-export function createSmallDocument(): CapabilityDocument {
-  const doc = createSampleDocument();
-  for (const nodeId of Object.keys(doc.nodesById)) {
-    if (!['retail-banking', 'customer', 'channels', 'digital', 'digital-onboarding'].includes(nodeId)) {
-      delete doc.nodesById[nodeId];
-      delete doc.childrenByParentId[nodeId];
-    }
-  }
-  doc.childrenByParentId[ROOT_PARENT_ID] = ['retail-banking'];
-  doc.childrenByParentId['retail-banking'] = ['customer'];
-  doc.childrenByParentId['customer'] = ['channels'];
-  doc.childrenByParentId['channels'] = ['digital'];
-  doc.childrenByParentId['digital'] = ['digital-onboarding'];
-  return doc;
-}
-
 export function createThousandNodeDocument(): CapabilityDocument {
   const doc = createEmptyDocument('1,000 node capability model');
   const rootIds: NodeId[] = [];

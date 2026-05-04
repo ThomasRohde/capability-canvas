@@ -1,8 +1,8 @@
 import pptxgen from 'pptxgenjs';
+import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
 import type { CapabilityDocument } from '../../domain/document/types';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
-import { safeName } from './json';
 import type { ExportAdapter, ExportResult } from './types';
 
 export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult> {
@@ -48,7 +48,7 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
   const blob = await deck.write({ outputType: 'blob' });
   return {
     format: 'pptx',
-    filename: `${safeName(doc.title)}.pptx`,
+    filename: `${safeFileBaseName(doc.title)}.pptx`,
     mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     data: blob as Blob,
     diagnostics: []

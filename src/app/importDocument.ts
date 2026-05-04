@@ -1,5 +1,6 @@
 import type { ParseResult } from "../domain/document/parse";
 import { useDocumentStore } from "./stores/documentStore";
+import { useUiStore } from "./stores/uiStore";
 
 export function applyImportedDocument(parsed: ParseResult, label: string) {
   const store = useDocumentStore.getState();
@@ -9,5 +10,6 @@ export function applyImportedDocument(parsed: ParseResult, label: string) {
   }
 
   store.setDocument(parsed.doc, label, parsed.diagnostics);
+  useUiStore.getState().clearSelection();
   if (!parsed.doc.layout.preservePositions) void store.autoLayout(true);
 }

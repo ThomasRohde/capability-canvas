@@ -4,6 +4,7 @@ import {
   childrenOf,
   hasChildren,
   now,
+  ROOT_PARENT_ID,
   type CapabilityDocument,
   type CapabilityNode,
   type NodeId,
@@ -86,7 +87,7 @@ export function addRoot(label = "New capability"): Transaction {
         w: next.settings.defaultParentWidth * 2,
         h: next.settings.defaultParentHeight,
       });
-      next.childrenByParentId.__root__ = [...childrenOf(next, null), id];
+      next.childrenByParentId[ROOT_PARENT_ID] = [...childrenOf(next, null), id];
       next.childrenByParentId[id] = [];
       return ok(next);
     }),
@@ -163,7 +164,7 @@ export function addTextLabel(
         w: 180,
         h: 36,
       });
-      const key = parentId ?? "__root__";
+      const key = parentId ?? ROOT_PARENT_ID;
       next.childrenByParentId[key] = [
         ...(next.childrenByParentId[key] ?? []),
         id,

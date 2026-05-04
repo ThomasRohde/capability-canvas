@@ -1,5 +1,5 @@
 import { Info, Lock, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   lockSubtree,
   moveNodes,
@@ -9,6 +9,7 @@ import {
 } from "../../domain/commands/operations";
 import type {
   CapabilityColor,
+  CapabilityDocument,
   CapabilityNode,
 } from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
@@ -90,23 +91,19 @@ function Properties({ node }: { node: CapabilityNode }) {
       <Breadcrumb node={node} />
       <div className="cc-field">
         <label htmlFor="node-label">Label</label>
-        <input
+        <CommitTextInput
           id="node-label"
-          className="cc-input"
           value={node.label}
-          onChange={(event) =>
-            execute(updateNode(node.id, { label: event.target.value }))
-          }
+          onCommit={(label) => execute(updateNode(node.id, { label }))}
         />
       </div>
       <div className="cc-field">
         <label htmlFor="node-description">Description</label>
-        <textarea
+        <CommitTextarea
           id="node-description"
-          className="cc-textarea"
           value={node.description ?? ""}
-          onChange={(event) =>
-            execute(updateNode(node.id, { description: event.target.value }))
+          onCommit={(description) =>
+            execute(updateNode(node.id, { description }))
           }
           placeholder="Enter description..."
         />
@@ -114,28 +111,22 @@ function Properties({ node }: { node: CapabilityNode }) {
       <ColorEditor node={node} />
       <div className="cc-field">
         <label htmlFor="heatmap-value">Heatmap value</label>
-        <input
+        <CommitNumberInput
           id="heatmap-value"
-          className="cc-input"
-          type="number"
           min={0}
           max={1}
           step={0.01}
           value={node.heatmapValue ?? ""}
-          onChange={(event) => {
-            const value =
-              event.target.value === ""
-                ? undefined
-                : Number(event.target.value);
-            execute(updateNode(node.id, { heatmapValue: value }));
-          }}
+          onCommit={(heatmapValue) =>
+            execute(updateNode(node.id, { heatmapValue }))
+          }
         />
       </div>
       <div className="cc-info-card">
         <Info size={16} />
         <span>
-          Manual positioning lets selected children be dragged directly while
-          hierarchy validation remains active.
+          Manual and locked states control how auto layout treats this
+          capability and its descendants.
         </span>
       </div>
     </>
@@ -231,6 +222,29 @@ function LayoutProperties({ node }: { node: CapabilityNode }) {
 function DataProperties({ node }: { node: CapabilityNode }) {
   const execute = useDocumentStore((state) => state.execute);
   const metadataText = JSON.stringify(node.metadata, null, 2);
+  const [draft, setDraft] = useState(metadataText);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    setDraft(metadataText);
+    setError(null);
+  }, [metadataText, node.id]);
+  const commitMetadata = () => {
+    if (draft === metadataText) {
+      setError(null);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(draft) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        setError("Metadata must be a JSON object.");
+        return;
+      }
+      setError(null);
+      execute(updateNode(node.id, { metadata: parsed as Record<string, unknown> }));
+    } catch {
+      setError("Metadata JSON is invalid.");
+    }
+  };
   return (
     <>
       <dl className="cc-meta-list">
@@ -248,22 +262,14 @@ function DataProperties({ node }: { node: CapabilityNode }) {
         <textarea
           id="metadata-json"
           className="cc-textarea"
-          value={metadataText}
+          value={draft}
           onChange={(event) => {
-            try {
-              execute(
-                updateNode(node.id, {
-                  metadata: JSON.parse(event.target.value) as Record<
-                    string,
-                    unknown
-                  >,
-                }),
-              );
-            } catch {
-              // Keep the textarea editable while the user is halfway through JSON.
-            }
+            setDraft(event.target.value);
+            if (error) setError(null);
           }}
+          onBlur={commitMetadata}
         />
+        {error && <span className="cc-field-error">{error}</span>}
       </div>
       <button
         className="cc-btn"
@@ -271,7 +277,10 @@ function DataProperties({ node }: { node: CapabilityNode }) {
         onClick={() =>
           execute(
             updateNode(node.id, {
-              metadata: { ...node.metadata, key: "value" },
+              metadata: {
+                ...node.metadata,
+                [nextMetadataKey(node.metadata)]: "value",
+              },
             }),
           )
         }
@@ -349,10 +358,15 @@ function NumberField({
   onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(() => String(Math.round(value)));
+  const skipCommit = useRef(false);
   useEffect(() => {
     setDraft(String(Math.round(value)));
   }, [value]);
   const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
     const parsed = Number(draft);
     if (!Number.isFinite(parsed)) {
       setDraft(String(Math.round(value)));
@@ -376,6 +390,7 @@ function NumberField({
             (event.target as HTMLInputElement).blur();
           }
           if (event.key === "Escape") {
+            skipCommit.current = true;
             setDraft(String(Math.round(value)));
             (event.target as HTMLInputElement).blur();
           }
@@ -386,12 +401,182 @@ function NumberField({
 }
 
 function Breadcrumb({ node }: { node: CapabilityNode }) {
+  const doc = useDocumentStore((state) => state.doc);
+  const labels = capabilityPathLabels(doc, node);
   return (
     <div style={{ color: "var(--cc-brand-700)", fontSize: 12 }}>
-      {node.parentId ? `${node.parentId} > ` : ""}
-      {node.label}
+      {labels.join(" > ")}
     </div>
   );
+}
+
+function CommitTextInput({
+  id,
+  value,
+  onCommit,
+}: {
+  id: string;
+  value: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const skipCommit = useRef(false);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    if (draft !== value) onCommit(draft);
+  };
+  return (
+    <input
+      id={id}
+      className="cc-input"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          (event.target as HTMLInputElement).blur();
+        }
+        if (event.key === "Escape") {
+          skipCommit.current = true;
+          setDraft(value);
+          (event.target as HTMLInputElement).blur();
+        }
+      }}
+    />
+  );
+}
+
+function CommitTextarea({
+  id,
+  value,
+  placeholder,
+  onCommit,
+}: {
+  id: string;
+  value: string;
+  placeholder?: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const skipCommit = useRef(false);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    if (draft !== value) onCommit(draft);
+  };
+  return (
+    <textarea
+      id={id}
+      className="cc-textarea"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      placeholder={placeholder}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          skipCommit.current = true;
+          setDraft(value);
+          (event.target as HTMLTextAreaElement).blur();
+        }
+      }}
+    />
+  );
+}
+
+function CommitNumberInput({
+  id,
+  value,
+  min,
+  max,
+  step,
+  onCommit,
+}: {
+  id: string;
+  value: number | "";
+  min: number;
+  max: number;
+  step: number;
+  onCommit: (value: number | undefined) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const skipCommit = useRef(false);
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+  const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    if (draft === "") {
+      if (value !== "") onCommit(undefined);
+      return;
+    }
+    const parsed = Number(draft);
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+      setDraft(String(value));
+      return;
+    }
+    if (parsed !== value) onCommit(parsed);
+  };
+  return (
+    <input
+      id={id}
+      className="cc-input"
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          (event.target as HTMLInputElement).blur();
+        }
+        if (event.key === "Escape") {
+          skipCommit.current = true;
+          setDraft(String(value));
+          (event.target as HTMLInputElement).blur();
+        }
+      }}
+    />
+  );
+}
+
+function capabilityPathLabels(
+  doc: CapabilityDocument,
+  node: CapabilityNode,
+): string[] {
+  const labels = [node.label];
+  const seen = new Set([node.id]);
+  let current = node.parentId ? doc.nodesById[node.parentId] : undefined;
+  while (current && !seen.has(current.id)) {
+    labels.unshift(current.label);
+    seen.add(current.id);
+    current = current.parentId ? doc.nodesById[current.parentId] : undefined;
+  }
+  return labels;
+}
+
+function nextMetadataKey(metadata: Record<string, unknown>): string {
+  if (!Object.hasOwn(metadata, "key")) return "key";
+  let index = 2;
+  while (Object.hasOwn(metadata, `key${index}`)) index += 1;
+  return `key${index}`;
 }
 
 function EmptyInspector() {

@@ -1,3 +1,4 @@
+import { safeFileBaseName } from '../domain/document/fileName';
 import { parseDocumentJson, type ParseResult } from '../domain/document/parse';
 import type { CapabilityDocument } from '../domain/document/types';
 import { stringifyDocument } from '../domain/document/serialize';
@@ -25,11 +26,18 @@ export async function openDocumentFile(): Promise<ParseResult> {
 
 export async function saveDocumentFile(doc: CapabilityDocument): Promise<void> {
   const data = stringifyDocument(doc);
+  const filename = `${safeFileBaseName(doc.title)}.capability-canvas.json`;
   if ('showSaveFilePicker' in window) {
-    const handle = await (window as unknown as FileSystemWindow).showSaveFilePicker({
-      suggestedName: `${doc.title}.capability-canvas.json`,
-      types: [{ description: 'Capability Canvas JSON', accept: { 'application/json': ['.json'] } }]
-    });
+    let handle: { createWritable(): Promise<FileSystemWritableFileStream> };
+    try {
+      handle = await (window as unknown as FileSystemWindow).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'Capability Canvas JSON', accept: { 'application/json': ['.json'] } }]
+      });
+    } catch (error) {
+      if (isAbortError(error)) return;
+      throw error;
+    }
     const writable = await handle.createWritable();
     await writable.write(data);
     await writable.close();
@@ -40,9 +48,9 @@ export async function saveDocumentFile(doc: CapabilityDocument): Promise<void> {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${doc.title}.capability-canvas.json`;
+  anchor.download = filename;
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 interface FileSystemWindow {
@@ -57,4 +65,8 @@ function readFileText(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('Unable to read file.'));
     reader.readAsText(file);
   });
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
 }
