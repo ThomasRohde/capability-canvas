@@ -19,6 +19,7 @@ import { stringifyDocument } from "../../domain/document/serialize";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
 import { ViewerRoute } from "../viewer/ViewerRoute";
+import "../../styles.css";
 
 describe("editor shell", () => {
   afterEach(() => {
@@ -204,6 +205,54 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Leaf height")).toHaveValue(50);
     expect(screen.getByLabelText("Title area")).toHaveValue(28);
     expect(screen.getByLabelText("Label top offset")).toHaveValue(4);
+  });
+
+  it("wraps canvas labels instead of ellipsizing them", () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        nodesById: {
+          ...doc.nodesById,
+          digital: {
+            ...doc.nodesById.digital!,
+            label: "Digital Container Label With Multiple Words",
+          },
+          "digital-servicing": {
+            ...doc.nodesById["digital-servicing"]!,
+            label: "Digital Servicing This is a long leaf label",
+          },
+        },
+      },
+    });
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const leafLabel = within(canvas).getByText(
+      "Digital Servicing This is a long leaf label",
+    );
+    const containerLabel = within(canvas).getByText(
+      "Digital Container Label With Multiple Words",
+    );
+    const leafNode = leafLabel.closest(".cc-node")!;
+    const containerNode = containerLabel.closest(".cc-node")!;
+    expect(leafNode).not.toHaveClass("cc-node-container");
+    expect(containerNode).toHaveClass("cc-node-container");
+    expect(getComputedStyle(leafNode).paddingTop).toBe("0px");
+    expect(getComputedStyle(leafNode).paddingRight).toBe("6px");
+    expect(getComputedStyle(leafNode).lineHeight).toBe("1.2");
+    expect(getComputedStyle(leafNode).overflow).toBe("hidden");
+    expect(getComputedStyle(containerNode).paddingTop).toBe("0px");
+
+    for (const label of [leafLabel, containerLabel]) {
+      const style = getComputedStyle(label);
+      expect(label).toHaveClass("cc-node-label");
+      expect(style.display).toBe("block");
+      expect(style.width).toBe("100%");
+      expect(style.whiteSpace).toBe("normal");
+      expect(style.overflowWrap).toBe("anywhere");
+      expect(style.textOverflow).not.toBe("ellipsis");
+      expect(style.overflow).toBe("visible");
+    }
   });
 
   it("opens document title editing from the title chip", async () => {

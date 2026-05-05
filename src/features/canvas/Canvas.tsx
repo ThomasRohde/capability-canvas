@@ -639,10 +639,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
               >
                 {isContainer ? (
                   <div className="cc-node-title">
-                    <span>{vm.node.label}</span>
+                    <span className="cc-node-label">{vm.node.label}</span>
                   </div>
                 ) : (
-                  <span>{vm.node.label}</span>
+                  <span className="cc-node-label">{vm.node.label}</span>
                 )}
                 {doc.heatmap.enabled && vm.node.heatmapValue !== undefined && (
                   <span

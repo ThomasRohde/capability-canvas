@@ -708,6 +708,11 @@ button:focus-visible {
   transition: box-shadow 120ms;
 }
 
+.cc-node:not(.cc-node-container) {
+  padding: 0 6px;
+  line-height: 1.2;
+}
+
 .cc-node.cc-node-container {
   align-items: stretch;
   justify-content: flex-start;
@@ -780,12 +785,13 @@ button:focus-visible {
   line-height: 1.2;
 }
 
-.cc-node > span:not(.cc-resize):not(.cc-node-score),
-.cc-node-title span {
+.cc-node-label {
+  display: block;
+  width: 100%;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .cc-node-score {
