@@ -644,15 +644,15 @@ describe("editor shell", () => {
   });
 
   it("snaps resize handles to the grid when enabled", () => {
-    useUiStore.setState({ selectedNodeIds: ["operations"] });
+    useUiStore.setState({ selectedNodeIds: ["data-management"] });
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");
-    const operations = within(canvas)
-      .getByText("Operations")
+    const dataManagement = within(canvas)
+      .getByText("Data Management")
       .closest(".cc-node") as HTMLElement;
-    const handle = operations.querySelector(".cc-resize") as HTMLElement;
+    const handle = dataManagement.querySelector(".cc-resize") as HTMLElement;
     const before = useDocumentStore.getState().doc;
-    const nodeBefore = before.nodesById.operations!;
+    const nodeBefore = before.nodesById["data-management"]!;
     const expectedW =
       Math.round(
         (nodeBefore.x + nodeBefore.w + 21) / before.settings.gridSize,
@@ -686,13 +686,13 @@ describe("editor shell", () => {
       }),
     );
 
-    expect(operations.style.width).toBe(`${expectedW}px`);
-    expect(operations.style.height).toBe(`${expectedH}px`);
+    expect(dataManagement.style.width).toBe(`${expectedW}px`);
+    expect(dataManagement.style.height).toBe(`${expectedH}px`);
 
     fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
     const after = useDocumentStore.getState().doc;
-    expect(after.nodesById.operations!.w).toBe(expectedW);
-    expect(after.nodesById.operations!.h).toBe(expectedH);
+    expect(after.nodesById["data-management"]!.w).toBe(expectedW);
+    expect(after.nodesById["data-management"]!.h).toBe(expectedH);
   });
 
   it("uses one selected outline for small selected containers", () => {
