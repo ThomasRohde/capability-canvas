@@ -1,6 +1,8 @@
 import { Download, ExternalLink } from "lucide-react";
 import type { CSSProperties } from "react";
 import { serializeDocument } from "../../domain/document/serialize";
+import { updateActiveViewHeatmapSettings } from "../../domain/commands/operations";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { Canvas } from "../canvas/Canvas";
@@ -8,9 +10,14 @@ import { adapterFor, saveExportResult } from "../import-export";
 import { Inspector } from "../inspector/Inspector";
 import { Outline } from "../outline/Outline";
 import { StatusBar } from "../editor/StatusBar";
+import { ViewSwitcher } from "../views/ViewSwitcher";
 
 export function ViewerRoute() {
   const doc = useDocumentStore((state) => state.doc);
+  const viewDoc = resolveVisualDocument(doc);
+  const setActiveViewViewport = useDocumentStore(
+    (state) => state.setActiveViewViewport,
+  );
   const setViewport = useUiStore((state) => state.setViewport);
   const outlineOpen = useUiStore((state) => state.outlineOpen);
   const outlineWidth = useUiStore((state) => state.outlineWidth);
@@ -32,18 +39,22 @@ export function ViewerRoute() {
         </div>
         <span className="cc-readonly-chip">Read-only</span>
         <span className="cc-doc-picker cc-doc-label">{doc.title}</span>
+        <ViewSwitcher readonly />
         <span className="cc-spacer" />
         <button
           className="cc-btn"
           type="button"
           onClick={() => {
-            const bounds = doc.layout.boundingBox;
-            if (bounds.w > 0)
-              setViewport({
+            const bounds = viewDoc.layout.boundingBox;
+            if (bounds.w > 0) {
+              const nextViewport = {
                 zoom: 1,
                 x: 40 - bounds.x,
                 y: 40 - bounds.y,
-              });
+              };
+              setViewport(nextViewport);
+              setActiveViewViewport(nextViewport);
+            }
           }}
         >
           Fit
@@ -52,30 +63,17 @@ export function ViewerRoute() {
           className="cc-btn"
           type="button"
           onClick={() =>
-            useDocumentStore.getState().execute({
-              label: "Toggle heatmap",
-              commands: [
-                {
-                  type: "toggle-heatmap",
-                  args: {},
-                  apply: (current) => ({
-                    doc: {
-                      ...current,
-                      heatmap: {
-                        ...current.heatmap,
-                        enabled: !current.heatmap.enabled,
-                      },
-                    },
-                    diagnostics: [],
-                  }),
-                },
-              ],
-              meta: { source: "edit" },
-            })
+            useDocumentStore
+              .getState()
+              .execute(
+                updateActiveViewHeatmapSettings({
+                  enabled: !viewDoc.heatmap.enabled,
+                }),
+              )
           }
         >
           Heatmap{" "}
-          <span className={`cc-toggle ${doc.heatmap.enabled ? "on" : ""}`} />
+          <span className={`cc-toggle ${viewDoc.heatmap.enabled ? "on" : ""}`} />
         </button>
         <button
           className="cc-btn"

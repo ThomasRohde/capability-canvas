@@ -1,11 +1,11 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
-import { isNodeOnCanvas, type CapabilityDocument } from '../../domain/document/types';
+import type { CapabilityDocument } from '../../domain/document/types';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function archimateExport(doc: CapabilityDocument): ExportResult {
-  const nodes = sortedNodes(doc).filter(isNodeOnCanvas);
+  const nodes = sortedNodes(doc);
   const visibleNodeIds = new Set(nodes.map((node) => node.id));
   const elements = nodes
     .map(

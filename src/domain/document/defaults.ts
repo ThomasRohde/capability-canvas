@@ -7,6 +7,7 @@ import {
   ROOT_PARENT_ID,
   type NodeId,
 } from "./types";
+import { createVisualWorkspaceFromDocument } from "../visual/workspace";
 
 export const CATEGORY_COLORS: CapabilityColor[] = [
   "mint",
@@ -83,7 +84,7 @@ export function createNode(
 export function createEmptyDocument(
   title = "Untitled capability model",
 ): CapabilityDocument {
-  return {
+  const doc: CapabilityDocument = {
     schema: DOCUMENT_SCHEMA,
     version: DOCUMENT_VERSION,
     nodesById: {},
@@ -94,9 +95,12 @@ export function createEmptyDocument(
       boundingBox: { ...DEFAULT_LAYOUT.boundingBox },
     },
     heatmap: { ...DEFAULT_HEATMAP },
+    visual: undefined as never,
     timestamp: Date.now(),
     title,
   };
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
 }
 
 export function nextColor(index: number): CapabilityColor {

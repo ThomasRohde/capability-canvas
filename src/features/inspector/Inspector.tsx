@@ -12,17 +12,21 @@ import type {
   CapabilityNode,
 } from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
 export function Inspector({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
+  const viewDoc = resolveVisualDocument(doc);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const tab = useUiStore((state) => state.inspectorTab);
   const setTab = useUiStore((state) => state.setInspectorTab);
-  const node = selected.length === 1 ? doc.nodesById[selected[0]!] : null;
+  const sourceNode = selected.length === 1 ? doc.nodesById[selected[0]!] : null;
+  const viewNode =
+    selected.length === 1 ? viewDoc.nodesById[selected[0]!] : null;
 
   return (
     <aside className="cc-inspector">
@@ -62,12 +66,16 @@ export function Inspector({ readonly = false }: { readonly?: boolean }) {
           <MultiSelectionSummary count={selected.length} />
         )}
         {selected.length === 0 && <EmptyInspector />}
-        {node && readonly && <ViewerDetails node={node} />}
-        {node && !readonly && tab === "inspector" && <Properties node={node} />}
-        {node && !readonly && tab === "layout" && (
-          <LayoutProperties node={node} />
+        {viewNode && readonly && <ViewerDetails node={viewNode} />}
+        {sourceNode && !readonly && tab === "inspector" && (
+          <Properties node={sourceNode} />
         )}
-        {node && !readonly && tab === "data" && <DataProperties node={node} />}
+        {viewNode && !readonly && tab === "layout" && (
+          <LayoutProperties node={viewNode} />
+        )}
+        {sourceNode && !readonly && tab === "data" && (
+          <DataProperties node={sourceNode} />
+        )}
       </div>
     </aside>
   );

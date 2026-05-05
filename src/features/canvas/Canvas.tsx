@@ -50,6 +50,7 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { gridSizeFor, snapToGrid } from "../../domain/layout/grid";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import {
   findDropTarget,
   isAcceptableDropTarget,
@@ -83,6 +84,10 @@ const MIN_NODE_HEIGHT = 32;
 export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
   const execute = useDocumentStore((state) => state.execute);
+  const setActiveViewViewport = useDocumentStore(
+    (state) => state.setActiveViewViewport,
+  );
+  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
   const clearSelection = useUiStore((state) => state.clearSelection);
@@ -108,18 +113,18 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     [viewport, size],
   );
   const viewModels = useMemo(
-    () => createNodeViewModels(doc, docViewport),
-    [doc, docViewport],
+    () => createNodeViewModels(viewDoc, docViewport),
+    [docViewport, viewDoc],
   );
   const visibleViewModels = useMemo(
     () => viewModels.filter((vm) => vm.visible || selected.includes(vm.node.id)),
     [selected, viewModels],
   );
   const canvasSelected = useMemo(
-    () => selected.filter((id) => isNodeOnCanvas(doc.nodesById[id])),
-    [doc.nodesById, selected],
+    () => selected.filter((id) => isNodeOnCanvas(viewDoc.nodesById[id])),
+    [selected, viewDoc.nodesById],
   );
-  const contextNode = contextMenu ? doc.nodesById[contextMenu.nodeId] : null;
+  const contextNode = contextMenu ? viewDoc.nodesById[contextMenu.nodeId] : null;
 
   useEffect(() => {
     const element = canvasRef.current;
@@ -155,9 +160,9 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const nodeIdsWithDescendants = (nodeIds: NodeId[]) => {
     const expanded = new Set<NodeId>();
     for (const nodeId of nodeIds) {
-      if (!doc.nodesById[nodeId]) continue;
+      if (!viewDoc.nodesById[nodeId]) continue;
       expanded.add(nodeId);
-      for (const descendantId of descendantIds(doc, nodeId))
+      for (const descendantId of descendantIds(viewDoc, nodeId))
         expanded.add(descendantId);
     }
     return [...expanded];
@@ -168,11 +173,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     screenDx: number,
     screenDy: number,
   ) => {
-    if (!doc.settings.gridEnabled || nodeIds.length === 0)
+    if (!viewDoc.settings.gridEnabled || nodeIds.length === 0)
       return { dx: screenDx, dy: screenDy };
-    const anchor = doc.nodesById[nodeIds[0]!];
+    const anchor = viewDoc.nodesById[nodeIds[0]!];
     if (!anchor) return { dx: screenDx, dy: screenDy };
-    const gridSize = gridSizeFor(doc);
+    const gridSize = gridSizeFor(viewDoc);
     const rawDocDx = screenDx / viewport.zoom;
     const rawDocDy = screenDy / viewport.zoom;
     const snappedDocDx = snapToGrid(anchor.x + rawDocDx, gridSize) - anchor.x;
@@ -190,11 +195,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     screenDx: number,
     screenDy: number,
   ) => {
-    if (!doc.settings.gridEnabled || !doc.settings.resizeSnapToGrid)
+    if (!viewDoc.settings.gridEnabled || !viewDoc.settings.resizeSnapToGrid)
       return { dx: screenDx, dy: screenDy };
-    const node = doc.nodesById[nodeId];
+    const node = viewDoc.nodesById[nodeId];
     if (!node) return { dx: screenDx, dy: screenDy };
-    const gridSize = gridSizeFor(doc);
+    const gridSize = gridSizeFor(viewDoc);
     const rawW = startW + screenDx / viewport.zoom;
     const rawH = startH + screenDy / viewport.zoom;
     const snappedW = Math.max(1, snapToGrid(node.x + rawW, gridSize) - node.x);
@@ -214,7 +219,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   };
 
   const fitView = useCallback(() => {
-    const bounds = doc.layout.boundingBox;
+    const bounds = viewDoc.layout.boundingBox;
     if (bounds.w === 0 || bounds.h === 0) return;
     const zoom = Math.max(
       MIN_ZOOM,
@@ -223,8 +228,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         Math.min((size.w - 80) / bounds.w, (size.h - 80) / bounds.h),
       ),
     );
-    setViewport({ zoom, x: 40 - bounds.x * zoom, y: 40 - bounds.y * zoom });
-  }, [doc.layout.boundingBox, setViewport, size.h, size.w]);
+    const nextViewport = { zoom, x: 40 - bounds.x * zoom, y: 40 - bounds.y * zoom };
+    setViewport(nextViewport);
+    setActiveViewViewport(nextViewport);
+  }, [setActiveViewViewport, setViewport, size.h, size.w, viewDoc.layout.boundingBox]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -249,7 +256,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         event.key.toLowerCase() === "a"
       ) {
         event.preventDefault();
-        const ids = Object.values(useDocumentStore.getState().doc.nodesById)
+        const ids = Object.values(viewDoc.nodesById)
           .filter(
             (node) =>
               isNodeOnCanvas(node) &&
@@ -275,7 +282,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         selected.length > 0
       ) {
         event.preventDefault();
-        const baseStep = doc.settings.gridEnabled ? gridSizeFor(doc) : 1;
+        const baseStep = viewDoc.settings.gridEnabled ? gridSizeFor(viewDoc) : 1;
         const step = event.shiftKey ? baseStep * 4 : baseStep;
         const dx =
           event.key === "ArrowLeft"
@@ -295,7 +302,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [doc, execute, fitView, readonly, selected]);
+  }, [execute, fitView, readonly, selected, viewDoc]);
 
   const zoomAround = useCallback(
     (delta: number, anchorX: number, anchorY: number) => {
@@ -306,13 +313,15 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       if (nextZoom === viewport.zoom) return;
       const docAnchorX = (anchorX - viewport.x) / viewport.zoom;
       const docAnchorY = (anchorY - viewport.y) / viewport.zoom;
-      setViewport({
+      const nextViewport = {
         zoom: nextZoom,
         x: anchorX - docAnchorX * nextZoom,
         y: anchorY - docAnchorY * nextZoom,
-      });
+      };
+      setViewport(nextViewport);
+      setActiveViewViewport(nextViewport);
     },
-    [setViewport, viewport],
+    [setActiveViewViewport, setViewport, viewport],
   );
 
   const zoomBy = (delta: number) => {
@@ -334,11 +343,13 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   }, [zoomAround]);
 
   const centerOnDocumentPoint = (x: number, y: number) => {
-    setViewport({
+    const nextViewport = {
       ...viewport,
       x: size.w / 2 - x * viewport.zoom,
       y: size.h / 2 - y * viewport.zoom,
-    });
+    };
+    setViewport(nextViewport);
+    setActiveViewViewport(nextViewport);
   };
 
   const startMarquee = (event: ReactPointerEvent<HTMLElement>) => {
@@ -372,7 +383,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       window.removeEventListener("pointercancel", onUp);
       if (!rectBounds || rectBounds.w < 4 || rectBounds.h < 4) return;
       const candidate = new Set(baseSelection);
-      for (const node of Object.values(doc.nodesById)) {
+      for (const node of Object.values(viewDoc.nodesById)) {
         if (!isNodeOnCanvas(node)) continue;
         if (node.isTextLabel || node.type === "text") continue;
         if (intersects(node, rectBounds)) candidate.add(node.id);
@@ -382,8 +393,8 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         if (!additive) useUiStore.getState().clearSelection();
         return;
       }
-      if (!canMultiSelect(doc, ids).valid) {
-        useUiStore.getState().setSelection(filterToSiblingGroup(doc, ids));
+      if (!canMultiSelect(viewDoc, ids).valid) {
+        useUiStore.getState().setSelection(filterToSiblingGroup(viewDoc, ids));
         return;
       }
       useUiStore.getState().setSelection(ids);
@@ -397,12 +408,12 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   return (
     <main
       ref={canvasRef}
-      className={`cc-canvas ${doc.settings.gridEnabled ? "" : "no-grid"}`}
+      className={`cc-canvas ${viewDoc.settings.gridEnabled ? "" : "no-grid"}`}
       data-testid="canvas"
       style={
         {
-          "--cc-grid-size": `${Math.max(4, doc.settings.gridSize * viewport.zoom)}px`,
-          "--cc-grid-dot-color": doc.settings.gridEnabled
+          "--cc-grid-size": `${Math.max(4, viewDoc.settings.gridSize * viewport.zoom)}px`,
+          "--cc-grid-dot-color": viewDoc.settings.gridEnabled
             ? "rgba(15, 23, 42, 0.09)"
             : "transparent",
           backgroundPosition: `${viewport.x}px ${viewport.y}px`,
@@ -442,6 +453,9 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         };
         const onUp = () => {
           if (!didMove && event.button === 0) clearSelection();
+          else {
+            setActiveViewViewport(useUiStore.getState().viewport);
+          }
           window.removeEventListener("pointermove", onMove);
           window.removeEventListener("pointerup", onUp);
           window.removeEventListener("pointercancel", onUp);
@@ -462,7 +476,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       >
         {visibleViewModels.map((vm) => {
             const selectedState = selected.includes(vm.node.id);
-            const fill = resolveNodeFill(vm.node, doc.heatmap);
+            const fill = resolveNodeFill(vm.node, viewDoc.heatmap);
             const isContainer = vm.node.type !== "leaf" && !vm.node.isTextLabel;
             const selectedNodeClass =
               selectedState && !isContainer ? "selected" : "";
@@ -491,7 +505,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                     "--node-border": fill.border,
                     "--container-label-offset-top": `${Math.max(
                       0,
-                      doc.settings.containerLabelOffsetTop,
+                      viewDoc.settings.containerLabelOffsetTop,
                     )}px`,
                   } as React.CSSProperties
                 }
@@ -500,7 +514,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                   event.stopPropagation();
                   if (event.button > 0) return;
                   if (event.ctrlKey || event.metaKey || event.shiftKey)
-                    toggleSelectionWithRules(doc, vm.node.id);
+                    toggleSelectionWithRules(viewDoc, vm.node.id);
                   else if (!selected.includes(vm.node.id))
                     setSelection([vm.node.id]);
                   if (readonly) return;
@@ -536,7 +550,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                       useTransientStore.getState().setReparentTargetId(null);
                       return;
                     }
-                    const dragRoot = doc.nodesById[dragRootId];
+                    const dragRoot = viewDoc.nodesById[dragRootId];
                     if (!dragRoot) return;
                     const docX =
                       (move.clientX - canvasRect.left - viewport.x) /
@@ -545,7 +559,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                       (move.clientY - canvasRect.top - viewport.y) /
                       viewport.zoom;
                     const candidate = findDropTarget({
-                      doc,
+                      doc: viewDoc,
                       pointDocX: docX,
                       pointDocY: docY,
                       draggedIds: draggedSet,
@@ -557,7 +571,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                       return;
                     }
                     const acceptable = isAcceptableDropTarget(
-                      doc,
+                      viewDoc,
                       dragRootId,
                       candidate.parentId,
                     );
@@ -582,7 +596,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                     ) {
                       const dx = current.dx / viewport.zoom;
                       const dy = current.dy / viewport.zoom;
-                      const dragRoot = doc.nodesById[dragRootId];
+                      const dragRoot = viewDoc.nodesById[dragRootId];
                       const currentParent = dragRoot?.parentId ?? null;
                       const wantsReparent =
                         canReparent &&
@@ -606,9 +620,9 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                         );
                       } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
                         execute(moveNodes(current.nodeIds, dx, dy));
-                        const parentId = doc.nodesById[dragRootId]?.parentId;
+                        const parentId = viewDoc.nodesById[dragRootId]?.parentId;
                         if (parentId) {
-                          const parentNode = doc.nodesById[parentId];
+                          const parentNode = viewDoc.nodesById[parentId];
                           if (
                             parentNode &&
                             !parentNode.isManualPositioningEnabled
@@ -646,7 +660,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
                 ) : (
                   <span className="cc-node-label">{vm.node.label}</span>
                 )}
-                {doc.heatmap.enabled && vm.node.heatmapValue !== undefined && (
+                {viewDoc.heatmap.enabled && vm.node.heatmapValue !== undefined && (
                   <span
                     className={`cc-node-score ${isContainer ? "container-score" : "leaf-score"}`}
                   >
@@ -710,7 +724,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           .filter((vm) => vm.node.type !== "leaf" && !vm.node.isTextLabel)
           .map((vm) => {
             const selectedState = selected.includes(vm.node.id);
-            const fill = resolveNodeFill(vm.node, doc.heatmap);
+            const fill = resolveNodeFill(vm.node, viewDoc.heatmap);
             const dragDelta = drag?.nodeIds.includes(vm.node.id)
               ? { x: drag.dx / viewport.zoom, y: drag.dy / viewport.zoom }
               : { x: 0, y: 0 };
@@ -783,7 +797,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           >
             Duplicate
           </button>
-          {hasCanvasChildren(doc, contextMenu.nodeId) && (
+          {hasCanvasChildren(viewDoc, contextMenu.nodeId) && (
             <button
               type="button"
               role="menuitem"
@@ -822,15 +836,15 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       {canvasSelected.length > 1 && !readonly && (
         <BulkToolbar selected={canvasSelected} />
       )}
-      {doc.heatmap.enabled && doc.heatmap.showLegend && (
-        <HeatmapLegend palette={doc.heatmap.palette} />
+      {viewDoc.heatmap.enabled && viewDoc.heatmap.showLegend && (
+        <HeatmapLegend palette={viewDoc.heatmap.palette} />
       )}
       <Minimap
-        bounds={doc.layout.boundingBox}
+        bounds={viewDoc.layout.boundingBox}
         viewport={docViewport}
         nodes={viewModels.map((vm) => ({
           ...vm.bounds,
-          fill: resolveNodeFill(vm.node, doc.heatmap),
+          fill: resolveNodeFill(vm.node, viewDoc.heatmap),
         }))}
         onFit={fitView}
         onZoomIn={() => zoomBy(0.1)}
@@ -905,17 +919,18 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const doc = useDocumentStore((state) => state.doc);
+  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
-  const alignAllowed = canAlign(doc, selected);
-  const distributeAllowed = canDistribute(doc, selected);
-  const sameSizeAllowed = canMultiSelect(doc, selected);
+  const alignAllowed = canAlign(viewDoc, selected);
+  const distributeAllowed = canDistribute(viewDoc, selected);
+  const sameSizeAllowed = canMultiSelect(viewDoc, selected);
   const anchor = selected[0];
-  const anchorNode = anchor ? doc.nodesById[anchor] : undefined;
+  const anchorNode = anchor ? viewDoc.nodesById[anchor] : undefined;
   const fitTargetId = selected.length === 1 && anchor ? anchor : undefined;
   const fitAllowed =
     fitTargetId &&
     !anchorNode?.isLockedAsIs &&
-    hasCanvasChildren(doc, fitTargetId);
+    hasCanvasChildren(viewDoc, fitTargetId);
   return (
     <div className="cc-bulk-toolbar">
       <span className="count">{selected.length} selected</span>
@@ -1029,11 +1044,12 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
 
 function BulkColorPicker({ selected }: { selected: NodeId[] }) {
   const doc = useDocumentStore((state) => state.doc);
+  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
   const [open, setOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const selectedNodes = selected
-    .map((nodeId) => doc.nodesById[nodeId])
+    .map((nodeId) => viewDoc.nodesById[nodeId])
     .filter(Boolean);
   const selectedColors = new Set(selectedNodes.map((node) => node.color));
   const activeColor =

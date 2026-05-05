@@ -10,6 +10,7 @@ export function serializeDocument(doc: CapabilityDocument): WireDocument {
     settings: { ...doc.settings },
     layout: { ...doc.layout, boundingBox: { ...doc.layout.boundingBox } },
     heatmap: { ...doc.heatmap },
+    visual: doc.visual,
     timestamp: doc.timestamp
   };
 }
@@ -17,4 +18,3 @@ export function serializeDocument(doc: CapabilityDocument): WireDocument {
 export function stringifyDocument(doc: CapabilityDocument): string {
   return JSON.stringify(serializeDocument(doc), null, 2);
 }
-

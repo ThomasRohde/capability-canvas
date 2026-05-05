@@ -1,17 +1,19 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import type { CapabilityDocument } from '../../domain/document/types';
+import { resolveVisualDocument } from '../../domain/visual/workspace';
 import { escapeXml } from './escape';
 import { renderSvg } from './svg';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function htmlExport(doc: CapabilityDocument): ExportResult {
-  const svg = renderSvg(doc, { includeDescriptionData: true });
+  const visualDoc = resolveVisualDocument(doc);
+  const svg = renderSvg(visualDoc, { includeDescriptionData: true });
   const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeXml(doc.title)}</title>
+    <title>${escapeXml(visualDoc.title)}</title>
     <style>
       body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Inter, system-ui, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
@@ -107,7 +109,7 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
 </html>`;
   return {
     format: 'html',
-    filename: `${safeFileBaseName(doc.title)}.html`,
+    filename: `${safeFileBaseName(visualDoc.title)}.html`,
     mimeType: 'text/html',
     data: html,
     diagnostics: []

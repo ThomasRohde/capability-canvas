@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSampleDocument } from '../../domain/fixtures/sample';
 import { runTransaction, updateDocumentTitle } from '../../domain/commands/operations';
+import { resolveVisualDocument } from '../../domain/visual/workspace';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { archimateExport } from './archimate';
 import { drawioExport } from './drawio';
@@ -20,9 +21,10 @@ describe('exports', () => {
 
   it('resolves heatmap fills consistently', () => {
     const doc = createSampleDocument();
-    doc.heatmap.enabled = true;
-    const node = doc.nodesById['digital-onboarding']!;
-    const fill = resolveNodeFill(node, doc.heatmap);
+    doc.visual.viewsById[doc.visual.activeViewId]!.heatmap.enabled = true;
+    const visualDoc = resolveVisualDocument(doc);
+    const node = visualDoc.nodesById['digital-onboarding']!;
+    const fill = resolveNodeFill(node, visualDoc.heatmap);
     expect(fill.border).toMatch(/^#/);
     expect(svgExport(doc).data).toContain(fill.border);
   });
@@ -99,14 +101,14 @@ describe('exports', () => {
 
   it('keeps JSON full-fidelity while visual exports omit hidden canvas nodes', () => {
     const doc = createSampleDocument();
-    doc.nodesById['digital-onboarding'] = {
-      ...doc.nodesById['digital-onboarding']!,
+    doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById['digital-onboarding'] = {
+      ...doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById['digital-onboarding'],
       isOnCanvas: false,
     };
 
     expect(jsonExport(doc).data).toContain('digital-onboarding');
     expect(svgExport(doc).data).not.toContain('digital-onboarding');
     expect(drawioExport(doc).data).not.toContain('digital-onboarding');
-    expect(archimateExport(doc).data).not.toContain('digital-onboarding');
+    expect(archimateExport(doc).data).toContain('digital-onboarding');
   });
 });

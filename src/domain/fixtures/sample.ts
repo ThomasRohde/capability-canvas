@@ -1,6 +1,7 @@
 import { createEmptyDocument, createNode } from '../document/defaults';
 import { ROOT_PARENT_ID, type CapabilityDocument, type NodeId } from '../document/types';
 import { ensureParentContainment } from '../layout/containment';
+import { createVisualWorkspaceFromDocument, materializeActiveViewMetadata } from '../visual/workspace';
 
 const root = 'retail-banking';
 
@@ -308,7 +309,8 @@ export function createSampleDocument(): CapabilityDocument {
     isUserArranged: true,
     preservePositions: true
   };
-  return contained;
+  contained.visual = createVisualWorkspaceFromDocument(contained);
+  return materializeActiveViewMetadata(contained);
 }
 
 export function createThousandNodeDocument(): CapabilityDocument {
@@ -363,5 +365,6 @@ export function createThousandNodeDocument(): CapabilityDocument {
     }
   }
   doc.childrenByParentId[ROOT_PARENT_ID] = rootIds;
+  doc.visual = createVisualWorkspaceFromDocument(doc);
   return doc;
 }

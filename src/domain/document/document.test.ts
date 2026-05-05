@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "./defaults";
 import { parseDocument } from "./parse";
 import { serializeDocument } from "./serialize";
+import {
+  createVisualView,
+  deleteVisualView,
+  runTransaction,
+  updateVisualNodeState,
+} from "../commands/operations";
 import { createSampleDocument } from "../fixtures/sample";
+import { resolveVisualDocument } from "../visual/workspace";
 
 describe("document JSON adapter", () => {
   it("round-trips sample documents through the wire format", () => {
@@ -178,5 +185,77 @@ describe("document JSON adapter", () => {
       childGapX: 52,
       childGapY: 20,
     });
+  });
+
+  it("migrates v1.0 documents to a default visual view", () => {
+    const wire = serializeDocument(createSampleDocument());
+    wire.version = "1.0";
+    delete wire.visual;
+
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc).not.toBeNull();
+    expect(parsed.doc!.version).toBe("1.1");
+    expect(parsed.doc!.visual.viewOrder).toHaveLength(1);
+    const view = parsed.doc!.visual.viewsById[parsed.doc!.visual.activeViewId]!;
+    expect(view.nodeStatesById["digital-onboarding"]).toMatchObject({
+      x: wire.nodes.find((node) => node.id === "digital-onboarding")!.x,
+      isOnCanvas: true,
+    });
+  });
+
+  it("round-trips multiple visual views through JSON", () => {
+    const first = runTransaction(
+      createSampleDocument(),
+      createVisualView({ templateId: "presentation-slide@1" }),
+    ).doc;
+    const viewId = first.visual.activeViewId;
+    const updated = runTransaction(
+      first,
+      updateVisualNodeState(viewId, "digital-onboarding", {
+        x: 1200,
+        isOnCanvas: false,
+      }),
+    ).doc;
+
+    const parsed = parseDocument(serializeDocument(updated));
+
+    expect(parsed.doc?.visual.viewOrder).toHaveLength(2);
+    expect(
+      parsed.doc?.visual.viewsById[viewId]?.nodeStatesById[
+        "digital-onboarding"
+      ],
+    ).toMatchObject({ x: 1200, isOnCanvas: false });
+    expect(resolveVisualDocument(parsed.doc!, viewId).nodesById[
+      "digital-onboarding"
+    ]?.isOnCanvas).toBe(false);
+  });
+
+  it("warns and drops stale visual node references on import", () => {
+    const wire = serializeDocument(createSampleDocument());
+    const view = wire.visual!.viewsById[wire.visual!.activeViewId]!;
+    view.nodeStatesById["missing-node"] = { x: 1, y: 2 };
+
+    const parsed = parseDocument(wire);
+
+    expect(
+      parsed.diagnostics.some(
+        (diagnostic) => diagnostic.code === "stale-view-node-reference",
+      ),
+    ).toBe(true);
+    expect(
+      parsed.doc!.visual.viewsById[parsed.doc!.visual.activeViewId]!
+        .nodeStatesById["missing-node"],
+    ).toBeUndefined();
+  });
+
+  it("rejects deleting the last visual view", () => {
+    const result = runTransaction(
+      createSampleDocument(),
+      deleteVisualView("view-default"),
+    );
+
+    expect(result.doc.visual.viewOrder).toHaveLength(1);
+    expect(result.diagnostics[0]?.code).toBe("delete-last-view");
   });
 });

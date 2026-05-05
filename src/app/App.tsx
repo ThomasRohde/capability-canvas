@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { parseDocumentJson } from "../domain/document/parse";
 import { findParentContainmentViolations } from "../domain/layout/containment";
+import { resolveVisualDocument } from "../domain/visual/workspace";
 import { EditorRoute } from "../features/editor/EditorRoute";
 import { ViewerRoute } from "../features/viewer/ViewerRoute";
 import { applyImportedDocument } from "./importDocument";
@@ -18,7 +19,9 @@ export function App() {
     if (isViewer) return undefined;
     if (!import.meta.env.DEV) return undefined;
     return useDocumentStore.subscribe((state) => {
-      const violations = findParentContainmentViolations(state.doc);
+      const violations = findParentContainmentViolations(
+        resolveVisualDocument(state.doc),
+      );
       if (violations.length > 0) {
         console.warn("Capability Canvas containment violations", violations);
       }

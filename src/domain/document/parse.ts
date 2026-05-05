@@ -12,6 +12,7 @@ import { DOCUMENT_SCHEMA, DOCUMENT_VERSION, ROOT_PARENT_ID, type CapabilityDocum
 import { ensureParentContainment } from '../layout/containment';
 import { type Diagnostic, error, warning } from '../validation/diagnostics';
 import { validateDocument } from '../validation/validate';
+import { materializeActiveViewMetadata, normalizeVisualWorkspace } from '../visual/workspace';
 
 export interface ParseResult {
   doc: CapabilityDocument | null;
@@ -77,6 +78,12 @@ export function parseDocument(input: unknown): ParseResult {
       isTextLabel: rawNode.isTextLabel || rawNode.type === 'text'
     };
     doc.nodesById[node.id] = node;
+  }
+
+  const visual = normalizeVisualWorkspace(doc, parsed.data.visual);
+  doc.visual = visual.visual;
+  for (const item of visual.diagnostics) {
+    diagnostics.push(warning(item.code, item.message, item.nodeId));
   }
 
   return finalizeDocument(doc, diagnostics);
@@ -176,7 +183,13 @@ function finalizeDocument(
   diagnostics: Diagnostic[],
 ): ParseResult {
   const rebuilt = breakInvalidRelations(rebuildChildren(doc), diagnostics);
-  const contained = ensureParentContainment(rebuilt);
+  const visual = normalizeVisualWorkspace(rebuilt, rebuilt.visual);
+  let withVisual = { ...rebuilt, visual: visual.visual };
+  for (const item of visual.diagnostics) {
+    diagnostics.push(warning(item.code, item.message, item.nodeId));
+  }
+  withVisual = materializeActiveViewMetadata(withVisual);
+  const contained = ensureParentContainment(withVisual);
   for (const nodeId of contained.changedNodeIds) {
     diagnostics.push(warning('parent-containment-repaired', `${nodeId} was expanded to contain its children.`, nodeId));
   }

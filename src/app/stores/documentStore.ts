@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   runTransaction,
   transaction,
+  updateActiveViewLayoutSettings,
   updateDocumentSettings,
 } from "../../domain/commands/operations";
 import type {
@@ -10,9 +11,20 @@ import type {
   Transaction,
 } from "../../domain/commands/types";
 import { cloneDocument } from "../../domain/document/normalize";
-import type { CapabilityDocument, NodeId } from "../../domain/document/types";
+import type {
+  CapabilityDocument,
+  NodeId,
+  VisualViewId,
+  VisualViewport,
+} from "../../domain/document/types";
 import { createSampleDocument } from "../../domain/fixtures/sample";
 import { ensureParentContainment } from "../../domain/layout/containment";
+import {
+  applyResolvedVisualDocument,
+  materializeActiveViewMetadata,
+  resolveVisualDocument,
+  updateActiveViewViewport,
+} from "../../domain/visual/workspace";
 import {
   applyLayoutPatches,
   computeDocumentBounds,
@@ -28,6 +40,11 @@ interface DocumentState {
   dirty: boolean;
   isAutoLayoutRunning: boolean;
   execute: (txn: Transaction) => Diagnostic[];
+  setActiveVisualView: (
+    viewId: VisualViewId,
+    options?: { previousViewport?: VisualViewport },
+  ) => Diagnostic[];
+  setActiveViewViewport: (viewport: VisualViewport) => void;
   undo: () => void;
   redo: () => void;
   setDocument: (
@@ -55,7 +72,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   isAutoLayoutRunning: false,
   execute: (txn) => {
     const before = get().doc;
-    const result = runTransaction(before, txn);
+    const result = runStoreTransaction(before, txn);
     const committed = result.doc !== before;
     set({
       doc: result.doc,
@@ -91,6 +108,69 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       });
     }
     return result.diagnostics;
+  },
+  setActiveVisualView: (viewId, options = {}) => {
+    const before = get().doc;
+    if (!before.visual.viewsById[viewId]) {
+      const diagnostics = [
+        warning("missing-view", "Select a valid visual view."),
+      ];
+      set({ lastDiagnostics: diagnostics });
+      return diagnostics;
+    }
+    const visual = {
+      ...before.visual,
+      viewOrder: [...before.visual.viewOrder],
+      viewsById: Object.fromEntries(
+        Object.entries(before.visual.viewsById).map(([id, view]) => [
+          id,
+          {
+            ...view,
+            nodeStatesById: { ...view.nodeStatesById },
+            viewport: view.viewport ? { ...view.viewport } : undefined,
+            layout: {
+              ...view.layout,
+              boundingBox: view.layout.boundingBox
+                ? { ...view.layout.boundingBox }
+                : undefined,
+            },
+            heatmap: {
+              ...view.heatmap,
+              legendBounds: view.heatmap.legendBounds
+                ? { ...view.heatmap.legendBounds }
+                : undefined,
+            },
+            export: { ...view.export },
+          },
+        ]),
+      ),
+      activeViewId: viewId,
+    };
+    if (options.previousViewport) {
+      const previousView =
+        visual.viewsById[before.visual.activeViewId];
+      if (previousView) {
+        previousView.viewport = { ...options.previousViewport };
+        previousView.updatedAt = Date.now();
+      }
+    }
+    const next = materializeActiveViewMetadata({
+      ...before,
+      visual,
+      timestamp: Date.now(),
+    });
+    set({
+      doc: next,
+      dirty: true,
+      lastDiagnostics: [],
+    });
+    return [];
+  },
+  setActiveViewViewport: (viewport) => {
+    const before = get().doc;
+    const next = updateActiveViewViewport(before, viewport);
+    if (next === before) return;
+    set({ doc: next, dirty: true });
   },
   undo: () => {
     const past = get().past;
@@ -129,7 +209,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
   setDocument: (doc, label = "Import document", diagnostics = []) => {
     const before = get().doc;
-    const repaired = ensureLayoutBounds(ensureParentContainment(doc).doc);
+    const repaired = ensureLayoutBounds(
+      materializeActiveViewMetadata(ensureParentContainment(doc).doc),
+    );
     set({
       doc: repaired,
       past: [
@@ -204,9 +286,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
   updateSettings: async (patch, options = {}) => {
     const before = get().doc;
-    const settingsResult = runTransaction(
+    const settingsResult = runStoreTransaction(
       before,
-      updateDocumentSettings(patch),
+      settingsTransaction(patch),
     );
     if (settingsResult.doc === before || !options.autoLayout) {
       set({
@@ -297,12 +379,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
   repairContainment: () => {
     const before = get().doc;
-    const repaired = ensureParentContainment(before);
+    const resolved = resolveVisualDocument(before);
+    const repaired = ensureParentContainment(resolved);
     if (repaired.changedNodeIds.length === 0) return;
-    const after = {
-      ...repaired.doc,
-      timestamp: Date.now(),
-    };
+    const after = applyResolvedVisualDocument(before, repaired.doc);
     set({
       doc: after,
       past: [
@@ -327,6 +407,54 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   clearDiagnostics: () => set({ lastDiagnostics: [] }),
 }));
 
+const VISUAL_COMMAND_TYPES = new Set([
+  "add-subtree-to-canvas",
+  "remove-subtree-from-canvas",
+  "move-nodes",
+  "resize-node",
+  "align-nodes",
+  "distribute-nodes",
+  "same-size",
+  "fit-parent-to-children",
+  "repair-sibling-overlaps",
+  "lock-subtree",
+  "set-manual-positioning",
+]);
+
+function runStoreTransaction(doc: CapabilityDocument, txn: Transaction) {
+  if (!isVisualEditTransaction(txn)) return runTransaction(doc, txn);
+  const resolved = resolveVisualDocument(doc);
+  const result = runTransaction(resolved, txn);
+  if (result.doc === resolved) return { doc, diagnostics: result.diagnostics };
+  return {
+    doc: applyResolvedVisualDocument(doc, result.doc),
+    diagnostics: result.diagnostics,
+  };
+}
+
+function isVisualEditTransaction(txn: Transaction): boolean {
+  return (
+    txn.commands.length > 0 &&
+    txn.commands.every((command) => VISUAL_COMMAND_TYPES.has(command.type))
+  );
+}
+
+function settingsTransaction(
+  patch: Partial<CapabilityDocument["settings"]>,
+): Transaction {
+  const { layoutMode, ...documentPatch } = patch;
+  const transactions: Transaction[] = [];
+  if (Object.keys(documentPatch).length > 0)
+    transactions.push(updateDocumentSettings(documentPatch));
+  if (layoutMode)
+    transactions.push(updateActiveViewLayoutSettings({ mode: layoutMode }));
+  return transaction(
+    settingsLabel(patch),
+    transactions.flatMap((item) => item.commands),
+    { source: "edit" },
+  );
+}
+
 async function runRelayout(args: {
   before: CapabilityDocument;
   after: CapabilityDocument;
@@ -338,18 +466,15 @@ async function runRelayout(args: {
 }): Promise<void> {
   const { before, after, scope, force, get, set } = args;
   if (get().doc !== after) return;
-  const ids = resolveScope(scope, before, after);
+  const resolvedBefore = resolveVisualDocument(before);
+  const resolvedAfter = resolveVisualDocument(after);
+  const ids = resolveScope(scope, resolvedBefore, resolvedAfter);
   if (ids?.length === 0) return;
 
   try {
-    const result = await layoutDocument({
-      doc: after,
-      affectedNodeIds: ids ?? undefined,
-      mode: after.settings.layoutMode,
-      force,
-    });
+    const result = await layoutAndRepair(after, force, ids ?? undefined);
     if (get().doc !== after) return;
-    if (result.patches.length === 0) {
+    if (result.doc === after) {
       const merged = mergeDiagnostics(
         get().lastDiagnostics,
         result.diagnostics,
@@ -357,10 +482,6 @@ async function runRelayout(args: {
       if (merged !== get().lastDiagnostics) set({ lastDiagnostics: merged });
       return;
     }
-
-    const laidOut = applyLayoutPatches(after, result.patches);
-    if (laidOut === after) return;
-    const repaired = ensureParentContainment(laidOut).doc;
     if (get().doc !== after) return;
 
     const past = get().past;
@@ -369,18 +490,18 @@ async function runRelayout(args: {
       ? {
           label: last.label,
           before: last.before,
-          after: cloneDocument(repaired),
+          after: cloneDocument(result.doc),
           relayout: last.relayout,
         }
       : {
           label: args.label,
           before: cloneDocument(before),
-          after: cloneDocument(repaired),
+          after: cloneDocument(result.doc),
           relayout: { scope, force },
         };
 
     set({
-      doc: repaired,
+      doc: result.doc,
       past: last ? [...past.slice(0, -1), replacement] : [...past, replacement],
       future: [],
       dirty: true,
@@ -425,16 +546,21 @@ function mergeDiagnostics(
 async function layoutAndRepair(
   doc: CapabilityDocument,
   force: boolean,
+  affectedNodeIds?: NodeId[],
 ): Promise<{ doc: CapabilityDocument; diagnostics: Diagnostic[] }> {
+  const resolved = resolveVisualDocument(doc);
   const result = await layoutDocument({
-    doc,
+    doc: resolved,
+    affectedNodeIds,
     force,
-    mode: doc.settings.layoutMode,
+    mode: resolved.settings.layoutMode,
   });
-  const laidOut = applyLayoutPatches(doc, result.patches);
+  const laidOut = applyLayoutPatches(resolved, result.patches);
   const repaired = ensureParentContainment(laidOut);
+  const nextDoc =
+    repaired.doc === resolved ? doc : applyResolvedVisualDocument(doc, repaired.doc);
   return {
-    doc: repaired.doc,
+    doc: nextDoc,
     diagnostics:
       repaired.changedNodeIds.length > 0
         ? [
@@ -454,7 +580,7 @@ function settingsLabel(patch: Partial<CapabilityDocument["settings"]>) {
 }
 
 function ensureLayoutBounds(doc: CapabilityDocument): CapabilityDocument {
-  const boundingBox = computeDocumentBounds(doc);
+  const boundingBox = computeDocumentBounds(resolveVisualDocument(doc));
   if (
     doc.layout.boundingBox.x === boundingBox.x &&
     doc.layout.boundingBox.y === boundingBox.y &&

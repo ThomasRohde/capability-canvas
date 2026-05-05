@@ -20,20 +20,27 @@ import {
   addRoot,
   deleteNodes,
   duplicateNodes,
+  updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
 import { parseDocumentJson } from "../../domain/document/parse";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { applyImportedDocument } from "../../app/importDocument";
 import { useUiStore } from "../../app/stores/uiStore";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { openDocumentFile } from "../../app/fileSystem";
 import { IconButton } from "../shared/IconButton";
+import { ViewSwitcher } from "../views/ViewSwitcher";
 
 export function Toolbar() {
   const doc = useDocumentStore((state) => state.doc);
+  const viewDoc = resolveVisualDocument(doc);
   const execute = useDocumentStore((state) => state.execute);
   const undo = useDocumentStore((state) => state.undo);
   const redo = useDocumentStore((state) => state.redo);
   const autoLayout = useDocumentStore((state) => state.autoLayout);
+  const setActiveViewViewport = useDocumentStore(
+    (state) => state.setActiveViewViewport,
+  );
   const isAutoLayoutRunning = useDocumentStore(
     (state) => state.isAutoLayoutRunning,
   );
@@ -80,6 +87,7 @@ export function Toolbar() {
       >
         {doc.title}
       </button>
+      <ViewSwitcher />
       <span className="cc-divider" />
       <button
         className="cc-btn"
@@ -131,13 +139,16 @@ export function Toolbar() {
         className="cc-btn"
         type="button"
         onClick={() => {
-          const bounds = doc.layout.boundingBox;
-          if (bounds.w > 0)
-            setViewport({
+          const bounds = viewDoc.layout.boundingBox;
+          if (bounds.w > 0) {
+            const nextViewport = {
               zoom: 1,
               x: 280 - bounds.x,
               y: 60 - bounds.y,
-            });
+            };
+            setViewport(nextViewport);
+            setActiveViewViewport(nextViewport);
+          }
         }}
       >
         <ZoomIn /> Fit
@@ -175,30 +186,15 @@ export function Toolbar() {
         className="cc-btn"
         type="button"
         onClick={() =>
-          useDocumentStore.getState().execute({
-            label: "Toggle heatmap",
-            commands: [
-              {
-                type: "toggle-heatmap",
-                args: {},
-                apply: (current) => ({
-                  doc: {
-                    ...current,
-                    heatmap: {
-                      ...current.heatmap,
-                      enabled: !current.heatmap.enabled,
-                    },
-                  },
-                  diagnostics: [],
-                }),
-              },
-            ],
-            meta: { source: "edit" },
-          })
+          execute(
+            updateActiveViewHeatmapSettings({
+              enabled: !viewDoc.heatmap.enabled,
+            }),
+          )
         }
       >
         <Grid3X3 /> Heatmap
-        <span className={`cc-toggle ${doc.heatmap.enabled ? "on" : ""}`} />
+        <span className={`cc-toggle ${viewDoc.heatmap.enabled ? "on" : ""}`} />
       </button>
       <span className="cc-spacer" />
       <IconButton

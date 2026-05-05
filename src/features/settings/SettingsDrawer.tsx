@@ -1,6 +1,7 @@
 import { Grid3X3, LayoutTemplate, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
+  updateActiveViewHeatmapSettings,
   updateDocumentSettings,
   updateDocumentTitle,
   updateHeatmapSettings,
@@ -272,7 +273,9 @@ export function SettingsDrawer() {
               checked={doc.heatmap.showLegend}
               onChange={(event) =>
                 execute(
-                  updateHeatmapSettings({ showLegend: event.target.checked }),
+                  updateActiveViewHeatmapSettings({
+                    showLegend: event.target.checked,
+                  }),
                 )
               }
             />

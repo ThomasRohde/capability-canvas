@@ -7,5 +7,5 @@ Known lossy fields:
 - Canvas geometry is not represented in the exchange model.
 - UI state, undo history, and local preferences are not exported.
 - Capability Canvas colors and heatmap state are not semantically represented in ArchiMate.
+- Saved visual views, per-view hidden/collapsed state, and per-view geometry are ignored. ArchiMate export is source-model oriented and exports the capability hierarchy rather than the active visual composition.
 - Use JSON export for full round-trip fidelity.
-

@@ -125,14 +125,111 @@ export const HeatmapSchema = z
   })
   .passthrough();
 
+export const VisualNodeStateSchema = z
+  .object({
+    x: finiteNumber.optional(),
+    y: finiteNumber.optional(),
+    w: positiveNumber.optional(),
+    h: positiveNumber.optional(),
+    isOnCanvas: z.boolean().optional(),
+    isCollapsed: z.boolean().optional(),
+    labelOverride: z.string().optional(),
+    colorOverride: z
+      .enum(["mint", "sky", "coral", "amber", "lavender", "peach", "teal"])
+      .optional(),
+    textStyleOverride: z
+      .object({
+        fontFamily: z.string().optional(),
+        fontSize: finiteNumber.optional(),
+        fontWeight: finiteNumber.optional(),
+        align: z.enum(["left", "center", "right"]).optional(),
+      })
+      .passthrough()
+      .optional(),
+    lockedForView: z.boolean().optional(),
+    isManualPositioningEnabled: z.boolean().optional(),
+  })
+  .passthrough();
+
+const VisualBoundsSchema = z.object({
+  x: finiteNumber,
+  y: finiteNumber,
+  w: finiteNumber,
+  h: finiteNumber,
+});
+
+export const VisualViewSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string(),
+    description: z.string().optional(),
+    createdAt: finiteNumber,
+    updatedAt: finiteNumber,
+    templateId: z.string().optional(),
+    nodeStatesById: z.record(z.string(), VisualNodeStateSchema).default({}),
+    viewport: z
+      .object({
+        x: finiteNumber,
+        y: finiteNumber,
+        zoom: positiveNumber,
+      })
+      .passthrough()
+      .optional(),
+    layout: z
+      .object({
+        mode: z.enum(["uniform", "flow", "adaptive", "free"]),
+        boundingBox: VisualBoundsSchema.optional(),
+        preservePositions: z.boolean(),
+      })
+      .passthrough(),
+    heatmap: z
+      .object({
+        enabled: z.boolean(),
+        activeLensId: z.string().optional(),
+        showLegend: z.boolean(),
+        legendPosition: z
+          .enum([
+            "top-right",
+            "bottom-right",
+            "bottom-left",
+            "top-left",
+            "custom",
+          ])
+          .optional(),
+        legendBounds: VisualBoundsSchema.optional(),
+      })
+      .passthrough(),
+    export: z
+      .object({
+        pagePreset: z.string().optional(),
+        showTitle: z.boolean().optional(),
+        showSubtitle: z.boolean().optional(),
+        showFooter: z.boolean().optional(),
+        includeGrid: z.boolean().optional(),
+      })
+      .passthrough()
+      .default({}),
+  })
+  .passthrough();
+
+export const VisualWorkspaceSchema = z
+  .object({
+    activeViewId: z.string().min(1),
+    defaultViewId: z.string().min(1),
+    viewOrder: z.array(z.string().min(1)),
+    viewsById: z.record(z.string(), VisualViewSchema),
+  })
+  .passthrough();
+
 export const WireDocumentSchema = z
   .object({
     schema: z.literal(DOCUMENT_SCHEMA),
-    version: z.literal(DOCUMENT_VERSION),
+    version: z.union([z.literal("1.0"), z.literal(DOCUMENT_VERSION)]),
     nodes: z.array(NodeSchema),
     settings: SettingsSchema,
     layout: LayoutSchema,
     heatmap: HeatmapSchema,
+    visual: VisualWorkspaceSchema.optional(),
     timestamp: finiteNumber,
     title: z.string().optional(),
   })

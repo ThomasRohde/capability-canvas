@@ -1,6 +1,7 @@
 import { sortedNodes } from '../../domain/document/normalize';
 import { safeFileBaseName } from '../../domain/document/fileName';
 import { isNodeOnCanvas, type CapabilityDocument, type CapabilityNode } from '../../domain/document/types';
+import { resolveVisualDocument } from '../../domain/visual/workspace';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
@@ -10,11 +11,12 @@ interface RenderSvgOptions {
 }
 
 export function svgExport(doc: CapabilityDocument): ExportResult {
+  const visualDoc = resolveVisualDocument(doc);
   return {
     format: 'svg',
-    filename: `${safeFileBaseName(doc.title)}.svg`,
+    filename: `${safeFileBaseName(visualDoc.title)}.svg`,
     mimeType: 'image/svg+xml',
-    data: renderSvg(doc),
+    data: renderSvg(visualDoc),
     diagnostics: []
   };
 }

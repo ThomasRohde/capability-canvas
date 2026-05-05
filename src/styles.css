@@ -527,6 +527,17 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.cc-tree-visibility {
+  flex: 0 0 auto;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 999px;
+  color: var(--cc-slate-500);
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 5px;
+  white-space: nowrap;
+}
+
 .cc-tree-actions {
   display: inline-flex;
   align-items: center;
@@ -644,6 +655,112 @@ button:focus-visible {
 
 .cc-modal-actions {
   justify-content: flex-end;
+}
+
+.cc-view-switcher {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.cc-view-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 210px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  color: var(--cc-slate-700);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cc-view-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-view-trigger svg,
+.cc-view-menu button svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+.cc-view-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 85;
+  display: grid;
+  min-width: 230px;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-view-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cc-slate-700);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.cc-view-menu button:hover,
+.cc-view-menu button.on {
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-900);
+}
+
+.cc-menu-separator {
+  margin: 4px 0;
+  border-top: 1px solid var(--cc-slate-200);
+}
+
+.cc-view-manager {
+  width: min(760px, calc(100vw - 40px));
+}
+
+.cc-view-template-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.cc-view-list {
+  display: grid;
+  max-height: min(52vh, 520px);
+  gap: 8px;
+  overflow: auto;
+}
+
+.cc-view-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto auto auto auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+}
+
+.cc-view-row .cc-icon-btn {
+  font-size: 11px;
 }
 
 .cc-paste-json {

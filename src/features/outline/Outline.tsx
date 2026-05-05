@@ -25,6 +25,7 @@ import {
   duplicateNodes,
   fitParentToChildren,
   removeSubtreeFromCanvas,
+  updateVisualNodeState,
 } from "../../domain/commands/operations";
 import {
   canvasChildrenOf,
@@ -36,6 +37,7 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { canMultiSelect } from "../../domain/selection/rules";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import {
   MAX_OUTLINE_WIDTH,
@@ -47,6 +49,7 @@ import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
 export function Outline({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
+  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
@@ -263,11 +266,15 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
             const itemProps = item.getProps();
             const subtreeIds = subtreeNodeIds(doc, node.id);
             const hasHiddenCanvasNodes = subtreeIds.some(
-              (id) => !isNodeOnCanvas(doc.nodesById[id]),
+              (id) => !isNodeOnCanvas(viewDoc.nodesById[id]),
             );
             const hasVisibleCanvasNodes = subtreeIds.some((id) =>
-              isNodeOnCanvas(doc.nodesById[id]),
+              isNodeOnCanvas(viewDoc.nodesById[id]),
             );
+            const activeViewState =
+              doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
+                node.id
+              ];
             return (
               <div
                 {...itemProps}
@@ -299,7 +306,15 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
                   style={{ color: style.border, background: style.background }}
                 />
                 <span className="cc-tree-label">{node.label}</span>
-                {doc.heatmap.enabled && node.heatmapValue !== undefined && (
+                <span className="cc-tree-visibility">
+                  {isNodeOnCanvas(viewDoc.nodesById[node.id])
+                    ? "On view"
+                    : "Hidden"}
+                </span>
+                {activeViewState?.isCollapsed && (
+                  <span className="cc-tree-visibility">Collapsed</span>
+                )}
+                {viewDoc.heatmap.enabled && node.heatmapValue !== undefined && (
                   <span className="cc-tree-score">
                     {node.heatmapValue.toFixed(2)}
                   </span>
@@ -322,12 +337,14 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
                 {!readonly && menuNodeId === node.id && (
                   <OutlineActionsMenu
                     nodeId={node.id}
+                    viewId={doc.visual.activeViewId}
                     canAddChild={!node.isTextLabel && node.type !== "text"}
                     canAddToCanvas={hasHiddenCanvasNodes}
                     canRemoveFromCanvas={hasVisibleCanvasNodes}
+                    isCollapsed={!!activeViewState?.isCollapsed}
                     canFitParent={
-                      isNodeOnCanvas(node) &&
-                      canvasChildrenOf(doc, node.id).length > 0
+                      isNodeOnCanvas(viewDoc.nodesById[node.id]) &&
+                      canvasChildrenOf(viewDoc, node.id).length > 0
                     }
                     canvasTargetCenter={canvasTargetCenter}
                     onClose={() => setMenuNodeId(null)}
@@ -416,17 +433,21 @@ function toggleOutlineSelection(doc: CapabilityDocument, nodeId: NodeId) {
 
 function OutlineActionsMenu({
   nodeId,
+  viewId,
   canAddChild,
   canAddToCanvas,
   canRemoveFromCanvas,
+  isCollapsed,
   canFitParent,
   canvasTargetCenter,
   onClose,
 }: {
   nodeId: NodeId;
+  viewId: string;
   canAddChild: boolean;
   canAddToCanvas: boolean;
   canRemoveFromCanvas: boolean;
+  isCollapsed: boolean;
   canFitParent: boolean;
   canvasTargetCenter: { x: number; y: number };
   onClose: () => void;
@@ -479,6 +500,21 @@ function OutlineActionsMenu({
           Remove subtree from canvas
         </button>
       )}
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() =>
+          run(() =>
+            execute(
+              updateVisualNodeState(viewId, nodeId, {
+                isCollapsed: !isCollapsed,
+              }),
+            ),
+          )
+        }
+      >
+        {isCollapsed ? "Expand in view" : "Collapse in view"}
+      </button>
       <button
         type="button"
         role="menuitem"

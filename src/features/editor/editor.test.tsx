@@ -16,6 +16,7 @@ import {
   runTransaction,
 } from "../../domain/commands/operations";
 import { stringifyDocument } from "../../domain/document/serialize";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
 import { ViewerRoute } from "../viewer/ViewerRoute";
@@ -46,6 +47,9 @@ describe("editor shell", () => {
   it("renders the fixed workspace regions", () => {
     render(<EditorRoute />);
     expect(screen.getByText("Capability Canvas")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Switch visual view" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
@@ -161,6 +165,28 @@ describe("editor shell", () => {
     expect(centeredViewport).not.toEqual(beforeCentering);
     expect(Number.isFinite(centeredViewport.x)).toBe(true);
     expect(Number.isFinite(centeredViewport.y)).toBe(true);
+  });
+
+  it("creates and switches visual views from the toolbar", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Switch visual view" }),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: /New view/i }));
+
+    expect(useDocumentStore.getState().doc.visual.viewOrder).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: "Switch visual view" }),
+    ).toHaveTextContent("Full model default");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Switch visual view" }),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Default view" }));
+
+    expect(useDocumentStore.getState().doc.visual.activeViewId).toBe(
+      "view-default",
+    );
   });
 
   it("prevents browser page zoom when Ctrl-wheel zooms the canvas", () => {
@@ -690,13 +716,15 @@ describe("editor shell", () => {
     expect(dataManagement.style.height).toBe(`${expectedH}px`);
 
     fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
-    const after = useDocumentStore.getState().doc;
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.nodesById["data-management"]!.w).toBe(expectedW);
     expect(after.nodesById["data-management"]!.h).toBe(expectedH);
   });
 
   it("uses one selected outline for small selected containers", () => {
     const doc = useDocumentStore.getState().doc;
+    const activeView =
+      doc.visual.viewsById[doc.visual.activeViewId]!;
     useDocumentStore.setState({
       doc: {
         ...doc,
@@ -705,6 +733,22 @@ describe("editor shell", () => {
           customer: {
             ...doc.nodesById.customer!,
             h: 32,
+          },
+        },
+        visual: {
+          ...doc.visual,
+          viewsById: {
+            ...doc.visual.viewsById,
+            [doc.visual.activeViewId]: {
+              ...activeView,
+              nodeStatesById: {
+                ...activeView.nodeStatesById,
+                customer: {
+                  ...activeView.nodeStatesById.customer,
+                  h: 32,
+                },
+              },
+            },
           },
         },
       },

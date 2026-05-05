@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { applyImportedDocument } from "../importDocument";
 import {
   addChild,
+  createVisualView,
   deleteNodes,
+  moveNodes,
   reparentNode,
   resizeNode,
 } from "../../domain/commands/operations";
@@ -18,6 +20,7 @@ import {
   type CapabilityDocument,
 } from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "./documentStore";
 
 const SCOPED_RELAYOUT_CASES: Array<[string, () => Transaction]> = [
@@ -50,7 +53,7 @@ describe("document store layout settings", () => {
     await useDocumentStore
       .getState()
       .updateSettings({ layoutMode: "uniform" }, { autoLayout: true });
-    const doc = useDocumentStore.getState().doc;
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
 
     expect(doc.settings.layoutMode).toBe("uniform");
     expect(doc.layout.mode).toBe("uniform");
@@ -62,19 +65,22 @@ describe("document store layout settings", () => {
 
   it("records forced auto layout as an undoable history entry", async () => {
     const ids = Object.keys(useDocumentStore.getState().doc.nodesById);
-    const before = geometrySnapshot(useDocumentStore.getState().doc, ids);
+    const before = geometrySnapshot(
+      resolveVisualDocument(useDocumentStore.getState().doc),
+      ids,
+    );
 
     await useDocumentStore.getState().autoLayout(true);
 
     expect(useDocumentStore.getState().past.at(-1)?.label).toBe("Auto layout");
-    expect(geometrySnapshot(useDocumentStore.getState().doc, ids)).not.toEqual(
-      before,
-    );
+    expect(
+      geometrySnapshot(resolveVisualDocument(useDocumentStore.getState().doc), ids),
+    ).not.toEqual(before);
 
     useDocumentStore.getState().undo();
-    expect(geometrySnapshot(useDocumentStore.getState().doc, ids)).toEqual(
-      before,
-    );
+    expect(
+      geometrySnapshot(resolveVisualDocument(useDocumentStore.getState().doc), ids),
+    ).toEqual(before);
   });
 
   it("re-runs incremental layout for the parent after addChild so the new child is contained", async () => {
@@ -167,13 +173,52 @@ describe("document store layout settings", () => {
       "Repair containment",
     );
     expect(
-      findParentContainmentViolations(useDocumentStore.getState().doc),
+      findParentContainmentViolations(
+        resolveVisualDocument(useDocumentStore.getState().doc),
+      ),
     ).toEqual([]);
 
     useDocumentStore.getState().undo();
     expect(
-      findParentContainmentViolations(useDocumentStore.getState().doc),
+      findParentContainmentViolations(
+        resolveVisualDocument(useDocumentStore.getState().doc),
+      ),
     ).toEqual(["root->child"]);
+  });
+
+  it("switches active views without adding undo history", () => {
+    useDocumentStore.getState().execute(createVisualView({ name: "Second view" }));
+    const stateAfterCreate = useDocumentStore.getState();
+    const firstViewId = stateAfterCreate.doc.visual.defaultViewId;
+    const secondViewId = stateAfterCreate.doc.visual.activeViewId;
+    const historyLength = stateAfterCreate.past.length;
+
+    useDocumentStore.getState().setActiveVisualView(firstViewId);
+
+    expect(useDocumentStore.getState().doc.visual.activeViewId).toBe(firstViewId);
+    expect(useDocumentStore.getState().past).toHaveLength(historyLength);
+
+    useDocumentStore.getState().undo();
+    expect(useDocumentStore.getState().doc.visual.viewsById[secondViewId]).toBeUndefined();
+  });
+
+  it("keeps movement isolated to the active visual view", () => {
+    const firstViewId = useDocumentStore.getState().doc.visual.activeViewId;
+    const beforeFirstState =
+      useDocumentStore.getState().doc.visual.viewsById[firstViewId]!
+        .nodeStatesById.servicing?.x;
+    useDocumentStore.getState().execute(createVisualView({ name: "Second view" }));
+    const secondViewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore.getState().execute(moveNodes(["servicing"], 80, 0));
+
+    const afterDoc = useDocumentStore.getState().doc;
+    const movedSecond =
+      afterDoc.visual.viewsById[secondViewId]!.nodeStatesById.servicing?.x;
+    const unchangedFirst =
+      afterDoc.visual.viewsById[firstViewId]!.nodeStatesById.servicing?.x;
+    expect(movedSecond).toBeGreaterThan(beforeFirstState ?? Number.NEGATIVE_INFINITY);
+    expect(unchangedFirst).toBe(beforeFirstState);
   });
 });
 

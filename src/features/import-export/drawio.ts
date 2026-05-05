@@ -1,24 +1,26 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
 import { isNodeOnCanvas, type CapabilityDocument } from '../../domain/document/types';
+import { resolveVisualDocument } from '../../domain/visual/workspace';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function drawioExport(doc: CapabilityDocument): ExportResult {
+  const visualDoc = resolveVisualDocument(doc);
   const visibleNodeIds = new Set(
-    sortedNodes(doc)
+    sortedNodes(visualDoc)
       .filter(isNodeOnCanvas)
       .map((node) => node.id),
   );
   const cells = [
     '<mxCell id="0"/>',
     '<mxCell id="1" parent="0"/>',
-    ...sortedNodes(doc).filter(isNodeOnCanvas).map((node) => {
-      const fill = resolveNodeFill(node, doc.heatmap);
+    ...sortedNodes(visualDoc).filter(isNodeOnCanvas).map((node) => {
+      const fill = resolveNodeFill(node, visualDoc.heatmap);
       const parentNode =
         node.parentId && visibleNodeIds.has(node.parentId)
-          ? doc.nodesById[node.parentId]
+          ? visualDoc.nodesById[node.parentId]
           : null;
       const parent = parentNode?.id ?? '1';
       const x = parentNode ? node.x - parentNode.x : node.x;
@@ -27,10 +29,10 @@ export function drawioExport(doc: CapabilityDocument): ExportResult {
       return `<mxCell id="${escapeXml(node.id)}" value="${escapeXml(node.label)}" style="${style}" vertex="1" parent="${escapeXml(parent)}"><mxGeometry x="${x}" y="${y}" width="${node.w}" height="${node.h}" as="geometry"/></mxCell>`;
     })
   ];
-  const xml = `<mxfile host="Capability Canvas"><diagram name="${escapeXml(doc.title)}"><mxGraphModel><root>${cells.join('')}</root></mxGraphModel></diagram></mxfile>`;
+  const xml = `<mxfile host="Capability Canvas"><diagram name="${escapeXml(visualDoc.title)}"><mxGraphModel><root>${cells.join('')}</root></mxGraphModel></diagram></mxfile>`;
   return {
     format: 'drawio',
-    filename: `${safeFileBaseName(doc.title)}.drawio`,
+    filename: `${safeFileBaseName(visualDoc.title)}.drawio`,
     mimeType: 'application/xml',
     data: xml,
     diagnostics: []

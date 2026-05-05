@@ -1,8 +1,9 @@
 export const DOCUMENT_SCHEMA = "capability-canvas.document";
-export const DOCUMENT_VERSION = "1.0";
+export const DOCUMENT_VERSION = "1.1";
 export const ROOT_PARENT_ID = "__root__";
 
 export type NodeId = string;
+export type VisualViewId = string;
 export type NodeType = "root" | "parent" | "leaf" | "text";
 export type CapabilityColor =
   | "mint"
@@ -90,6 +91,73 @@ export interface HeatmapState {
   fallbackColor: CapabilityColor;
 }
 
+export type LegendPosition =
+  | "top-right"
+  | "bottom-right"
+  | "bottom-left"
+  | "top-left"
+  | "custom";
+
+export interface VisualNodeState {
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  isOnCanvas?: boolean;
+  isCollapsed?: boolean;
+  labelOverride?: string;
+  colorOverride?: CapabilityColor;
+  textStyleOverride?: CapabilityNode["textStyle"];
+  lockedForView?: boolean;
+  isManualPositioningEnabled?: boolean;
+  [key: string]: unknown;
+}
+
+export interface VisualViewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface VisualView {
+  id: VisualViewId;
+  name: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+  templateId?: string;
+  nodeStatesById: Record<NodeId, VisualNodeState>;
+  viewport?: VisualViewport;
+  layout: {
+    mode: LayoutMode;
+    boundingBox?: Bounds;
+    preservePositions: boolean;
+  };
+  heatmap: {
+    enabled: boolean;
+    activeLensId?: string;
+    showLegend: boolean;
+    legendPosition?: LegendPosition;
+    legendBounds?: Bounds;
+  };
+  export: {
+    pagePreset?: string;
+    showTitle?: boolean;
+    showSubtitle?: boolean;
+    showFooter?: boolean;
+    includeGrid?: boolean;
+  };
+  [key: string]: unknown;
+}
+
+export interface VisualWorkspace {
+  activeViewId: VisualViewId;
+  defaultViewId: VisualViewId;
+  viewOrder: VisualViewId[];
+  viewsById: Record<VisualViewId, VisualView>;
+  [key: string]: unknown;
+}
+
 export interface CapabilityDocument {
   schema: typeof DOCUMENT_SCHEMA;
   version: typeof DOCUMENT_VERSION;
@@ -98,6 +166,7 @@ export interface CapabilityDocument {
   settings: DiagramSettings;
   layout: LayoutMetadata;
   heatmap: HeatmapState;
+  visual: VisualWorkspace;
   timestamp: number;
   title: string;
 }
@@ -109,6 +178,7 @@ export interface WireDocument {
   settings: DiagramSettings;
   layout: LayoutMetadata;
   heatmap: HeatmapState;
+  visual?: VisualWorkspace;
   timestamp: number;
   title?: string;
 }

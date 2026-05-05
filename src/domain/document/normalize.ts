@@ -1,5 +1,6 @@
 import { createEmptyDocument } from './defaults';
 import { ROOT_PARENT_ID, type CapabilityDocument, type CapabilityNode, type NodeId } from './types';
+import { cloneVisualWorkspace } from '../visual/workspace';
 
 export function normalizeNodes(nodes: CapabilityNode[], title = 'Untitled capability model'): CapabilityDocument {
   const doc = createEmptyDocument(title);
@@ -27,7 +28,8 @@ export function cloneDocument(doc: CapabilityDocument): CapabilityDocument {
     ),
     settings: { ...doc.settings },
     layout: { ...doc.layout, boundingBox: { ...doc.layout.boundingBox } },
-    heatmap: { ...doc.heatmap }
+    heatmap: { ...doc.heatmap },
+    visual: cloneVisualWorkspace(doc.visual)
   };
 }
 
@@ -69,4 +71,3 @@ export function sortedNodes(doc: CapabilityDocument): CapabilityNode[] {
   }
   return out;
 }
-

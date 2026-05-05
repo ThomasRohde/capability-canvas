@@ -12,6 +12,9 @@ import {
   type CapabilityDocument,
   type CapabilityNode,
   type NodeId,
+  type VisualNodeState,
+  type VisualView,
+  type VisualViewId,
 } from "../document/types";
 import { ensureParentContainment } from "../layout/containment";
 import { computeDocumentBounds } from "../layout/engine";
@@ -23,6 +26,19 @@ import {
   validateDocument,
 } from "../validation/validate";
 import { error, type Diagnostic } from "../validation/diagnostics";
+import {
+  createViewFromTemplate,
+  type VisualTemplateId,
+} from "../visual/templates";
+import {
+  activeVisualView,
+  cloneVisualView,
+  cloneVisualWorkspace,
+  createVisualViewFromDocument,
+  materializeActiveViewMetadata,
+  reconcileVisualWorkspaceWithNodes,
+  resolveVisualDocument,
+} from "../visual/workspace";
 import {
   type AlignDirection,
   type Command,
@@ -69,15 +85,16 @@ export function runTransaction(
   if (!validation.valid) {
     return { doc, diagnostics: [...diagnostics, ...validation.diagnostics] };
   }
+  const reconciled = reconcileVisualWorkspaceWithNodes(doc, contained);
   return {
-    doc: {
-      ...contained,
+    doc: materializeActiveViewMetadata({
+      ...reconciled,
       timestamp: now(),
       layout: {
-        ...contained.layout,
-        boundingBox: computeDocumentBounds(contained),
+        ...reconciled.layout,
+        boundingBox: computeDocumentBounds(reconciled),
       },
-    },
+    }),
     diagnostics,
   };
 }
@@ -387,6 +404,253 @@ export function updateHeatmapSettings(
     command("update-heatmap-settings", { patch }, (doc) =>
       ok({ ...doc, heatmap: { ...doc.heatmap, ...patch } }),
     ),
+  ]);
+}
+
+export function createVisualView(args: {
+  name?: string;
+  templateId?: VisualTemplateId;
+  rootId?: NodeId;
+} = {}): Transaction {
+  return transaction("Create visual view", [
+    command("create-visual-view", args, (doc) => {
+      const next = cloneDocument(doc);
+      const id = makeId("view");
+      const view = args.templateId
+        ? createViewFromTemplate(doc, {
+            id,
+            templateId: args.templateId,
+            name: args.name,
+            context: { rootId: args.rootId },
+          })
+        : createVisualViewFromDocument(doc, {
+            id,
+            name: args.name?.trim() || "New view",
+            templateId: "full-model-default@1",
+          });
+      const visual = cloneVisualWorkspace(next.visual);
+      visual.viewsById[id] = view;
+      visual.viewOrder.push(id);
+      visual.activeViewId = id;
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
+}
+
+export function duplicateVisualView(viewId?: VisualViewId): Transaction {
+  return transaction("Duplicate visual view", [
+    command("duplicate-visual-view", { viewId }, (doc) => {
+      const sourceId = viewId ?? doc.visual.activeViewId;
+      const source = doc.visual.viewsById[sourceId];
+      if (!source) return fail(doc, "missing-view", "Select a valid view to duplicate.");
+      const next = cloneDocument(doc);
+      const visual = cloneVisualWorkspace(next.visual);
+      const id = makeId("view");
+      visual.viewsById[id] = {
+        ...cloneVisualView(source),
+        id,
+        name: `${source.name} copy`,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      const sourceIndex = visual.viewOrder.indexOf(sourceId);
+      visual.viewOrder =
+        sourceIndex >= 0
+          ? [
+              ...visual.viewOrder.slice(0, sourceIndex + 1),
+              id,
+              ...visual.viewOrder.slice(sourceIndex + 1),
+            ]
+          : [...visual.viewOrder, id];
+      visual.activeViewId = id;
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
+}
+
+export function renameVisualView(
+  viewId: VisualViewId,
+  name: string,
+): Transaction {
+  return transaction("Rename visual view", [
+    command("rename-visual-view", { viewId, name }, (doc) =>
+      updateView(doc, viewId, {
+        name: name.trim() || "Untitled view",
+        updatedAt: now(),
+      }),
+    ),
+  ]);
+}
+
+export function deleteVisualView(viewId: VisualViewId): Transaction {
+  return transaction("Delete visual view", [
+    command("delete-visual-view", { viewId }, (doc) => {
+      if (doc.visual.viewOrder.length <= 1)
+        return fail(doc, "delete-last-view", "The last visual view cannot be deleted.");
+      if (!doc.visual.viewsById[viewId])
+        return fail(doc, "missing-view", "Select a valid view to delete.");
+      const next = cloneDocument(doc);
+      const visual = cloneVisualWorkspace(next.visual);
+      delete visual.viewsById[viewId];
+      visual.viewOrder = visual.viewOrder.filter((id) => id !== viewId);
+      if (visual.defaultViewId === viewId) visual.defaultViewId = visual.viewOrder[0]!;
+      if (visual.activeViewId === viewId) visual.activeViewId = visual.defaultViewId;
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
+}
+
+export function reorderVisualViews(viewOrder: VisualViewId[]): Transaction {
+  return transaction("Reorder visual views", [
+    command("reorder-visual-views", { viewOrder }, (doc) => {
+      const existing = new Set(doc.visual.viewOrder);
+      const requested = viewOrder.filter((id) => existing.has(id));
+      if (requested.length !== doc.visual.viewOrder.length)
+        return fail(doc, "invalid-view-order", "View order must include every view exactly once.");
+      const next = cloneDocument(doc);
+      next.visual = { ...cloneVisualWorkspace(next.visual), viewOrder: requested };
+      return ok(next);
+    }),
+  ]);
+}
+
+export function updateVisualView(
+  viewId: VisualViewId,
+  patch: Partial<VisualView>,
+): Transaction {
+  return transaction("Update visual view", [
+    command("update-visual-view", { viewId, patch }, (doc) =>
+      updateView(doc, viewId, { ...patch, updatedAt: now() }),
+    ),
+  ]);
+}
+
+export function updateVisualNodeState(
+  viewId: VisualViewId,
+  nodeId: NodeId,
+  patch: VisualNodeState,
+): Transaction {
+  return transaction("Update visual node state", [
+    command("update-visual-node-state", { viewId, nodeId, patch }, (doc) => {
+      if (!doc.nodesById[nodeId])
+        return fail(doc, "missing-node", "The selected capability no longer exists.");
+      const view = doc.visual.viewsById[viewId];
+      if (!view) return fail(doc, "missing-view", "Select a valid view.");
+      const next = cloneDocument(doc);
+      const visual = cloneVisualWorkspace(next.visual);
+      const nextView = visual.viewsById[viewId]!;
+      nextView.nodeStatesById[nodeId] = {
+        ...(nextView.nodeStatesById[nodeId] ?? {}),
+        ...patch,
+      };
+      nextView.layout = {
+        ...nextView.layout,
+        boundingBox: computeDocumentBounds(resolveVisualDocument(next, viewId)),
+      };
+      nextView.updatedAt = now();
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
+}
+
+export function resetVisualView(viewId: VisualViewId): Transaction {
+  return transaction("Reset visual view", [
+    command("reset-visual-view", { viewId }, (doc) => {
+      if (!doc.visual.viewsById[viewId])
+        return fail(doc, "missing-view", "Select a valid view.");
+      const next = cloneDocument(doc);
+      const visual = cloneVisualWorkspace(next.visual);
+      const previous = visual.viewsById[viewId]!;
+      visual.viewsById[viewId] = {
+        ...createVisualViewFromDocument(doc, {
+          id: viewId,
+          name: previous.name,
+          description: previous.description,
+          templateId: "full-model-default@1",
+        }),
+        createdAt: previous.createdAt,
+        updatedAt: now(),
+      };
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
+}
+
+export function resetVisualViewFromTemplate(
+  viewId: VisualViewId,
+  templateId: VisualTemplateId,
+  rootId?: NodeId,
+): Transaction {
+  return transaction("Reset visual view from template", [
+    command("reset-visual-view-from-template", { viewId, templateId, rootId }, (doc) => {
+      const existing = doc.visual.viewsById[viewId];
+      if (!existing) return fail(doc, "missing-view", "Select a valid view.");
+      const next = cloneDocument(doc);
+      const visual = cloneVisualWorkspace(next.visual);
+      visual.viewsById[viewId] = {
+        ...createViewFromTemplate(doc, {
+          id: viewId,
+          templateId,
+          name: existing.name,
+          context: { rootId },
+        }),
+        createdAt: existing.createdAt,
+        updatedAt: now(),
+      };
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
+}
+
+export function setDefaultVisualView(viewId: VisualViewId): Transaction {
+  return transaction("Set default visual view", [
+    command("set-default-visual-view", { viewId }, (doc) => {
+      if (!doc.visual.viewsById[viewId])
+        return fail(doc, "missing-view", "Select a valid view.");
+      const next = cloneDocument(doc);
+      next.visual = { ...cloneVisualWorkspace(next.visual), defaultViewId: viewId };
+      return ok(next);
+    }),
+  ]);
+}
+
+export function updateActiveViewHeatmapSettings(
+  patch: Partial<VisualView["heatmap"]>,
+): Transaction {
+  return transaction("Update view heatmap settings", [
+    command("update-active-view-heatmap-settings", { patch }, (doc) => {
+      const view = activeVisualView(doc);
+      return updateView(doc, view.id, {
+        heatmap: {
+          ...view.heatmap,
+          ...patch,
+        },
+        updatedAt: now(),
+      });
+    }),
+  ]);
+}
+
+export function updateActiveViewLayoutSettings(
+  patch: Partial<VisualView["layout"]>,
+): Transaction {
+  return transaction("Update view layout settings", [
+    command("update-active-view-layout-settings", { patch }, (doc) => {
+      const view = activeVisualView(doc);
+      return updateView(doc, view.id, {
+        layout: {
+          ...view.layout,
+          ...patch,
+        },
+        updatedAt: now(),
+      });
+    }),
   ]);
 }
 
@@ -856,7 +1120,24 @@ export function setManualPositioning(
   nodeId: NodeId,
   enabled: boolean,
 ): Transaction {
-  return updateNode(nodeId, { isManualPositioningEnabled: enabled });
+  return transaction("Set manual positioning", [
+    command("set-manual-positioning", { nodeId, enabled }, (doc) => {
+      const node = doc.nodesById[nodeId];
+      if (!node)
+        return fail(
+          doc,
+          "missing-node",
+          "The selected capability no longer exists.",
+        );
+      const next = cloneDocument(doc);
+      next.nodesById[nodeId] = {
+        ...node,
+        isManualPositioningEnabled: enabled,
+        updatedAt: now(),
+      };
+      return ok(next);
+    }),
+  ]);
 }
 
 function command<TArgs>(
@@ -876,6 +1157,37 @@ function ok(doc: CapabilityDocument) {
 
 function fail(doc: CapabilityDocument, code: string, message: string) {
   return { doc, diagnostics: [error(code, message)] };
+}
+
+function updateView(
+  doc: CapabilityDocument,
+  viewId: VisualViewId,
+  patch: Partial<VisualView>,
+) {
+  if (!doc.visual.viewsById[viewId])
+    return fail(doc, "missing-view", "Select a valid view.");
+  const next = cloneDocument(doc);
+  const visual = cloneVisualWorkspace(next.visual);
+  visual.viewsById[viewId] = {
+    ...visual.viewsById[viewId]!,
+    ...patch,
+    nodeStatesById:
+      patch.nodeStatesById ?? visual.viewsById[viewId]!.nodeStatesById,
+    layout: {
+      ...visual.viewsById[viewId]!.layout,
+      ...(patch.layout ?? {}),
+    },
+    heatmap: {
+      ...visual.viewsById[viewId]!.heatmap,
+      ...(patch.heatmap ?? {}),
+    },
+    export: {
+      ...visual.viewsById[viewId]!.export,
+      ...(patch.export ?? {}),
+    },
+  };
+  next.visual = visual;
+  return ok(materializeActiveViewMetadata(next));
 }
 
 function updateOnly(
