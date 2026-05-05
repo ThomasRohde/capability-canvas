@@ -1,4 +1,8 @@
-import ELK, { type ElkNode } from "elkjs/lib/elk.bundled.js";
+import ELK, {
+  type ELK as ElkInstance,
+  type ElkNode,
+} from "elkjs/lib/elk-api.js";
+import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import {
   canvasChildrenOf,
   canvasRootChildren,
@@ -20,7 +24,12 @@ import {
 const ROOT_OFFSET = 24;
 const ROOT_GAP_Y = 32;
 
-const elk = new ELK({ algorithms: ["rectpacking"] });
+let elk: ElkInstance | undefined;
+
+function getElk() {
+  elk ??= new ELK({ algorithms: ["rectpacking"], workerUrl: elkWorkerUrl });
+  return elk;
+}
 
 interface MeasuredSubtree {
   id: NodeId;
@@ -796,6 +805,7 @@ async function packBoxes(
   };
 
   try {
+    const elk = getElk();
     const packed = await elk.layout(graph);
     const byId = new Map(boxes.map((box) => [box.id, box]));
     const positioned = (packed.children ?? []).flatMap((child) => {

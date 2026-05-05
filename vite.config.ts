@@ -4,8 +4,55 @@ import { VitePWA } from "vite-plugin-pwa";
 
 const base = process.env.GITHUB_PAGES === "true" ? "/capability-canvas/" : "/";
 
+function vendorChunk(id: string): string | undefined {
+  const normalizedId = id.replace(/\\/g, "/");
+  if (!normalizedId.includes("/node_modules/")) return undefined;
+
+  const packagePath = normalizedId.split("/node_modules/").pop() ?? "";
+  if (
+    packagePath.startsWith("react/") ||
+    packagePath.startsWith("react-dom/") ||
+    packagePath.startsWith("scheduler/")
+  ) {
+    return "react-vendor";
+  }
+
+  if (packagePath.startsWith("elkjs/")) return "layout-vendor";
+
+  if (packagePath.startsWith("pptxgenjs/")) return "export-pptx-vendor";
+  if (
+    packagePath.startsWith("jszip/") ||
+    packagePath.startsWith("fflate/") ||
+    packagePath.startsWith("cfb/") ||
+    packagePath.startsWith("ssf/")
+  ) {
+    return "export-archive-vendor";
+  }
+
+  if (packagePath.startsWith("lucide-react/")) return "icons-vendor";
+  if (
+    packagePath.startsWith("@headless-tree/") ||
+    packagePath.startsWith("zustand/")
+  ) {
+    return "ui-vendor";
+  }
+
+  if (packagePath.startsWith("idb/") || packagePath.startsWith("zod/")) {
+    return "data-vendor";
+  }
+
+  return "vendor";
+}
+
 export default defineConfig({
   base,
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: vendorChunk,
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

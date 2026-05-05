@@ -1,4 +1,20 @@
 import '@testing-library/jest-dom/vitest';
+import * as elkWorkerModule from 'elkjs/lib/elk-worker.js';
+
+const ElkWorker = (
+  elkWorkerModule as unknown as { Worker: typeof Worker }
+).Worker;
+
+if (typeof globalThis.Worker === 'undefined') {
+  Object.defineProperty(globalThis, 'Worker', {
+    configurable: true,
+    value: ElkWorker,
+  });
+  Object.defineProperty(window, 'Worker', {
+    configurable: true,
+    value: ElkWorker,
+  });
+}
 
 if (!hasUsableLocalStorage()) {
   const storage = new Map<string, string>();
