@@ -31,7 +31,7 @@ const FORMATS: Array<{ format: ExportFormat; tab: string; desc: string }> = [
   },
   {
     format: "svg",
-    tab: "Visual",
+    tab: "SVG",
     desc: "Vector visual export for documents and diagrams.",
   },
   {
