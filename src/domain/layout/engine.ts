@@ -706,6 +706,7 @@ async function packBoxes(
   }
 
   const target = targetWidthFor(boxes, gapX, gapY, mode);
+  if (mode === "adaptive") return adaptivePackRows(boxes, gapX, gapY, target);
   if (mode === "uniform")
     return fallbackPackRows(boxes, gapX, gapY, target, false);
 
@@ -743,15 +744,9 @@ async function packBoxes(
     });
     if (positioned.length !== boxes.length)
       throw new Error("ELK did not return positions for every child.");
-    return normalizePackedRows(positioned, gapX, gapY, mode === "adaptive");
+    return normalizePackedRows(positioned, gapX, gapY, false);
   } catch (error) {
-    const fallback = fallbackPackRows(
-      boxes,
-      gapX,
-      gapY,
-      target,
-      mode === "adaptive",
-    );
+    const fallback = fallbackPackRows(boxes, gapX, gapY, target, false);
     return {
       ...fallback,
       diagnostics: [
@@ -762,6 +757,138 @@ async function packBoxes(
       ],
     };
   }
+}
+
+function adaptivePackRows(
+  boxes: Box[],
+  gapX: number,
+  gapY: number,
+  targetWidth: number,
+): PackedBoxes {
+  const rows =
+    boxes.length <= 16
+      ? bestAdaptiveRows(boxes, gapX, gapY, targetWidth)
+      : greedyAdaptiveRows(boxes, gapX, targetWidth);
+  return packRows(rows, gapX, gapY, true);
+}
+
+function bestAdaptiveRows(
+  boxes: Box[],
+  gapX: number,
+  gapY: number,
+  targetWidth: number,
+): Box[][] {
+  let bestRows: Box[][] | null = null;
+  let bestCost = Number.POSITIVE_INFINITY;
+  const partitionCount = 1 << Math.max(0, boxes.length - 1);
+
+  for (let mask = 0; mask < partitionCount; mask += 1) {
+    const rows = rowsForPartitionMask(boxes, mask);
+    const cost = adaptiveRowCost(rows, gapX, gapY, targetWidth);
+    if (cost < bestCost) {
+      bestCost = cost;
+      bestRows = rows;
+    }
+  }
+
+  return bestRows ?? [boxes];
+}
+
+function rowsForPartitionMask(boxes: Box[], mask: number): Box[][] {
+  const rows: Box[][] = [];
+  let row: Box[] = [boxes[0]!];
+
+  for (let index = 1; index < boxes.length; index += 1) {
+    const startsNewRow = (mask & (1 << (index - 1))) !== 0;
+    if (startsNewRow) {
+      rows.push(row);
+      row = [];
+    }
+    row.push(boxes[index]!);
+  }
+
+  rows.push(row);
+  return rows;
+}
+
+function adaptiveRowCost(
+  rows: Box[][],
+  gapX: number,
+  gapY: number,
+  targetWidth: number,
+): number {
+  const rowWidths = rows.map((row) => rowWidth(row, gapX));
+  const width = Math.max(...rowWidths);
+  const height =
+    rows.reduce(
+      (sum, row) => sum + Math.max(...row.map((box) => box.h)),
+      0,
+    ) + Math.max(0, rows.length - 1) * gapY;
+  const area = rows.flat().reduce((sum, box) => sum + box.w * box.h, 0);
+  const efficiency = area / Math.max(1, width * height);
+  const balancedWidths = rowWidthsForBalance(rows, rowWidths);
+  const rowBalance = coefficientOfVariation(balancedWidths);
+  const aspectRatio = width / Math.max(1, height);
+  const targetAspect = 2.1;
+  const aspectPenalty = Math.abs(Math.log(aspectRatio / targetAspect));
+  const targetPenalty = Math.abs(width - targetWidth) / Math.max(1, targetWidth);
+  const singleChildRowPenalty = rows.reduce((sum, row, index) => {
+    if (row.length !== 1 || rows.length === 1) return sum;
+    return sum + (index === rows.length - 1 ? 0.08 : 0.2);
+  }, 0);
+
+  return (
+    (1 - efficiency) * 1.2 +
+    rowBalance * 0.45 +
+    aspectPenalty * 0.16 +
+    targetPenalty * 0.12 +
+    singleChildRowPenalty +
+    rows.length * 0.01
+  );
+}
+
+function rowWidthsForBalance(rows: Box[][], rowWidths: number[]): number[] {
+  if (rows.length <= 2) return rowWidths;
+  const finalRow = rows[rows.length - 1]!;
+  const previousMaxLength = Math.max(
+    ...rows.slice(0, -1).map((row) => row.length),
+  );
+  if (finalRow.length < previousMaxLength) return rowWidths.slice(0, -1);
+  return rowWidths;
+}
+
+function coefficientOfVariation(values: number[]): number {
+  if (values.length <= 1) return 0;
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  if (mean === 0) return 0;
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
+    values.length;
+  return Math.sqrt(variance) / mean;
+}
+
+function greedyAdaptiveRows(
+  boxes: Box[],
+  gapX: number,
+  targetWidth: number,
+): Box[][] {
+  const rows: Box[][] = [];
+  let row: Box[] = [];
+  let width = 0;
+
+  for (const box of boxes) {
+    const nextWidth = row.length === 0 ? box.w : width + gapX + box.w;
+    if (row.length > 0 && nextWidth > targetWidth) {
+      rows.push(row);
+      row = [];
+      width = 0;
+    }
+    row.push(box);
+    width = row.length === 1 ? box.w : width + gapX + box.w;
+  }
+
+  if (row.length > 0) rows.push(row);
+  return rows;
 }
 
 function normalizePackedRows(

@@ -17,6 +17,7 @@ import {
   computeDocumentBounds,
   layoutDocument,
 } from "./engine";
+import { evaluateAdaptiveLayoutQuality } from "./layoutQuality";
 
 describe("layout engine", () => {
   it("does not patch locked nodes, even when force bypasses document position preservation", async () => {
@@ -108,25 +109,28 @@ describe("layout engine", () => {
     ).toMatchObject({ x: 271, y: 92 });
   });
 
-  it("ignores hidden canvas nodes in layout patches and document bounds", async () => {
-    const doc = twoChildDocument();
-    doc.nodesById["child-b"] = {
-      ...doc.nodesById["child-b"]!,
-      isOnCanvas: false,
-      x: 2000,
-      y: 2000,
-    };
+  it.each(["uniform", "adaptive"] as const)(
+    "ignores hidden canvas nodes in %s layout patches and document bounds",
+    async (mode) => {
+      const doc = twoChildDocument();
+      doc.nodesById["child-b"] = {
+        ...doc.nodesById["child-b"]!,
+        isOnCanvas: false,
+        x: 2000,
+        y: 2000,
+      };
 
-    const result = await layoutDocument({ doc, force: true, mode: "uniform" });
-    const after = applyLayoutPatches(doc, result.patches);
-    const bounds = computeDocumentBounds(after);
+      const result = await layoutDocument({ doc, force: true, mode });
+      const after = applyLayoutPatches(doc, result.patches);
+      const bounds = computeDocumentBounds(after);
 
-    expect(
-      result.patches.find((patch) => patch.id === "child-b"),
-    ).toBeUndefined();
-    expect(bounds.x + bounds.w).toBeLessThan(1000);
-    expect(bounds.y + bounds.h).toBeLessThan(1000);
-  });
+      expect(
+        result.patches.find((patch) => patch.id === "child-b"),
+      ).toBeUndefined();
+      expect(bounds.x + bounds.w).toBeLessThan(1000);
+      expect(bounds.y + bounds.h).toBeLessThan(1000);
+    },
+  );
 
   it("keeps configured edge padding when grid is enabled", async () => {
     const doc = twoChildDocument();
@@ -183,20 +187,15 @@ describe("layout engine", () => {
     expect(root.y + root.h - childBottom).toBe(8);
   });
 
-  it("centers shorter rows in adaptive layout", async () => {
+  it("centers visual rows in adaptive layout", async () => {
     const after = await applyAutoLayoutCycle(createSampleDocument(), "adaptive");
+    const quality = evaluateAdaptiveLayoutQuality(after);
 
     expect(
-      horizontalCenterDelta(
-        after.nodesById["retail-banking"]!,
-        after.nodesById.operations!,
-      ),
+      quality.metricsByParentId["retail-banking"]!.maxRowCenterError,
     ).toBeLessThanOrEqual(1);
     expect(
-      horizontalCenterDelta(
-        after.nodesById.risk!,
-        after.nodesById["operational-risk"]!,
-      ),
+      quality.metricsByParentId.risk!.maxRowCenterError,
     ).toBeLessThanOrEqual(1);
   });
 
@@ -576,13 +575,6 @@ function geometryFor(doc: CapabilityDocument) {
   ).map((node) => [node.id, { x: node.x, y: node.y, w: node.w, h: node.h }]);
   entries.sort(([left], [right]) => left.localeCompare(right));
   return Object.fromEntries(entries) as Geometry;
-}
-
-function horizontalCenterDelta(
-  parent: { x: number; w: number },
-  child: { x: number; w: number },
-) {
-  return Math.abs(child.x + child.w / 2 - (parent.x + parent.w / 2));
 }
 
 function horizontalChildPadding(doc: CapabilityDocument, parentId: string) {
