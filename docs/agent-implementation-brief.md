@@ -29,7 +29,7 @@ The implementation should be shaped by the domain contracts, not by framework-sp
 - Maintain valid hierarchy invariants at all times.
 - Preserve manual and locked layouts through save/load.
 - Keep heatmap data and visual exports consistent.
-- Support read-only URL/viewer workflows.
+- Support file-based import/export workflows; do not embed full documents in viewer URLs.
 - Keep the app usable with roughly 1,000 nodes.
 - Provide undo/redo for model-changing operations.
 

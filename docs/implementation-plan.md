@@ -6,11 +6,11 @@ Capability Canvas is a greenfield local-first browser app for hierarchical capab
 
 **Why we are building it.** The product brief calls out a specific gap: existing diagramming tools are edge-first (graph editors) or freeform (Visio/draw.io), but capability modeling is *containment-first* — parents visually contain children, hierarchy is the primary semantic, and users alternate between trusting auto-layout and asserting manual editorial control. The product must keep hierarchy invariants valid at all times, preserve manual/locked layouts across save/load, and remain usable at ~1,000 nodes. It must work fully offline.
 
-**Hard constraints (from `docs/agent-implementation-brief.md`).** Local-first; versioned JSON round-trip; hierarchy invariants always valid; manual + locked layouts preserved through save/load; heatmap visual fidelity across all export targets; URL-based read-only viewer; ~1,000-node responsiveness; undo/redo for every model-changing op.
+**Hard constraints (from `docs/agent-implementation-brief.md`).** Local-first; versioned JSON round-trip; hierarchy invariants always valid; manual + locked layouts preserved through save/load; heatmap visual fidelity across all export targets; file-based import/export sharing; ~1,000-node responsiveness; undo/redo for every model-changing op.
 
 **Scope decisions (confirmed).** v1 includes text labels, draw.io export, ArchiMate export, and File System Access API. All required exports land before ship: JSON, SVG, HTML, PowerPoint, draw.io, ArchiMate. Stack follows `docs/tech-stack.md` defaults: TypeScript strict + React + Vite + Tailwind + Zustand + Zod + idb + vite-plugin-pwa + Vitest + Testing Library + Playwright + pptxgenjs + Lucide.
 
-**Intended outcome.** A static-deployed PWA that an enterprise architect can open offline, build a 3-level capability hierarchy in minutes, lock parts of it, share by JSON-URL, and export to PowerPoint with visual fidelity — without losing any manual placement to an automatic relayout.
+**Intended outcome.** A static-deployed PWA that an enterprise architect can open offline, build a 3-level capability hierarchy in minutes, lock parts of it, share by JSON export, and export to PowerPoint with visual fidelity — without losing any manual placement to an automatic relayout.
 
 ---
 
@@ -35,7 +35,7 @@ features/      React-aware feature shells
   outline/     hierarchy tree navigator
   heatmap/     palette, legend, CSV import, value resolver
   import-export/ adapters: JSON, SVG, HTML, PPTX, drawio, archimate
-  viewer/      read-only URL-loaded route
+  viewer/      read-only route
 
 shared/        components, hooks, design tokens, utils
 app/           routes, shell, providers
@@ -223,7 +223,7 @@ The 10-step sequence in `docs/agent-implementation-brief.md` is followed, groupe
 
 ### M7 — Heatmap + viewer mode + CSV import + PowerPoint
 
-**Scope.** Heatmap palette presets + custom palette editing + legend + per-node value editing in inspector. Heatmap toggle in global settings. CSV import (id-keyed or label-keyed, configurable column mapping). Viewer route loads JSON from URL param (`?doc=<base64>` or `?src=<url>`), renders read-only with pan/zoom/fit/heatmap, offers "Open in editor" affordance. PowerPoint export via `pptxgenjs` — slide-per-root or single-slide modes, native shapes (not screenshots). **`resolveNodeFill` factored out** as the single fill source for editor + SVG + HTML + PPTX + viewer.
+**Scope.** Heatmap palette presets + custom palette editing + legend + per-node value editing in inspector. Heatmap toggle in global settings. CSV import (id-keyed or label-keyed, configurable column mapping). Viewer route renders read-only with pan/zoom/fit/heatmap. PowerPoint export via `pptxgenjs` — slide-per-root or single-slide modes, native shapes (not screenshots). **`resolveNodeFill` factored out** as the single fill source for editor + SVG + HTML + PPTX + viewer.
 
 **Key files.**
 - `src/features/heatmap/palette.ts`, `legend.tsx`, `csvImport.ts`, `valueResolver.ts`.

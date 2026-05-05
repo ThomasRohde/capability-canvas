@@ -49,7 +49,7 @@ Prefer layered ownership:
    - Should consume derived view models rather than raw mutable domain state.
 
 6. **Adapters**
-   - Own import/export formats, CSV heatmap import, PowerPoint generation, HTML/SVG generation, and URL viewer loading.
+   - Own import/export formats, CSV heatmap import, PowerPoint generation, and HTML/SVG generation.
 
 ## Rendering Recommendation
 

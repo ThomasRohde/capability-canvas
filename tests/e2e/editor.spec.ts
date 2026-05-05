@@ -7,7 +7,7 @@ test('loads editor shell and opens export drawer', async ({ page }) => {
   await expect(page.getByTestId('canvas')).toBeVisible();
   await page.getByRole('button', { name: /export/i }).first().click();
   await expect(page.getByRole('complementary', { name: 'Export' })).toBeVisible();
-  await expect(page.getByText('Viewer link')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export file' })).toBeVisible();
 });
 
 test('supports panel rail, padding controls and outline actions', async ({ page }) => {

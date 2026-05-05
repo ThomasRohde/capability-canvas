@@ -12,9 +12,9 @@ Capability Canvas is a browser-based editor for hierarchical capability models. 
 - **Hierarchy-aware canvas**: roots, parent capabilities, leaves, and text labels are modeled as structured data rather than generic shapes.
 - **Deterministic auto layout**: uniform, flow, and adaptive modes arrange nested capabilities while preserving locked and manually positioned areas.
 - **Manual editing tools**: drag, resize, reparent, align, distribute, duplicate, copy, delete, and make sibling nodes the same size.
-- **Heatmap overlays**: color capabilities by score while keeping editor, viewer, and export colors consistent.
+- **Heatmap overlays**: color capabilities by score while keeping editor and export colors consistent.
 - **Portable exports**: JSON, SVG, standalone HTML, PowerPoint, diagrams.net/draw.io, and ArchiMate Open Exchange.
-- **Read-only sharing**: generate viewer links or load exported JSON into a read-only canvas.
+- **File-based sharing**: export JSON for full-fidelity model exchange.
 
 ## Quick Start
 

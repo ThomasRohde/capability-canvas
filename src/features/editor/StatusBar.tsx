@@ -44,7 +44,7 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       <span className="cc-dot" />
       <span className="cc-version">v{APP_VERSION}</span>
       <span className="cc-divider" style={{ height: 14 }} />
-      <span>{readonly ? "Loaded from URL" : "Local autosaved"}</span>
+      <span>{readonly ? "Read-only view" : "Local autosaved"}</span>
       <span className="cc-divider" style={{ height: 14 }} />
       <span>{readonly ? "Read-only" : "All changes saved locally"}</span>
       {diagnostics.length > 0 && (

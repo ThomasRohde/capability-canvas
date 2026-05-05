@@ -1344,16 +1344,6 @@ button:focus-visible {
   color: #b45309;
 }
 
-.cc-copy-notice {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 24px;
-  color: var(--cc-brand-700);
-  font-size: 12px;
-  font-weight: 500;
-}
-
 .cc-settings-section {
   display: grid;
   gap: 12px;

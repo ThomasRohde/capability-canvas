@@ -129,7 +129,7 @@ Required behavior:
 - Provide a way to clear saved data.
 - Validate imported and restored data before applying it.
 
-## Import, Export, And Viewer
+## Import And Export
 
 Required import/export formats:
 
@@ -137,17 +137,12 @@ Required import/export formats:
 - SVG or another vector visual export.
 - HTML or another shareable web visual export.
 - PowerPoint-compatible output.
+- JSON should be the supported full-fidelity sharing format.
 
 Strongly preferred compatibility exports:
 
 - Draw.io/diagrams.net.
 - ArchiMate Tool format.
-
-Viewer mode:
-
-- Load a JSON diagram from a URL.
-- Render it read-only with pan, zoom, fit, and heatmap fidelity.
-- Offer a path to import the loaded diagram into the editor.
 
 ## Keyboard And Accessibility
 
@@ -167,5 +162,5 @@ A modern implementation should pass these high-level checks:
 - Enable manual positioning for a parent, move children, save, reload, and preserve positions.
 - Lock a subtree, change global fixed dimensions, and confirm locked sizes remain stable.
 - Multi-select sibling leaves, align them, distribute them, undo, and redo.
-- Load a diagram with heatmap state in viewer mode and see the expected colors and legend.
+- Export JSON, import it again, and see expected heatmap colors and legend state.
 - Open a diagram with around 1,000 nodes and pan/zoom/select without obvious lag.

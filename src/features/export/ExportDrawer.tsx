@@ -1,24 +1,17 @@
 import {
   CheckCircle2,
-  Copy,
   Download,
-  ExternalLink,
   RefreshCcw,
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { validateDocument } from "../../domain/validation/validate";
-import { serializeDocument } from "../../domain/document/serialize";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { adapterFor, saveExportResult } from "../import-export";
 import type { ExportFormat } from "../import-export/types";
 import { IconButton } from "../shared/IconButton";
-import {
-  buildPortableViewerUrl,
-  MAX_PORTABLE_VIEWER_URL_LENGTH,
-} from "../viewer/viewerLinks";
 
 const FORMATS: Array<{ format: ExportFormat; tab: string; desc: string }> = [
   {
@@ -61,58 +54,8 @@ export function ExportDrawer() {
   const setFormat = useUiStore((state) => state.setExportFormat);
   const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const [busy, setBusy] = useState(false);
-  const [viewerUrl, setViewerUrl] = useState("");
-  const [viewerLinkError, setViewerLinkError] = useState<string | null>(null);
-  const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [validationRunAt, setValidationRunAt] = useState<number | null>(null);
   const validation = useMemo(() => validateDocument(doc), [doc]);
-  const serializedDocument = useMemo(
-    () => JSON.stringify(serializeDocument(doc)),
-    [doc],
-  );
-  const viewerUrlTooLong = viewerUrl.length > MAX_PORTABLE_VIEWER_URL_LENGTH;
-  const viewerLinkReady = viewerUrl !== "" && viewerLinkError === null;
-
-  useEffect(() => {
-    if (!open) return;
-
-    let cancelled = false;
-    setViewerUrl("");
-    setViewerLinkError(null);
-    setCopyNotice(null);
-    void buildPortableViewerUrl(serializedDocument)
-      .then((url) => {
-        if (!cancelled) setViewerUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setViewerLinkError("Viewer link could not be prepared.");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, serializedDocument]);
-
-  useEffect(() => {
-    if (!copyNotice) return;
-    const timeout = window.setTimeout(() => setCopyNotice(null), 2400);
-    return () => window.clearTimeout(timeout);
-  }, [copyNotice]);
-
-  const copyViewerUrl = () => {
-    if (!viewerLinkReady) return;
-    void navigator.clipboard
-      .writeText(viewerUrl)
-      .then(() => setCopyNotice("Viewer link copied to clipboard"))
-      .catch(() => setCopyNotice("Could not copy viewer link"));
-  };
-
-  const openViewerUrl = () => {
-    if (!viewerLinkReady) return;
-    window.open(viewerUrl, "_blank", "noopener,noreferrer");
-  };
 
   if (!open) return null;
   const selected = FORMATS.find((item) => item.format === format)!;
@@ -198,48 +141,9 @@ export function ExportDrawer() {
             </div>
           ))}
         </div>
-        <div className="cc-field">
-          <span className="cc-section-title">Viewer link</span>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              className="cc-input"
-              value={
-                viewerLinkError ??
-                (viewerLinkReady
-                  ? viewerUrl
-                  : "Preparing portable viewer link...")
-              }
-              readOnly
-              aria-busy={!viewerLinkReady && viewerLinkError === null}
-            />
-            <IconButton
-              icon={Copy}
-              label="Copy viewer link"
-              tooltip={
-                viewerUrlTooLong
-                  ? "This portable link is large. Export JSON if the recipient cannot open it."
-                  : undefined
-              }
-              onClick={copyViewerUrl}
-              disabled={!viewerLinkReady}
-            />
-          </div>
-          {copyNotice && (
-            <div className="cc-copy-notice" role="status" aria-live="polite">
-              <CheckCircle2 size={14} />
-              <span>{copyNotice}</span>
-            </div>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-          <button
-            className="cc-btn"
-            type="button"
-            disabled={!viewerLinkReady}
-            onClick={openViewerUrl}
-          >
-            Open viewer <ExternalLink size={14} />
-          </button>
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", marginTop: "auto" }}
+        >
           <button
             className="cc-btn cc-btn-primary"
             type="button"

@@ -8,7 +8,6 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_VERSION } from "../../app/version";
-import { encodeBase64Text } from "../../app/base64";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { DEFAULT_OUTLINE_WIDTH, useUiStore } from "../../app/stores/uiStore";
 import {
@@ -16,16 +15,10 @@ import {
   reparentNode,
   runTransaction,
 } from "../../domain/commands/operations";
-import {
-  serializeDocument,
-  stringifyDocument,
-} from "../../domain/document/serialize";
-import { createThousandNodeDocument } from "../../domain/fixtures/sample";
+import { stringifyDocument } from "../../domain/document/serialize";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
 import { ViewerRoute } from "../viewer/ViewerRoute";
-import { ExportDrawer } from "../export/ExportDrawer";
-import { buildPortableViewerUrl } from "../viewer/viewerLinks";
 import "../../styles.css";
 
 describe("editor shell", () => {
@@ -762,32 +755,6 @@ describe("editor shell", () => {
     expect(screen.getByText("Validation passed")).toBeInTheDocument();
   });
 
-  it("copies a compressed portable viewer link for large documents", async () => {
-    const doc = createThousandNodeDocument();
-    useDocumentStore.setState({ doc });
-    useUiStore.setState({ activeDrawer: "export" });
-    const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
-    vi.stubGlobal("navigator", { ...navigator, clipboard });
-
-    render(<ExportDrawer />);
-
-    const input = await screen.findByDisplayValue(/\/viewer#doc=gz\./);
-    expect(input).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Copy viewer link" }),
-    );
-
-    const copied = clipboard.writeText.mock.calls[0]?.[0] as string;
-    expect(new URL(copied).hash).toMatch(/^#doc=gz\./);
-    expect(copied.length).toBeLessThan(
-      JSON.stringify(serializeDocument(doc)).length / 2,
-    );
-    expect(
-      await screen.findByText("Viewer link copied to clipboard"),
-    ).toBeInTheDocument();
-  });
-
   it("renders canvas padding controls and applies layout changes", async () => {
     render(<EditorRoute />);
     await userEvent.click(
@@ -1168,41 +1135,6 @@ describe("editor shell", () => {
     expect(screen.getByText("Details")).toBeInTheDocument();
   });
 
-  it("loads viewer documents from hash payloads", async () => {
-    const doc = {
-      ...useDocumentStore.getState().doc,
-      title: "Hash payload document",
-    };
-    const payload = encodeBase64Text(JSON.stringify(serializeDocument(doc)));
-    window.history.pushState({}, "", `/viewer#doc=${encodeURIComponent(payload)}`);
-
-    render(<ViewerRoute />);
-
-    await waitFor(() =>
-      expect(useDocumentStore.getState().doc.title).toBe(
-        "Hash payload document",
-      ),
-    );
-  });
-
-  it("loads viewer documents from compressed hash payloads", async () => {
-    const doc = {
-      ...useDocumentStore.getState().doc,
-      title: "Compressed hash document",
-    };
-    const url = await buildPortableViewerUrl(
-      JSON.stringify(serializeDocument(doc)),
-    );
-    window.history.pushState({}, "", `/viewer${new URL(url).hash}`);
-
-    render(<ViewerRoute />);
-
-    await waitFor(() =>
-      expect(useDocumentStore.getState().doc.title).toBe(
-        "Compressed hash document",
-      ),
-    );
-  });
 });
 
 function normalizeCssColor(color: string): string {
