@@ -1,6 +1,6 @@
 {
   "name": "capability-canvas",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Local-first hierarchical capability modeling tool.",

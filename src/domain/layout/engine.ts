@@ -383,6 +383,12 @@ async function measureSubtree(
   diagnostics.push(...packed.diagnostics);
 
   const childById = new Map(measuredChildren.map((child) => [child.id, child]));
+  const uniformHeightById = uniformLeafGroupHeights(
+    doc,
+    packed.boxes,
+    measuredChildren,
+    localMode,
+  );
   const childPatches: LayoutPatch[] = [];
   const childBoxes: Array<{ x: number; y: number; w: number; h: number }> = [];
   for (const packedChild of packed.boxes) {
@@ -390,17 +396,41 @@ async function measureSubtree(
     if (!child) continue;
     const childX = Math.round(margin.left + packedChild.x);
     const childY = Math.round(childAreaTop(doc, node) + packedChild.y);
-    translatePatches(child.patches, childX, childY, childPatches);
+    const childHeight = uniformHeightById.get(child.id) ?? child.h;
+    translatePatches(
+      patchesWithRootHeight(child.patches, child.id, childHeight),
+      childX,
+      childY,
+      childPatches,
+    );
     childBoxes.push({
       x: childX,
       y: childY,
       w: Math.round(child.w),
-      h: Math.round(child.h),
+      h: Math.round(childHeight),
     });
   }
 
-  const childBounds = boundsForBoxes(childBoxes);
   const minSize = nodeSize(doc, node);
+  const initialChildBounds = boundsForBoxes(childBoxes);
+  const initialW = Math.max(
+    minSize.w,
+    initialChildBounds
+      ? initialChildBounds.x + initialChildBounds.w + margin.right
+      : margin.left + packed.w + margin.right,
+  );
+  const childBounds =
+    localMode === "adaptive"
+      ? centerChildPatchesHorizontally(
+          childPatches,
+          childBoxes,
+          initialW,
+          margin,
+        )
+      : initialChildBounds;
+  const contentHeight = childBounds
+    ? childBounds.y + childBounds.h + margin.bottom
+    : childAreaTop(doc, node) + packed.h + margin.bottom;
   const next = {
     id: node.id,
     x: 0,
@@ -412,10 +442,8 @@ async function measureSubtree(
         : margin.left + packed.w + margin.right,
     ),
     h: Math.max(
-      minSize.h,
-      childBounds
-        ? childBounds.y + childBounds.h + margin.bottom
-        : childAreaTop(doc, node) + packed.h + margin.bottom,
+      localMode === "flow" ? 1 : minSize.h,
+      contentHeight,
     ),
   };
 
@@ -427,6 +455,79 @@ async function measureSubtree(
     blocked: false,
     diagnostics,
   };
+}
+
+function uniformLeafGroupHeights(
+  doc: CapabilityDocument,
+  boxes: PackedBox[],
+  measuredChildren: MeasuredSubtree[],
+  mode: LayoutMode,
+) {
+  const heights = new Map<NodeId, number>();
+  if (mode !== "uniform") return heights;
+
+  const measuredById = new Map(
+    measuredChildren.map((child) => [child.id, child]),
+  );
+  const rows: PackedBox[][] = [];
+  for (const box of boxes) {
+    const row = rows.find(
+      (candidate) => Math.abs(candidate[0]!.y - box.y) <= 1,
+    );
+    if (row) row.push(box);
+    else rows.push([box]);
+  }
+
+  for (const row of rows) {
+    const leafGroupBoxes = row.filter((box) => isLeafGroupContainer(doc, box.id));
+    if (leafGroupBoxes.length < 2) continue;
+    const rowHeight = Math.max(
+      ...leafGroupBoxes.map((box) => measuredById.get(box.id)?.h ?? box.h),
+    );
+    for (const box of leafGroupBoxes) heights.set(box.id, rowHeight);
+  }
+
+  return heights;
+}
+
+function isLeafGroupContainer(doc: CapabilityDocument, nodeId: NodeId) {
+  const childIds = canvasChildrenOf(doc, nodeId);
+  return (
+    childIds.length > 0 &&
+    childIds.every((childId) => canvasChildrenOf(doc, childId).length === 0)
+  );
+}
+
+function patchesWithRootHeight(
+  patches: LayoutPatch[],
+  rootId: NodeId,
+  rootHeight: number,
+) {
+  return patches.map((patch) =>
+    patch.id === rootId ? { ...patch, h: rootHeight } : patch,
+  );
+}
+
+function centerChildPatchesHorizontally(
+  childPatches: LayoutPatch[],
+  childBoxes: Array<{ x: number; y: number; w: number; h: number }>,
+  parentWidth: number,
+  margin: ReturnType<typeof nodeMargin>,
+) {
+  const bounds = boundsForBoxes(childBoxes);
+  if (!bounds) return bounds;
+
+  const availableWidth = parentWidth - margin.left - margin.right;
+  const spareWidth = availableWidth - bounds.w;
+  if (spareWidth <= 0) return bounds;
+
+  const targetX = margin.left + spareWidth / 2;
+  const offsetX = Math.round(targetX - bounds.x);
+  if (offsetX === 0) return bounds;
+
+  for (const patch of childPatches) patch.x += offsetX;
+  for (const box of childBoxes) box.x += offsetX;
+  return boundsForBoxes(childBoxes);
 }
 
 async function measureAnchoredSubtree(
@@ -605,7 +706,8 @@ async function packBoxes(
   }
 
   const target = targetWidthFor(boxes, gapX, gapY, mode);
-  if (mode === "uniform") return fallbackPackRows(boxes, gapX, gapY, target);
+  if (mode === "uniform")
+    return fallbackPackRows(boxes, gapX, gapY, target, false);
 
   const estimatedHeight = Math.max(1, totalArea(boxes) / Math.max(1, target));
   const graph: ElkNode = {
@@ -641,9 +743,15 @@ async function packBoxes(
     });
     if (positioned.length !== boxes.length)
       throw new Error("ELK did not return positions for every child.");
-    return normalizePackedRows(positioned, gapX, gapY);
+    return normalizePackedRows(positioned, gapX, gapY, mode === "adaptive");
   } catch (error) {
-    const fallback = fallbackPackRows(boxes, gapX, gapY, target);
+    const fallback = fallbackPackRows(
+      boxes,
+      gapX,
+      gapY,
+      target,
+      mode === "adaptive",
+    );
     return {
       ...fallback,
       diagnostics: [
@@ -660,6 +768,7 @@ function normalizePackedRows(
   boxes: PackedBox[],
   gapX: number,
   gapY: number,
+  centerRows: boolean,
 ): PackedBoxes {
   const ordered = [...boxes].sort(
     (a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id),
@@ -673,23 +782,45 @@ function normalizePackedRows(
     else rows.push([box]);
   }
 
+  for (const row of rows)
+    row.sort((a, b) => a.x - b.x || a.id.localeCompare(b.id));
+  return packRows(rows, gapX, gapY, centerRows);
+}
+
+function packRows<T extends Box>(
+  rows: T[][],
+  gapX: number,
+  gapY: number,
+  centerRows: boolean,
+): PackedBoxes {
+  const rowWidths = rows.map((row) => rowWidth(row, gapX));
+  const layoutWidth = rowWidths.length > 0 ? Math.max(...rowWidths) : 0;
   const packed: PackedBox[] = [];
   let cursorY = 0;
-  for (const row of rows) {
-    row.sort((a, b) => a.x - b.x || a.id.localeCompare(b.id));
-    let cursorX = 0;
-    let rowHeight = 0;
+
+  for (const [index, row] of rows.entries()) {
+    const rowHeight = Math.max(...row.map((box) => box.h));
+    let cursorX = centerRows
+      ? Math.round((layoutWidth - rowWidths[index]!) / 2)
+      : 0;
     for (const box of row) {
       packed.push({ ...box, x: cursorX, y: cursorY });
       cursorX += box.w + gapX;
-      rowHeight = Math.max(rowHeight, box.h);
     }
     cursorY += rowHeight + gapY;
   }
+
   const bounds = boundsForBoxes(packed);
   const width = bounds ? bounds.x + bounds.w : 0;
   const height = bounds ? bounds.y + bounds.h : 0;
   return { boxes: packed, w: width, h: height, diagnostics: [] };
+}
+
+function rowWidth(row: Box[], gapX: number): number {
+  return (
+    row.reduce((sum, box) => sum + box.w, 0) +
+    Math.max(0, row.length - 1) * gapX
+  );
 }
 
 function fallbackPackRows(
@@ -697,24 +828,23 @@ function fallbackPackRows(
   gapX: number,
   gapY: number,
   targetWidth: number,
+  centerRows: boolean,
 ): PackedBoxes {
-  const packed: PackedBox[] = [];
-  let x = 0;
-  let y = 0;
-  let rowHeight = 0;
-  let width = 0;
+  const rows: Box[][] = [];
+  let row: Box[] = [];
+  let rowWidth = 0;
   for (const box of boxes) {
-    if (x > 0 && x + box.w > targetWidth) {
-      x = 0;
-      y += rowHeight + gapY;
-      rowHeight = 0;
+    const nextWidth = row.length === 0 ? box.w : rowWidth + gapX + box.w;
+    if (row.length > 0 && nextWidth > targetWidth) {
+      rows.push(row);
+      row = [];
+      rowWidth = 0;
     }
-    packed.push({ ...box, x, y });
-    x += box.w + gapX;
-    rowHeight = Math.max(rowHeight, box.h);
-    width = Math.max(width, x - gapX);
+    row.push(box);
+    rowWidth = row.length === 1 ? box.w : rowWidth + gapX + box.w;
   }
-  return { boxes: packed, w: width, h: y + rowHeight, diagnostics: [] };
+  if (row.length > 0) rows.push(row);
+  return packRows(rows, gapX, gapY, centerRows);
 }
 
 function targetWidthFor(

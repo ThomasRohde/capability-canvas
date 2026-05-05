@@ -183,6 +183,59 @@ describe("layout engine", () => {
     expect(root.y + root.h - childBottom).toBe(8);
   });
 
+  it("centers shorter rows in adaptive layout", async () => {
+    const after = await applyAutoLayoutCycle(createSampleDocument(), "adaptive");
+
+    expect(
+      horizontalCenterDelta(
+        after.nodesById["retail-banking"]!,
+        after.nodesById.operations!,
+      ),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      horizontalCenterDelta(
+        after.nodesById.risk!,
+        after.nodesById["operational-risk"]!,
+      ),
+    ).toBeLessThanOrEqual(1);
+  });
+
+  it("centers adaptive child groups when parent minimum width leaves spare space", async () => {
+    const after = await applyAutoLayoutCycle(createSampleDocument(), "adaptive");
+    const padding = horizontalChildPadding(after, "branch");
+
+    expect(Math.abs(padding.left - padding.right)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps flow layout parent height tight around child rows", async () => {
+    const after = await applyAutoLayoutCycle(createSampleDocument(), "flow");
+
+    for (const parentId of [
+      "digital",
+      "branch",
+      "servicing",
+      "risk",
+      "operations",
+    ]) {
+      expect(verticalChildPadding(after, parentId)).toMatchObject({
+        top: 36,
+        bottom: 8,
+      });
+    }
+  });
+
+  it("aligns uniform leaf-group sibling container heights", async () => {
+    const after = await applyAutoLayoutCycle(createSampleDocument(), "uniform");
+
+    expect(after.nodesById.branch!.h).toBe(after.nodesById.digital!.h);
+    expect(after.nodesById.branch!.h).toBe(152);
+    expect(verticalChildPadding(after, "channels")).toMatchObject({
+      top: 36,
+      bottom: 8,
+    });
+    expect(after.nodesById.risk!.h).toBeLessThan(after.nodesById.customer!.h);
+  });
+
   it("uses the title area setting for the controllable top reserve inside containers", async () => {
     const doc = twoChildDocument();
     doc.settings.containerPaddingTop = 40;
@@ -523,6 +576,35 @@ function geometryFor(doc: CapabilityDocument) {
   ).map((node) => [node.id, { x: node.x, y: node.y, w: node.w, h: node.h }]);
   entries.sort(([left], [right]) => left.localeCompare(right));
   return Object.fromEntries(entries) as Geometry;
+}
+
+function horizontalCenterDelta(
+  parent: { x: number; w: number },
+  child: { x: number; w: number },
+) {
+  return Math.abs(child.x + child.w / 2 - (parent.x + parent.w / 2));
+}
+
+function horizontalChildPadding(doc: CapabilityDocument, parentId: string) {
+  const parent = doc.nodesById[parentId]!;
+  const children = childrenOf(doc, parentId).map((id) => doc.nodesById[id]!);
+  const childLeft = Math.min(...children.map((child) => child.x));
+  const childRight = Math.max(...children.map((child) => child.x + child.w));
+  return {
+    left: childLeft - parent.x,
+    right: parent.x + parent.w - childRight,
+  };
+}
+
+function verticalChildPadding(doc: CapabilityDocument, parentId: string) {
+  const parent = doc.nodesById[parentId]!;
+  const children = childrenOf(doc, parentId).map((id) => doc.nodesById[id]!);
+  const childTop = Math.min(...children.map((child) => child.y));
+  const childBottom = Math.max(...children.map((child) => child.y + child.h));
+  return {
+    top: childTop - parent.y,
+    bottom: parent.y + parent.h - childBottom,
+  };
 }
 
 function nestedBrowserCase() {

@@ -413,7 +413,7 @@ describe("editor shell", () => {
       .getByText("Operational Risk")
       .closest(".cc-node") as HTMLElement;
 
-    expect(operationalRisk).toHaveClass("container");
+    expect(operationalRisk).toHaveClass("cc-node-container");
     expect(operationalRisk.querySelector(".cc-node-title")).toBeInTheDocument();
     expect(operationalRisk).not.toHaveClass("selected");
     expect(
@@ -424,11 +424,13 @@ describe("editor shell", () => {
   it("renders container frames above node cards so containment remains visible", () => {
     const { container } = render(<EditorRoute />);
     const containerNode = container.querySelector(
-      ".cc-node.container",
+      ".cc-node.cc-node-container",
     ) as HTMLElement;
     const frame = container.querySelector(".cc-container-frame") as HTMLElement;
 
     expect(frame).toBeInTheDocument();
+    expect(containerNode).toHaveClass("cc-node-container");
+    expect(containerNode).not.toHaveClass("container");
     expect(Number(frame.style.zIndex)).toBeGreaterThan(
       Number(containerNode.style.zIndex),
     );
@@ -634,7 +636,7 @@ describe("editor shell", () => {
       ".cc-container-frame.selected",
     ) as HTMLElement;
 
-    expect(node).toHaveClass("container");
+    expect(node).toHaveClass("cc-node-container");
     expect(node).not.toHaveClass("selected");
     expect(node.style.height).toBe("32px");
     expect(frame.style.height).toBe("32px");

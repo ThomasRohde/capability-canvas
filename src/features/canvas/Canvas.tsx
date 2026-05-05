@@ -474,7 +474,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
             return (
               <div
                 key={vm.node.id}
-                className={`cc-node ${isContainer ? "container" : ""} ${selectedNodeClass} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
                 style={
                   {
                     left: vm.node.x + dragDelta.x,

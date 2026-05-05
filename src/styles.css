@@ -708,10 +708,11 @@ button:focus-visible {
   transition: box-shadow 120ms;
 }
 
-.cc-node.container {
+.cc-node.cc-node-container {
   align-items: stretch;
   justify-content: flex-start;
   padding: 0 14px 12px;
+  border-color: transparent;
   border-width: 1.5px;
   border-radius: 8px;
 }
@@ -720,7 +721,7 @@ button:focus-visible {
   box-shadow: 0 0 0 2px var(--cc-brand-700);
 }
 
-.cc-node.container.selected {
+.cc-node.cc-node-container.selected {
   box-shadow: 0 0 0 2px var(--node-border);
 }
 
@@ -744,6 +745,7 @@ button:focus-visible {
 
 .cc-container-frame.selected {
   border-width: 2px;
+  border-color: var(--node-border);
   box-shadow: 0 0 0 1px var(--node-border);
 }
 
