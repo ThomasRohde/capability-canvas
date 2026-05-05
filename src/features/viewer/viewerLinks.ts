@@ -1,26 +1,34 @@
-import { encodeBase64Text } from "../../app/base64";
+import {
+  decodeBase64Text,
+  decodeBase64UrlBytes,
+  encodeBase64UrlBytes,
+} from "../../app/base64";
 
-const VIEWER_STORAGE_PREFIX = "capability-canvas.viewer.";
+const COMPRESSED_DOCUMENT_PREFIX = "gz.";
+const TEXT_DOCUMENT_PREFIX = "txt.";
 export const MAX_PORTABLE_VIEWER_URL_LENGTH = 120_000;
 
-export function buildPortableViewerUrl(serializedDocument: string): string {
-  const payload = encodeBase64Text(serializedDocument);
-  return `${viewerBaseUrl()}#doc=${encodeURIComponent(payload)}`;
-}
-
-export function buildStoredViewerUrl(storageKey: string): string {
-  return `${viewerBaseUrl()}?storage=${encodeURIComponent(storageKey)}`;
-}
-
-export function storageKeyForViewerDocument(serializedDocument: string): string {
-  return `${VIEWER_STORAGE_PREFIX}${serializedDocument.length}.${hashText(serializedDocument)}`;
-}
-
-export function persistViewerDocument(
-  storageKey: string,
+export async function buildPortableViewerUrl(
   serializedDocument: string,
-): void {
-  window.localStorage.setItem(storageKey, serializedDocument);
+): Promise<string> {
+  const payload = await encodeViewerDocumentPayload(serializedDocument);
+  return `${viewerBaseUrl()}#doc=${payload}`;
+}
+
+export async function decodeViewerDocumentPayload(
+  payload: string,
+): Promise<string> {
+  if (payload.startsWith(COMPRESSED_DOCUMENT_PREFIX)) {
+    const encodedBytes = payload.slice(COMPRESSED_DOCUMENT_PREFIX.length);
+    return decompressText(decodeBase64UrlBytes(encodedBytes));
+  }
+
+  if (payload.startsWith(TEXT_DOCUMENT_PREFIX)) {
+    const encodedBytes = payload.slice(TEXT_DOCUMENT_PREFIX.length);
+    return new TextDecoder().decode(decodeBase64UrlBytes(encodedBytes));
+  }
+
+  return decodeBase64Text(payload);
 }
 
 export function viewerRouteParams(location: Location = window.location): {
@@ -46,11 +54,41 @@ function hashParams(hash: string): URLSearchParams {
   return new URLSearchParams(value.startsWith("?") ? value.slice(1) : value);
 }
 
-function hashText(value: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+async function encodeViewerDocumentPayload(
+  serializedDocument: string,
+): Promise<string> {
+  try {
+    const compressed = await compressText(serializedDocument);
+    return `${COMPRESSED_DOCUMENT_PREFIX}${encodeBase64UrlBytes(compressed)}`;
+  } catch {
+    const encoded = encodeBase64UrlBytes(
+      new TextEncoder().encode(serializedDocument),
+    );
+    return `${TEXT_DOCUMENT_PREFIX}${encoded}`;
   }
-  return (hash >>> 0).toString(36);
+}
+
+async function compressText(text: string): Promise<Uint8Array> {
+  const stream = bytesToStream(new TextEncoder().encode(text)).pipeThrough(
+    new CompressionStream("gzip"),
+  );
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function decompressText(bytes: Uint8Array): Promise<string> {
+  const stream = bytesToStream(bytes).pipeThrough(
+    new DecompressionStream("gzip"),
+  );
+  return new Response(stream).text();
+}
+
+function bytesToStream(bytes: Uint8Array): ReadableStream<BufferSource> {
+  return new ReadableStream({
+    start(controller) {
+      const chunk = new Uint8Array(bytes.byteLength);
+      chunk.set(bytes);
+      controller.enqueue(chunk);
+      controller.close();
+    },
+  });
 }

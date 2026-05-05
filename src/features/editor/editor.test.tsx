@@ -25,6 +25,7 @@ import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
 import { ViewerRoute } from "../viewer/ViewerRoute";
 import { ExportDrawer } from "../export/ExportDrawer";
+import { buildPortableViewerUrl } from "../viewer/viewerLinks";
 import "../../styles.css";
 
 describe("editor shell", () => {
@@ -761,21 +762,16 @@ describe("editor shell", () => {
     expect(screen.getByText("Validation passed")).toBeInTheDocument();
   });
 
-  it("uses a storage-backed viewer link when the document is too large for an inline URL", async () => {
+  it("copies a compressed portable viewer link for large documents", async () => {
     const doc = createThousandNodeDocument();
     useDocumentStore.setState({ doc });
     useUiStore.setState({ activeDrawer: "export" });
-
-    render(<ExportDrawer />);
     const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
     vi.stubGlobal("navigator", { ...navigator, clipboard });
 
-    expect(
-      screen.queryByDisplayValue(
-        "Document is too large for a portable viewer URL.",
-      ),
-    ).not.toBeInTheDocument();
-    const input = screen.getByDisplayValue(/\/viewer\?storage=/);
+    render(<ExportDrawer />);
+
+    const input = await screen.findByDisplayValue(/\/viewer#doc=gz\./);
     expect(input).toBeInTheDocument();
 
     await userEvent.click(
@@ -783,11 +779,13 @@ describe("editor shell", () => {
     );
 
     const copied = clipboard.writeText.mock.calls[0]?.[0] as string;
-    const storageKey = new URL(copied).searchParams.get("storage");
-    expect(storageKey).toMatch(/^capability-canvas\.viewer\./);
-    expect(window.localStorage.getItem(storageKey!)).toBe(
-      JSON.stringify(serializeDocument(doc)),
+    expect(new URL(copied).hash).toMatch(/^#doc=gz\./);
+    expect(copied.length).toBeLessThan(
+      JSON.stringify(serializeDocument(doc)).length / 2,
     );
+    expect(
+      await screen.findByText("Viewer link copied to clipboard"),
+    ).toBeInTheDocument();
   });
 
   it("renders canvas padding controls and applies layout changes", async () => {
@@ -1183,6 +1181,25 @@ describe("editor shell", () => {
     await waitFor(() =>
       expect(useDocumentStore.getState().doc.title).toBe(
         "Hash payload document",
+      ),
+    );
+  });
+
+  it("loads viewer documents from compressed hash payloads", async () => {
+    const doc = {
+      ...useDocumentStore.getState().doc,
+      title: "Compressed hash document",
+    };
+    const url = await buildPortableViewerUrl(
+      JSON.stringify(serializeDocument(doc)),
+    );
+    window.history.pushState({}, "", `/viewer${new URL(url).hash}`);
+
+    render(<ViewerRoute />);
+
+    await waitFor(() =>
+      expect(useDocumentStore.getState().doc.title).toBe(
+        "Compressed hash document",
       ),
     );
   });

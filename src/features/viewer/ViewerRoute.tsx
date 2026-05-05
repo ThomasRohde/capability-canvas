@@ -1,7 +1,6 @@
 import { Download, ExternalLink } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useEffect } from "react";
-import { decodeBase64Text } from "../../app/base64";
 import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
 import { serializeDocument } from "../../domain/document/serialize";
 import { useDocumentStore } from "../../app/stores/documentStore";
@@ -11,7 +10,7 @@ import { adapterFor, saveExportResult } from "../import-export";
 import { Inspector } from "../inspector/Inspector";
 import { Outline } from "../outline/Outline";
 import { StatusBar } from "../editor/StatusBar";
-import { viewerRouteParams } from "./viewerLinks";
+import { decodeViewerDocumentPayload, viewerRouteParams } from "./viewerLinks";
 
 export function ViewerRoute() {
   const doc = useDocumentStore((state) => state.doc);
@@ -25,30 +24,39 @@ export function ViewerRoute() {
   } as CSSProperties;
 
   useEffect(() => {
+    let cancelled = false;
     const { doc: encoded, source, storageKey } = viewerRouteParams();
     if (encoded) {
-      try {
-        const json = decodeBase64Text(encoded);
-        const parsed = parseDocumentJson(json);
-        if (parsed.doc) setDocument(parsed.doc, "Load viewer document");
-      } catch {
-        const parsed = parseDocument(JSON.parse(encoded) as unknown);
-        if (parsed.doc) setDocument(parsed.doc, "Load viewer document");
-      }
+      void decodeViewerDocumentPayload(encoded)
+        .then((json) => parseDocumentJson(json))
+        .catch(() => parseDocument(JSON.parse(encoded) as unknown))
+        .then((parsed) => {
+          if (!cancelled && parsed.doc) {
+            setDocument(parsed.doc, "Load viewer document");
+          }
+        });
     } else if (source) {
       void fetch(source)
         .then((response) => response.json() as Promise<unknown>)
         .then((data) => {
           const parsed = parseDocument(data);
-          if (parsed.doc) setDocument(parsed.doc, "Load viewer source");
+          if (!cancelled && parsed.doc) {
+            setDocument(parsed.doc, "Load viewer source");
+          }
         });
     } else if (storageKey) {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = parseDocumentJson(stored);
-        if (parsed.doc) setDocument(parsed.doc, "Load viewer storage");
+        if (parsed.doc) {
+          setDocument(parsed.doc, "Load viewer storage");
+        }
       }
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [setDocument]);
 
   return (
