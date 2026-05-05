@@ -31,7 +31,11 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
       fill: { color: fill.background.replace('#', '') },
       line: { color: fill.border.replace('#', ''), width: node.type === 'leaf' ? 0.5 : 0.8 }
     });
-    slide.addText(node.heatmapValue !== undefined ? `${node.label}\n${node.heatmapValue.toFixed(2)}` : node.label, {
+    const label =
+      doc.heatmap.enabled && node.heatmapValue !== undefined
+        ? `${node.label}\n${node.heatmapValue.toFixed(2)}`
+        : node.label;
+    slide.addText(label, {
       x: offsetX + node.x * scale + 0.04,
       y: offsetY + node.y * scale + 0.04,
       w: Math.max(0.1, node.w * scale - 0.08),

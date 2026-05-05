@@ -27,6 +27,23 @@ describe('exports', () => {
     expect(svgExport(doc).data).toContain(fill.border);
   });
 
+  it('keeps visual exports out of heatmap mode when heatmap is disabled', () => {
+    const doc = createSampleDocument();
+    doc.heatmap.enabled = false;
+    const node = doc.nodesById['digital-onboarding']!;
+    const categoryFill = resolveNodeFill(node, doc.heatmap);
+    const heatmapFill = resolveNodeFill(node, { ...doc.heatmap, enabled: true });
+    const heatmapScore = `>${node.heatmapValue!.toFixed(2)}</text>`;
+    const svg = svgExport(doc).data;
+    const html = htmlExport(doc).data;
+
+    expect(categoryFill.border).not.toBe(heatmapFill.border);
+    expect(svg).toContain(`stroke="${categoryFill.border}"`);
+    expect(svg).not.toContain(`stroke="${heatmapFill.border}"`);
+    expect(svg).not.toContain(heatmapScore);
+    expect(html).not.toContain(heatmapScore);
+  });
+
   it('uses the configured heatmap palette', () => {
     const doc = createSampleDocument();
     doc.heatmap.enabled = true;

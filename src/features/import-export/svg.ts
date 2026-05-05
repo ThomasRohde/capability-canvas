@@ -35,10 +35,14 @@ function renderNode(doc: CapabilityDocument, node: CapabilityNode): string {
   const isContainer = node.type === 'root' || node.type === 'parent';
   const radius = isContainer ? 8 : 6;
   const label = renderLabel(doc, node, isContainer);
+  const heatmapScore =
+    doc.heatmap.enabled && node.heatmapValue !== undefined
+      ? `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 20}" text-anchor="middle" font-size="11">${node.heatmapValue.toFixed(2)}</text>`
+      : '';
   return `<g data-node-id="${escapeXml(node.id)}">
     <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" fill="${fill.background}" stroke="${fill.border}" stroke-width="${isContainer ? 1.5 : 1}" />
     ${label}
-    ${node.heatmapValue !== undefined ? `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 20}" text-anchor="middle" font-size="11">${node.heatmapValue.toFixed(2)}</text>` : ''}
+    ${heatmapScore}
   </g>`;
 }
 
