@@ -7,8 +7,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { encodeBase64Text } from "../../app/base64";
+import { useEffect, useMemo, useState } from "react";
 import { validateDocument } from "../../domain/validation/validate";
 import { serializeDocument } from "../../domain/document/serialize";
 import { useDocumentStore } from "../../app/stores/documentStore";
@@ -16,6 +15,13 @@ import { useUiStore } from "../../app/stores/uiStore";
 import { adapterFor, saveExportResult } from "../import-export";
 import type { ExportFormat } from "../import-export/types";
 import { IconButton } from "../shared/IconButton";
+import {
+  buildPortableViewerUrl,
+  buildStoredViewerUrl,
+  MAX_PORTABLE_VIEWER_URL_LENGTH,
+  persistViewerDocument,
+  storageKeyForViewerDocument,
+} from "../viewer/viewerLinks";
 
 const FORMATS: Array<{ format: ExportFormat; tab: string; desc: string }> = [
   {
@@ -50,8 +56,6 @@ const FORMATS: Array<{ format: ExportFormat; tab: string; desc: string }> = [
   },
 ];
 
-const MAX_VIEWER_URL_LENGTH = 8000;
-
 export function ExportDrawer() {
   const doc = useDocumentStore((state) => state.doc);
   const open = useUiStore((state) => state.activeDrawer === "export");
@@ -62,22 +66,41 @@ export function ExportDrawer() {
   const [busy, setBusy] = useState(false);
   const [validationRunAt, setValidationRunAt] = useState<number | null>(null);
   const validation = useMemo(() => validateDocument(doc), [doc]);
+  const serializedDocument = useMemo(
+    () => JSON.stringify(serializeDocument(doc)),
+    [doc],
+  );
+  const portableViewerUrl = useMemo(
+    () => buildPortableViewerUrl(serializedDocument),
+    [serializedDocument],
+  );
+  const viewerUrlTooLong =
+    portableViewerUrl.length > MAX_PORTABLE_VIEWER_URL_LENGTH;
+  const viewerStorageKey = useMemo(
+    () =>
+      viewerUrlTooLong
+        ? storageKeyForViewerDocument(serializedDocument)
+        : null,
+    [serializedDocument, viewerUrlTooLong],
+  );
+  const viewerUrl = viewerStorageKey
+    ? buildStoredViewerUrl(viewerStorageKey)
+    : portableViewerUrl;
+  const ensureViewerUrl = () => {
+    if (viewerStorageKey) {
+      persistViewerDocument(viewerStorageKey, serializedDocument);
+    }
+    return viewerUrl;
+  };
+
+  useEffect(() => {
+    if (!open || !viewerStorageKey) return;
+    persistViewerDocument(viewerStorageKey, serializedDocument);
+  }, [open, serializedDocument, viewerStorageKey]);
+
   if (!open) return null;
   const selected = FORMATS.find((item) => item.format === format)!;
   const validationRows = validationChecks(validation.diagnostics);
-  const serializedDocument = JSON.stringify(serializeDocument(doc));
-  const viewerPayload = encodeBase64Text(serializedDocument);
-  const viewerUrl = `${window.location.origin}${import.meta.env.BASE_URL}viewer?doc=${encodeURIComponent(viewerPayload)}`;
-  const viewerUrlTooLong = viewerUrl.length > MAX_VIEWER_URL_LENGTH;
-  const viewerUrlValue = viewerUrlTooLong
-    ? "Document is too large for a portable viewer URL."
-    : viewerUrl;
-  const openViewerUrl = () => {
-    if (!viewerUrlTooLong) return viewerUrl;
-    const key = `capability-canvas.viewer.${Date.now()}`;
-    localStorage.setItem(key, serializedDocument);
-    return `${window.location.origin}${import.meta.env.BASE_URL}viewer?storage=${encodeURIComponent(key)}`;
-  };
 
   return (
     <aside className="cc-export-drawer" aria-label="Export">
@@ -162,17 +185,16 @@ export function ExportDrawer() {
         <div className="cc-field">
           <span className="cc-section-title">Viewer link</span>
           <div style={{ display: "flex", gap: 8 }}>
-            <input className="cc-input" value={viewerUrlValue} readOnly />
+            <input className="cc-input" value={viewerUrl} readOnly />
             <IconButton
               icon={Copy}
               label="Copy viewer link"
-              disabled={viewerUrlTooLong}
               tooltip={
                 viewerUrlTooLong
-                  ? "Export JSON or use Open viewer for this large document."
+                  ? "Large documents use a link stored in this browser. Export JSON for a portable file."
                   : undefined
               }
-              onClick={() => void navigator.clipboard.writeText(viewerUrl)}
+              onClick={() => void navigator.clipboard.writeText(ensureViewerUrl())}
             />
           </div>
         </div>
@@ -181,7 +203,7 @@ export function ExportDrawer() {
             className="cc-btn"
             type="button"
             onClick={() =>
-              window.open(openViewerUrl(), "_blank", "noopener,noreferrer")
+              window.open(ensureViewerUrl(), "_blank", "noopener,noreferrer")
             }
           >
             Open viewer <ExternalLink size={14} />

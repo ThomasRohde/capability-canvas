@@ -8,6 +8,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_VERSION } from "../../app/version";
+import { encodeBase64Text } from "../../app/base64";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { DEFAULT_OUTLINE_WIDTH, useUiStore } from "../../app/stores/uiStore";
 import {
@@ -15,10 +16,15 @@ import {
   reparentNode,
   runTransaction,
 } from "../../domain/commands/operations";
-import { stringifyDocument } from "../../domain/document/serialize";
+import {
+  serializeDocument,
+  stringifyDocument,
+} from "../../domain/document/serialize";
+import { createThousandNodeDocument } from "../../domain/fixtures/sample";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
 import { ViewerRoute } from "../viewer/ViewerRoute";
+import { ExportDrawer } from "../export/ExportDrawer";
 import "../../styles.css";
 
 describe("editor shell", () => {
@@ -27,6 +33,7 @@ describe("editor shell", () => {
   });
 
   beforeEach(() => {
+    window.history.pushState({}, "", "/");
     useDocumentStore.getState().reset();
     useUiStore.setState({
       selectedNodeIds: ["digital-onboarding"],
@@ -721,6 +728,35 @@ describe("editor shell", () => {
     expect(screen.getByText("Validation passed")).toBeInTheDocument();
   });
 
+  it("uses a storage-backed viewer link when the document is too large for an inline URL", async () => {
+    const doc = createThousandNodeDocument();
+    useDocumentStore.setState({ doc });
+    useUiStore.setState({ activeDrawer: "export" });
+
+    render(<ExportDrawer />);
+    const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+    vi.stubGlobal("navigator", { ...navigator, clipboard });
+
+    expect(
+      screen.queryByDisplayValue(
+        "Document is too large for a portable viewer URL.",
+      ),
+    ).not.toBeInTheDocument();
+    const input = screen.getByDisplayValue(/\/viewer\?storage=/);
+    expect(input).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Copy viewer link" }),
+    );
+
+    const copied = clipboard.writeText.mock.calls[0]?.[0] as string;
+    const storageKey = new URL(copied).searchParams.get("storage");
+    expect(storageKey).toMatch(/^capability-canvas\.viewer\./);
+    expect(window.localStorage.getItem(storageKey!)).toBe(
+      JSON.stringify(serializeDocument(doc)),
+    );
+  });
+
   it("renders canvas padding controls and applies layout changes", async () => {
     render(<EditorRoute />);
     await userEvent.click(
@@ -1066,6 +1102,23 @@ describe("editor shell", () => {
     expect(
       screen.queryByRole("button", { name: "Actions for Customer" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("loads viewer documents from hash payloads", async () => {
+    const doc = {
+      ...useDocumentStore.getState().doc,
+      title: "Hash payload document",
+    };
+    const payload = encodeBase64Text(JSON.stringify(serializeDocument(doc)));
+    window.history.pushState({}, "", `/viewer#doc=${encodeURIComponent(payload)}`);
+
+    render(<ViewerRoute />);
+
+    await waitFor(() =>
+      expect(useDocumentStore.getState().doc.title).toBe(
+        "Hash payload document",
+      ),
+    );
   });
 });
 

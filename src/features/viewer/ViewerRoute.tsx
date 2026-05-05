@@ -11,6 +11,7 @@ import { adapterFor, saveExportResult } from "../import-export";
 import { Inspector } from "../inspector/Inspector";
 import { Outline } from "../outline/Outline";
 import { StatusBar } from "../editor/StatusBar";
+import { viewerRouteParams } from "./viewerLinks";
 
 export function ViewerRoute() {
   const doc = useDocumentStore((state) => state.doc);
@@ -22,10 +23,7 @@ export function ViewerRoute() {
   } as CSSProperties;
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const encoded = params.get("doc");
-    const source = params.get("src");
-    const storageKey = params.get("storage");
+    const { doc: encoded, source, storageKey } = viewerRouteParams();
     if (encoded) {
       try {
         const json = decodeBase64Text(encoded);
@@ -45,7 +43,6 @@ export function ViewerRoute() {
     } else if (storageKey) {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        localStorage.removeItem(storageKey);
         const parsed = parseDocumentJson(stored);
         if (parsed.doc) setDocument(parsed.doc, "Load viewer storage");
       }
