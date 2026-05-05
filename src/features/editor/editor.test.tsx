@@ -1104,6 +1104,39 @@ describe("editor shell", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("collapses and restores viewer side panels", async () => {
+    const { container } = render(<ViewerRoute />);
+    const workspace = container.querySelector(
+      ".cc-viewer-workspace",
+    ) as HTMLElement;
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Collapse outline" }),
+    );
+    expect(workspace).toHaveClass("outline-closed");
+    expect(screen.queryByText("Outline")).not.toBeInTheDocument();
+    expect(screen.getByTestId("canvas")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show outline" }),
+    );
+    expect(workspace).not.toHaveClass("outline-closed");
+    expect(screen.getByText("Outline")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Collapse inspector" }),
+    );
+    expect(workspace).toHaveClass("inspector-closed");
+    expect(screen.queryByText("Details")).not.toBeInTheDocument();
+    expect(screen.getByTestId("canvas")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show details" }),
+    );
+    expect(workspace).not.toHaveClass("inspector-closed");
+    expect(screen.getByText("Details")).toBeInTheDocument();
+  });
+
   it("loads viewer documents from hash payloads", async () => {
     const doc = {
       ...useDocumentStore.getState().doc,

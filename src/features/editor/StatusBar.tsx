@@ -24,6 +24,20 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   const toggleInspector = useUiStore((state) => state.toggleInspector);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const diagnosticCount = diagnostics.length;
+  const outlineLabel = readonly
+    ? outlineOpen
+      ? "Hide outline"
+      : "Show outline"
+    : outlineOpen
+      ? "Hide layers"
+      : "Show layers";
+  const inspectorLabel = readonly
+    ? inspectorOpen
+      ? "Hide details"
+      : "Show details"
+    : inspectorOpen
+      ? "Hide inspector"
+      : "Show inspector";
 
   return (
     <footer className="cc-status">
@@ -45,14 +59,14 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
           ? `${Object.keys(doc.nodesById).length} capabilities`
           : `${selected.length} selected`}
       </span>
-      {!readonly && (
-        <span className="cc-status-actions">
-          <IconButton
-            icon={Layers}
-            label={outlineOpen ? "Hide layers" : "Show layers"}
-            active={outlineOpen}
-            onClick={toggleOutline}
-          />
+      <span className="cc-status-actions">
+        <IconButton
+          icon={Layers}
+          label={outlineLabel}
+          active={outlineOpen}
+          onClick={toggleOutline}
+        />
+        {!readonly && (
           <button
             type="button"
             className={`cc-icon-btn cc-status-message-btn ${diagnosticsOpen ? "active" : ""}`}
@@ -66,14 +80,14 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
               <span className="cc-status-badge">{diagnosticCount}</span>
             )}
           </button>
-          <IconButton
-            icon={PanelRight}
-            label={inspectorOpen ? "Hide inspector" : "Show inspector"}
-            active={inspectorOpen}
-            onClick={toggleInspector}
-          />
-        </span>
-      )}
+        )}
+        <IconButton
+          icon={PanelRight}
+          label={inspectorLabel}
+          active={inspectorOpen}
+          onClick={toggleInspector}
+        />
+      </span>
       {diagnosticsOpen && !readonly && (
         <div
           className="cc-status-popover"

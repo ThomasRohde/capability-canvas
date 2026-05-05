@@ -17,7 +17,9 @@ export function ViewerRoute() {
   const doc = useDocumentStore((state) => state.doc);
   const setDocument = useDocumentStore((state) => state.setDocument);
   const setViewport = useUiStore((state) => state.setViewport);
+  const outlineOpen = useUiStore((state) => state.outlineOpen);
   const outlineWidth = useUiStore((state) => state.outlineWidth);
+  const inspectorOpen = useUiStore((state) => state.inspectorOpen);
   const workspaceStyle = {
     "--cc-outline-width": `${outlineWidth}px`,
   } as CSSProperties;
@@ -132,10 +134,13 @@ export function ViewerRoute() {
           Import into editor <ExternalLink size={14} />
         </button>
       </header>
-      <div className="cc-workspace" style={workspaceStyle}>
-        <Outline readonly />
+      <div
+        className={`cc-workspace cc-viewer-workspace ${outlineOpen ? "" : "outline-closed"} ${inspectorOpen ? "" : "inspector-closed"}`}
+        style={workspaceStyle}
+      >
+        {outlineOpen && <Outline readonly />}
         <Canvas readonly />
-        <Inspector readonly />
+        {inspectorOpen && <Inspector readonly />}
       </div>
       <StatusBar readonly />
     </div>

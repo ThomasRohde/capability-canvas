@@ -1405,10 +1405,35 @@ button:focus-visible {
   );
 }
 
-.cc-viewer .cc-workspace {
+.cc-viewer-workspace {
   grid-template-columns: var(--cc-outline-width) minmax(0, 1fr) var(
       --cc-inspector-width
     );
+  grid-template-areas: "outline canvas inspector";
+}
+
+.cc-viewer-workspace.outline-closed {
+  grid-template-columns: 0 minmax(0, 1fr) var(--cc-inspector-width);
+}
+
+.cc-viewer-workspace.inspector-closed {
+  grid-template-columns: var(--cc-outline-width) minmax(0, 1fr) 0;
+}
+
+.cc-viewer-workspace.outline-closed.inspector-closed {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.cc-viewer-workspace > .cc-outline {
+  grid-area: outline;
+}
+
+.cc-viewer-workspace > .cc-canvas {
+  grid-area: canvas;
+}
+
+.cc-viewer-workspace > .cc-inspector {
+  grid-area: inspector;
 }
 
 .cc-readonly-chip {
@@ -1422,8 +1447,15 @@ button:focus-visible {
 }
 
 @media (max-width: 960px) {
-  .cc-viewer .cc-workspace {
+  .cc-viewer-workspace,
+  .cc-viewer-workspace.inspector-closed {
     grid-template-columns: var(--cc-outline-width) minmax(0, 1fr);
+    grid-template-areas: "outline canvas";
+  }
+
+  .cc-viewer-workspace.outline-closed,
+  .cc-viewer-workspace.outline-closed.inspector-closed {
+    grid-template-columns: 0 minmax(0, 1fr);
   }
 
   .cc-editor-workspace,
