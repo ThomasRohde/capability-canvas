@@ -5,6 +5,10 @@ import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { escapeXml } from './escape';
 import type { ExportAdapter, ExportResult } from './types';
 
+interface RenderSvgOptions {
+  includeDescriptionData?: boolean;
+}
+
 export function svgExport(doc: CapabilityDocument): ExportResult {
   return {
     format: 'svg',
@@ -15,7 +19,7 @@ export function svgExport(doc: CapabilityDocument): ExportResult {
   };
 }
 
-export function renderSvg(doc: CapabilityDocument): string {
+export function renderSvg(doc: CapabilityDocument, options: RenderSvgOptions = {}): string {
   const bounds = doc.layout.boundingBox.w > 0 ? doc.layout.boundingBox : { x: 0, y: 0, w: 1200, h: 800 };
   const nodes = sortedNodes(doc).filter(isNodeOnCanvas);
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -26,11 +30,15 @@ export function renderSvg(doc: CapabilityDocument): string {
     .container-label { font-size: 15px; font-weight: 600; }
   </style>
   <rect x="${bounds.x - 48}" y="${bounds.y - 48}" width="${bounds.w + 96}" height="${bounds.h + 96}" fill="#f1f5f9" />
-  ${nodes.map((node) => renderNode(doc, node)).join('\n  ')}
+  ${nodes.map((node) => renderNode(doc, node, options)).join('\n  ')}
 </svg>`;
 }
 
-function renderNode(doc: CapabilityDocument, node: CapabilityNode): string {
+function renderNode(
+  doc: CapabilityDocument,
+  node: CapabilityNode,
+  options: RenderSvgOptions,
+): string {
   const fill = resolveNodeFill(node, doc.heatmap);
   const isContainer = node.type === 'root' || node.type === 'parent';
   const radius = isContainer ? 8 : 6;
@@ -39,7 +47,12 @@ function renderNode(doc: CapabilityDocument, node: CapabilityNode): string {
     doc.heatmap.enabled && node.heatmapValue !== undefined
       ? `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 20}" text-anchor="middle" font-size="11">${node.heatmapValue.toFixed(2)}</text>`
       : '';
-  return `<g data-node-id="${escapeXml(node.id)}">
+  const description = node.description?.trim();
+  const descriptionData =
+    options.includeDescriptionData && description
+      ? ` class="cc-node" tabindex="0" data-description="${escapeXml(description)}"`
+      : '';
+  return `<g data-node-id="${escapeXml(node.id)}"${descriptionData}>
     <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" fill="${fill.background}" stroke="${fill.border}" stroke-width="${isContainer ? 1.5 : 1}" />
     ${label}
     ${heatmapScore}

@@ -69,6 +69,22 @@ describe('exports', () => {
     expect(html.filename).toBe('unsafe-title-script-alert-1-script-name.html');
   });
 
+  it('adds styled description tooltips to HTML exports', () => {
+    const doc = createSampleDocument();
+    doc.nodesById['digital-onboarding'] = {
+      ...doc.nodesById['digital-onboarding']!,
+      description: 'Open <accounts> & onboard "new" customers',
+    };
+    const html = htmlExport(doc).data;
+
+    expect(html).toContain('class="cc-export-tooltip"');
+    expect(html).toContain('data-export-surface');
+    expect(html).toContain(
+      'data-description="Open &lt;accounts&gt; &amp; onboard &quot;new&quot; customers"',
+    );
+    expect(svgExport(doc).data).not.toContain('data-description=');
+  });
+
   it('writes nested draw.io geometry relative to the parent cell', () => {
     const doc = createSampleDocument();
     const child = doc.nodesById['digital-onboarding']!;
