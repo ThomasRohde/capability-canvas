@@ -169,6 +169,39 @@ describe("editor shell", () => {
     expect(Number.isFinite(centeredViewport.y)).toBe(true);
   });
 
+  it("prevents browser page zoom when Ctrl-wheel zooms the canvas", () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    Object.defineProperty(canvas, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 1200,
+        bottom: 800,
+        width: 1200,
+        height: 800,
+        toJSON: () => {},
+      }),
+    });
+    const before = useUiStore.getState().viewport;
+    const event = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 120,
+      clientY: 160,
+      ctrlKey: true,
+      deltaY: -100,
+    });
+
+    fireEvent(canvas, event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(useUiStore.getState().viewport.zoom).toBeGreaterThan(before.zoom);
+  });
+
   it("uses the same capability fills in the minimap", () => {
     const { container } = render(<EditorRoute />);
     const minimapBlobs = [

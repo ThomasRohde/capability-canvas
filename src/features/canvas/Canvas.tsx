@@ -297,24 +297,41 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [doc, execute, fitView, readonly, selected]);
 
+  const zoomAround = useCallback(
+    (delta: number, anchorX: number, anchorY: number) => {
+      const nextZoom = Math.max(
+        MIN_ZOOM,
+        Math.min(MAX_ZOOM, viewport.zoom + delta),
+      );
+      if (nextZoom === viewport.zoom) return;
+      const docAnchorX = (anchorX - viewport.x) / viewport.zoom;
+      const docAnchorY = (anchorY - viewport.y) / viewport.zoom;
+      setViewport({
+        zoom: nextZoom,
+        x: anchorX - docAnchorX * nextZoom,
+        y: anchorY - docAnchorY * nextZoom,
+      });
+    },
+    [setViewport, viewport],
+  );
+
   const zoomBy = (delta: number) => {
     zoomAround(delta, size.w / 2, size.h / 2);
   };
 
-  const zoomAround = (delta: number, anchorX: number, anchorY: number) => {
-    const nextZoom = Math.max(
-      MIN_ZOOM,
-      Math.min(MAX_ZOOM, viewport.zoom + delta),
-    );
-    if (nextZoom === viewport.zoom) return;
-    const docAnchorX = (anchorX - viewport.x) / viewport.zoom;
-    const docAnchorY = (anchorY - viewport.y) / viewport.zoom;
-    setViewport({
-      zoom: nextZoom,
-      x: anchorX - docAnchorX * nextZoom,
-      y: anchorY - docAnchorY * nextZoom,
-    });
-  };
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -0.08 : 0.08;
+      const rect = element.getBoundingClientRect();
+      zoomAround(delta, event.clientX - rect.left, event.clientY - rect.top);
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, [zoomAround]);
 
   const centerOnDocumentPoint = (x: number, y: number) => {
     setViewport({
@@ -391,21 +408,6 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
           backgroundPosition: `${viewport.x}px ${viewport.y}px`,
         } as React.CSSProperties
       }
-      onWheel={(event) => {
-        if (!event.ctrlKey && !event.metaKey) return;
-        event.preventDefault();
-        const delta = event.deltaY > 0 ? -0.08 : 0.08;
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (rect) {
-          zoomAround(
-            delta,
-            event.clientX - rect.left,
-            event.clientY - rect.top,
-          );
-        } else {
-          zoomBy(delta);
-        }
-      }}
       onPointerDown={(event) => {
         setContextMenu(null);
         if (!isCanvasBackgroundTarget(event.target, event.currentTarget))
