@@ -10,6 +10,7 @@ import {
 } from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 import { info, warning } from "../validation/diagnostics";
+import { gridSizeFor, snapLengthUpToGrid, snapToGrid } from "./grid";
 import {
   type LayoutPatch,
   type LayoutRequest,
@@ -53,6 +54,8 @@ export async function layoutDocument(
 ): Promise<LayoutResult> {
   const doc = request.doc;
   const mode = request.mode ?? doc.layout.mode ?? doc.settings.layoutMode;
+  const rootOffset = snapLayoutSpacing(doc, ROOT_OFFSET);
+  const rootGapY = snapLayoutSpacing(doc, ROOT_GAP_Y);
   if (mode === "free") {
     return {
       patches: [],
@@ -114,7 +117,12 @@ export async function layoutDocument(
     for (const measured of measuredRoots) {
       const node = doc.nodesById[measured.id];
       if (!node) continue;
-      translatePatches(measured.patches, node.x, node.y, patches);
+      translatePatches(
+        measured.patches,
+        snapLayoutCoordinate(doc, node.x),
+        snapLayoutCoordinate(doc, node.y),
+        patches,
+      );
     }
     return finishLayoutResult(
       request,
@@ -126,17 +134,18 @@ export async function layoutDocument(
   }
 
   if (measuredRoots.some((measured) => measured.blocked)) {
-    let cursorY = ROOT_OFFSET;
+    let cursorY = rootOffset;
     for (const measured of measuredRoots) {
       const node = doc.nodesById[measured.id];
       if (!node) continue;
       if (measured.blocked) {
         translatePatches(measured.patches, node.x, node.y, patches);
-        cursorY = Math.max(cursorY, node.y + measured.h + ROOT_GAP_Y);
+        cursorY = Math.max(cursorY, node.y + measured.h + rootGapY);
         continue;
       }
-      translatePatches(measured.patches, ROOT_OFFSET, cursorY, patches);
-      cursorY += measured.h + ROOT_GAP_Y;
+      const snappedY = snapLayoutStartAfter(doc, cursorY);
+      translatePatches(measured.patches, rootOffset, snappedY, patches);
+      cursorY = snappedY + measured.h + rootGapY;
     }
     return finishLayoutResult(
       request,
@@ -153,10 +162,11 @@ export async function layoutDocument(
       w: measured.w,
       h: measured.h,
     })),
-    doc.settings.childGapX,
-    ROOT_GAP_Y,
+    snapLayoutSpacing(doc, doc.settings.childGapX),
+    rootGapY,
     mode,
     "document-roots",
+    doc,
   );
   diagnostics.push(...packedRoots.diagnostics);
   const byId = new Map(
@@ -167,8 +177,8 @@ export async function layoutDocument(
     if (!measured) continue;
     translatePatches(
       measured.patches,
-      ROOT_OFFSET + packed.x,
-      ROOT_OFFSET + packed.y,
+      rootOffset + packed.x,
+      rootOffset + packed.y,
       patches,
     );
   }
@@ -352,8 +362,14 @@ async function measureSubtree(
   }
 
   const margin = nodeMargin(doc, node);
-  const gapX = node.layoutPreferences?.gapX ?? doc.settings.childGapX;
-  const gapY = node.layoutPreferences?.gapY ?? doc.settings.childGapY;
+  const gapX = snapLayoutSpacing(
+    doc,
+    node.layoutPreferences?.gapX ?? doc.settings.childGapX,
+  );
+  const gapY = snapLayoutSpacing(
+    doc,
+    node.layoutPreferences?.gapY ?? doc.settings.childGapY,
+  );
   const localMode = node.layoutPreferences?.mode ?? mode;
   const measuredChildren = await Promise.all(
     childIds.map((childId) => measureSubtree(doc, childId, localMode)),
@@ -379,6 +395,7 @@ async function measureSubtree(
     gapY,
     localMode,
     node.id,
+    doc,
   );
   diagnostics.push(...packed.diagnostics);
 
@@ -422,6 +439,7 @@ async function measureSubtree(
   const childBounds =
     localMode === "adaptive"
       ? centerChildPatchesHorizontally(
+          doc,
           childPatches,
           childBoxes,
           initialW,
@@ -509,6 +527,7 @@ function patchesWithRootHeight(
 }
 
 function centerChildPatchesHorizontally(
+  doc: CapabilityDocument,
   childPatches: LayoutPatch[],
   childBoxes: Array<{ x: number; y: number; w: number; h: number }>,
   parentWidth: number,
@@ -522,7 +541,7 @@ function centerChildPatchesHorizontally(
   if (spareWidth <= 0) return bounds;
 
   const targetX = margin.left + spareWidth / 2;
-  const offsetX = Math.round(targetX - bounds.x);
+  const offsetX = snapLayoutDelta(doc, targetX - bounds.x);
   if (offsetX === 0) return bounds;
 
   for (const patch of childPatches) patch.x += offsetX;
@@ -562,13 +581,17 @@ async function measureAnchoredSubtree(
       gapY,
       mode,
       node.id,
+      doc,
     );
     diagnostics.push(...packed.diagnostics);
     const childById = new Map(freeChildren.map((child) => [child.id, child]));
     const startX = margin.left;
-    const startY = Math.max(
-      childAreaTop(doc, node),
-      blockedBounds ? blockedBounds.y + blockedBounds.h + gapY : 0,
+    const startY = snapLayoutStartAfter(
+      doc,
+      Math.max(
+        childAreaTop(doc, node),
+        blockedBounds ? blockedBounds.y + blockedBounds.h + gapY : 0,
+      ),
     );
     for (const packedChild of packed.boxes) {
       const child = childById.get(packedChild.id);
@@ -673,6 +696,42 @@ function finishLayoutResult(
   return { patches: stable, diagnostics };
 }
 
+function snapLayoutCoordinate(
+  doc: CapabilityDocument,
+  value: number,
+): number {
+  const rounded = Math.round(value);
+  if (!doc.settings.gridEnabled) return rounded;
+  return snapToGrid(rounded, gridSizeFor(doc));
+}
+
+function snapLayoutDelta(doc: CapabilityDocument, value: number): number {
+  const rounded = Math.round(value);
+  if (!doc.settings.gridEnabled) return rounded;
+  return snapToGrid(rounded, gridSizeFor(doc));
+}
+
+function snapLayoutSize(doc: CapabilityDocument, value: number): number {
+  const rounded = Math.round(value);
+  if (!doc.settings.gridEnabled) return Math.max(1, rounded);
+  return Math.max(1, snapLengthUpToGrid(rounded, gridSizeFor(doc)));
+}
+
+function snapLayoutSpacing(doc: CapabilityDocument, value: number): number {
+  const rounded = Math.round(value);
+  if (!doc.settings.gridEnabled) return Math.max(0, rounded);
+  return snapLengthUpToGrid(rounded, gridSizeFor(doc));
+}
+
+function snapLayoutStartAfter(
+  doc: CapabilityDocument,
+  value: number,
+): number {
+  const rounded = Math.round(value);
+  if (!doc.settings.gridEnabled) return rounded;
+  return snapLengthUpToGrid(rounded, gridSizeFor(doc));
+}
+
 function layoutOutcomeMessage(
   request: LayoutRequest,
   mode: LayoutMode,
@@ -693,6 +752,7 @@ async function packBoxes(
   gapY: number,
   mode: LayoutMode,
   scopeId: string,
+  doc: CapabilityDocument,
 ): Promise<PackedBoxes> {
   if (boxes.length === 0) return { boxes: [], w: 0, h: 0, diagnostics: [] };
   if (boxes.length === 1) {
@@ -705,10 +765,11 @@ async function packBoxes(
     };
   }
 
-  const target = targetWidthFor(boxes, gapX, gapY, mode);
-  if (mode === "adaptive") return adaptivePackRows(boxes, gapX, gapY, target);
+  const target = snapLayoutSize(doc, targetWidthFor(boxes, gapX, gapY, mode));
+  if (mode === "adaptive")
+    return adaptivePackRows(boxes, gapX, gapY, target, doc);
   if (mode === "uniform")
-    return fallbackPackRows(boxes, gapX, gapY, target, false);
+    return fallbackPackRows(boxes, gapX, gapY, target, false, doc);
 
   const estimatedHeight = Math.max(1, totalArea(boxes) / Math.max(1, target));
   const graph: ElkNode = {
@@ -744,9 +805,9 @@ async function packBoxes(
     });
     if (positioned.length !== boxes.length)
       throw new Error("ELK did not return positions for every child.");
-    return normalizePackedRows(positioned, gapX, gapY, false);
+    return normalizePackedRows(positioned, gapX, gapY, false, doc);
   } catch (error) {
-    const fallback = fallbackPackRows(boxes, gapX, gapY, target, false);
+    const fallback = fallbackPackRows(boxes, gapX, gapY, target, false, doc);
     return {
       ...fallback,
       diagnostics: [
@@ -764,12 +825,13 @@ function adaptivePackRows(
   gapX: number,
   gapY: number,
   targetWidth: number,
+  doc: CapabilityDocument,
 ): PackedBoxes {
   const rows =
     boxes.length <= 16
       ? bestAdaptiveRows(boxes, gapX, gapY, targetWidth)
       : greedyAdaptiveRows(boxes, gapX, targetWidth);
-  return packRows(rows, gapX, gapY, true);
+  return packRows(rows, gapX, gapY, true, doc);
 }
 
 function bestAdaptiveRows(
@@ -896,6 +958,7 @@ function normalizePackedRows(
   gapX: number,
   gapY: number,
   centerRows: boolean,
+  doc: CapabilityDocument,
 ): PackedBoxes {
   const ordered = [...boxes].sort(
     (a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id),
@@ -911,7 +974,7 @@ function normalizePackedRows(
 
   for (const row of rows)
     row.sort((a, b) => a.x - b.x || a.id.localeCompare(b.id));
-  return packRows(rows, gapX, gapY, centerRows);
+  return packRows(rows, gapX, gapY, centerRows, doc);
 }
 
 function packRows<T extends Box>(
@@ -919,6 +982,7 @@ function packRows<T extends Box>(
   gapX: number,
   gapY: number,
   centerRows: boolean,
+  doc: CapabilityDocument,
 ): PackedBoxes {
   const rowWidths = rows.map((row) => rowWidth(row, gapX));
   const layoutWidth = rowWidths.length > 0 ? Math.max(...rowWidths) : 0;
@@ -928,7 +992,7 @@ function packRows<T extends Box>(
   for (const [index, row] of rows.entries()) {
     const rowHeight = Math.max(...row.map((box) => box.h));
     let cursorX = centerRows
-      ? Math.round((layoutWidth - rowWidths[index]!) / 2)
+      ? snapLayoutDelta(doc, (layoutWidth - rowWidths[index]!) / 2)
       : 0;
     for (const box of row) {
       packed.push({ ...box, x: cursorX, y: cursorY });
@@ -956,6 +1020,7 @@ function fallbackPackRows(
   gapY: number,
   targetWidth: number,
   centerRows: boolean,
+  doc: CapabilityDocument,
 ): PackedBoxes {
   const rows: Box[][] = [];
   let row: Box[] = [];
@@ -971,7 +1036,7 @@ function fallbackPackRows(
     rowWidth = row.length === 1 ? box.w : rowWidth + gapX + box.w;
   }
   if (row.length > 0) rows.push(row);
-  return packRows(rows, gapX, gapY, centerRows);
+  return packRows(rows, gapX, gapY, centerRows, doc);
 }
 
 function targetWidthFor(
@@ -1014,35 +1079,50 @@ function totalArea(boxes: Box[]): number {
 
 function nodeSize(doc: CapabilityDocument, node: CapabilityNode) {
   if (node.isTextLabel || node.type === "text")
-    return { w: Math.max(1, node.w), h: Math.max(1, node.h) };
+    return {
+      w: snapLayoutSize(doc, node.w),
+      h: snapLayoutSize(doc, node.h),
+    };
   if (node.type === "leaf")
     return {
-      w: Math.max(1, doc.settings.fixedLeafWidth),
-      h: Math.max(1, doc.settings.fixedLeafHeight),
+      w: snapLayoutSize(doc, doc.settings.fixedLeafWidth),
+      h: snapLayoutSize(doc, doc.settings.fixedLeafHeight),
     };
   return {
-    w: Math.max(1, doc.settings.defaultParentWidth),
-    h: Math.max(1, doc.settings.defaultParentHeight),
+    w: snapLayoutSize(doc, doc.settings.defaultParentWidth),
+    h: snapLayoutSize(doc, doc.settings.defaultParentHeight),
   };
 }
 
 function nodeMargin(doc: CapabilityDocument, node: CapabilityNode) {
   return {
-    top: node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop,
+    top: snapLayoutSpacing(
+      doc,
+      node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop,
+    ),
     right:
-      node.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight,
-    bottom:
+      snapLayoutSpacing(
+        doc,
+        node.layoutPreferences?.marginRight ??
+          doc.settings.containerPaddingRight,
+      ),
+    bottom: snapLayoutSpacing(
+      doc,
       node.layoutPreferences?.marginBottom ??
-      doc.settings.containerPaddingBottom,
-    left:
+        doc.settings.containerPaddingBottom,
+    ),
+    left: snapLayoutSpacing(
+      doc,
       node.layoutPreferences?.marginLeft ?? doc.settings.containerPaddingLeft,
+    ),
   };
 }
 
 function childAreaTop(doc: CapabilityDocument, node: CapabilityNode) {
-  return (
+  return snapLayoutSpacing(
+    doc,
     (node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop) +
-    doc.settings.containerTitleHeight
+      doc.settings.containerTitleHeight,
   );
 }
 

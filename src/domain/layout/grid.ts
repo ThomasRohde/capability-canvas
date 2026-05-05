@@ -8,6 +8,12 @@ export function snapToGrid(value: number, gridSize: number): number {
   return Math.round(value / gridSize) * gridSize;
 }
 
+export function snapLengthUpToGrid(value: number, gridSize: number): number {
+  const rounded = Math.round(value);
+  if (rounded <= 0) return 0;
+  return Math.ceil(rounded / gridSize) * gridSize;
+}
+
 export function snapCoordinate(doc: CapabilityDocument, value: number): number {
   const rounded = Math.round(value);
   return doc.settings.gridEnabled

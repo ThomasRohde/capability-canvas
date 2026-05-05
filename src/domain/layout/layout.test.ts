@@ -94,8 +94,9 @@ describe("layout engine", () => {
     expect(scopedElapsed).toBeLessThan(1000);
   });
 
-  it("uses global padding and gap settings when node preferences are absent", async () => {
+  it("uses exact global padding and gap settings when grid snapping is disabled", async () => {
     const doc = twoChildDocument();
+    doc.settings.gridEnabled = false;
     doc.settings.containerPaddingLeft = 48;
     doc.settings.containerPaddingTop = 40;
     doc.settings.childGapX = 24;
@@ -108,6 +109,36 @@ describe("layout engine", () => {
       result.patches.find((patch) => patch.id === "child-b"),
     ).toMatchObject({ x: 271, y: 92 });
   });
+
+  it.each(["uniform", "flow", "adaptive"] as const)(
+    "snaps generated %s auto-layout geometry to the configured grid",
+    async (mode) => {
+      const doc = twoChildDocument();
+      doc.settings.gridEnabled = true;
+      doc.settings.gridSize = 24;
+      doc.settings.fixedLeafWidth = 175;
+      doc.settings.fixedLeafHeight = 50;
+      doc.settings.defaultParentWidth = 361;
+      doc.settings.defaultParentHeight = 139;
+      doc.settings.containerPaddingLeft = 13;
+      doc.settings.containerPaddingRight = 17;
+      doc.settings.containerPaddingBottom = 9;
+      doc.settings.containerPaddingTop = 11;
+      doc.settings.containerTitleHeight = 29;
+      doc.settings.childGapX = 19;
+      doc.settings.childGapY = 7;
+
+      const result = await layoutDocument({ doc, force: true, mode });
+
+      expect(result.patches.length).toBeGreaterThan(0);
+      for (const patch of result.patches) {
+        expect(patch.x % doc.settings.gridSize).toBe(0);
+        expect(patch.y % doc.settings.gridSize).toBe(0);
+        expect(patch.w % doc.settings.gridSize).toBe(0);
+        expect(patch.h % doc.settings.gridSize).toBe(0);
+      }
+    },
+  );
 
   it.each(["uniform", "adaptive"] as const)(
     "ignores hidden canvas nodes in %s layout patches and document bounds",
@@ -132,7 +163,7 @@ describe("layout engine", () => {
     },
   );
 
-  it("keeps configured edge padding when grid is enabled", async () => {
+  it("snaps configured edge padding when grid is enabled", async () => {
     const doc = twoChildDocument();
     doc.settings.containerPaddingTop = 8;
     doc.settings.containerPaddingRight = 8;
@@ -151,13 +182,13 @@ describe("layout engine", () => {
     const childTop = Math.min(...children.map((child) => child.y));
     const childBottom = Math.max(...children.map((child) => child.y + child.h));
 
-    expect(childLeft - root.x).toBe(8);
-    expect(root.x + root.w - childRight).toBeGreaterThanOrEqual(8);
-    expect(childTop - root.y).toBe(36);
+    expect(childLeft - root.x).toBe(16);
+    expect(root.x + root.w - childRight).toBeGreaterThanOrEqual(16);
+    expect(childTop - root.y).toBe(48);
     expect(root.y + root.h - childBottom).toBeGreaterThanOrEqual(0);
   });
 
-  it("keeps repeated auto layout idempotent with sub-grid padding", async () => {
+  it("keeps repeated auto layout idempotent with snapped sub-grid padding", async () => {
     const doc = fourChildSubGridPaddingDocument();
     const first = await applyAutoLayoutCycle(doc, "adaptive");
     const second = await applyAutoLayoutCycle(first, "adaptive");
@@ -166,10 +197,10 @@ describe("layout engine", () => {
     expect(geometryFor(second)).toEqual(geometryFor(first));
     expect(geometryFor(third)).toEqual(geometryFor(first));
     expect(first.nodesById.root).toMatchObject({
-      x: 24,
-      y: 24,
-      w: 384,
-      h: 180,
+      x: 32,
+      y: 32,
+      w: 416,
+      h: 208,
     });
 
     const root = first.nodesById.root!;
@@ -181,10 +212,10 @@ describe("layout engine", () => {
     const childTop = Math.min(...children.map((child) => child.y));
     const childBottom = Math.max(...children.map((child) => child.y + child.h));
 
-    expect(childLeft - root.x).toBe(8);
-    expect(root.x + root.w - childRight).toBe(8);
-    expect(childTop - root.y).toBe(44);
-    expect(root.y + root.h - childBottom).toBe(8);
+    expect(childLeft - root.x).toBe(16);
+    expect(root.x + root.w - childRight).toBe(16);
+    expect(childTop - root.y).toBe(48);
+    expect(root.y + root.h - childBottom).toBe(16);
   });
 
   it("centers visual rows in adaptive layout", async () => {
@@ -207,7 +238,9 @@ describe("layout engine", () => {
   });
 
   it("keeps flow layout parent height tight around child rows", async () => {
-    const after = await applyAutoLayoutCycle(createSampleDocument(), "flow");
+    const doc = createSampleDocument();
+    doc.settings.gridEnabled = false;
+    const after = await applyAutoLayoutCycle(doc, "flow");
 
     for (const parentId of [
       "digital",
@@ -224,7 +257,9 @@ describe("layout engine", () => {
   });
 
   it("aligns uniform leaf-group sibling container heights", async () => {
-    const after = await applyAutoLayoutCycle(createSampleDocument(), "uniform");
+    const doc = createSampleDocument();
+    doc.settings.gridEnabled = false;
+    const after = await applyAutoLayoutCycle(doc, "uniform");
 
     expect(after.nodesById.branch!.h).toBe(after.nodesById.digital!.h);
     expect(after.nodesById.branch!.h).toBe(152);
@@ -237,6 +272,7 @@ describe("layout engine", () => {
 
   it("uses the title area setting for the controllable top reserve inside containers", async () => {
     const doc = twoChildDocument();
+    doc.settings.gridEnabled = false;
     doc.settings.containerPaddingTop = 40;
     doc.settings.containerTitleHeight = 8;
 
@@ -251,6 +287,7 @@ describe("layout engine", () => {
 
   it("lets node-specific layout preferences override global spacing settings", async () => {
     const doc = twoChildDocument();
+    doc.settings.gridEnabled = false;
     doc.settings.containerPaddingLeft = 48;
     doc.settings.containerPaddingTop = 40;
     doc.settings.childGapX = 24;
