@@ -7,6 +7,7 @@ import {
   moveNodes,
   reparentNode,
   resizeNode,
+  updateVisualNodeState,
 } from "../../domain/commands/operations";
 import type { Transaction } from "../../domain/commands/types";
 import {
@@ -219,6 +220,45 @@ describe("document store layout settings", () => {
       afterDoc.visual.viewsById[firstViewId]!.nodeStatesById.servicing?.x;
     expect(movedSecond).toBeGreaterThan(beforeFirstState ?? Number.NEGATIVE_INFINITY);
     expect(unchangedFirst).toBe(beforeFirstState);
+  });
+
+  it("treats collapsed containers as leaves for layout and restores children on expand", async () => {
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+    await useDocumentStore.getState().autoLayout(true);
+    const expandedBefore = resolveVisualDocument(
+      useDocumentStore.getState().doc,
+    ).nodesById.servicing!;
+
+    useDocumentStore
+      .getState()
+      .execute(updateVisualNodeState(viewId, "servicing", { isCollapsed: true }));
+    await useDocumentStore.getState().autoLayout(true);
+
+    let doc = useDocumentStore.getState().doc;
+    let resolved = resolveVisualDocument(doc);
+    expect(resolved.childrenByParentId.servicing).toEqual([]);
+    expect(resolved.nodesById.servicing!.w).toBeLessThan(expandedBefore.w);
+    expect(resolved.nodesById.servicing!.h).toBeLessThanOrEqual(
+      expandedBefore.h,
+    );
+    expect(resolved.nodesById["account-management"]?.isOnCanvas).toBe(false);
+    expect(
+      doc.visual.viewsById[viewId]!.nodeStatesById["account-management"]
+        ?.isOnCanvas,
+    ).not.toBe(false);
+
+    useDocumentStore
+      .getState()
+      .execute(updateVisualNodeState(viewId, "servicing", { isCollapsed: false }));
+
+    doc = useDocumentStore.getState().doc;
+    resolved = resolveVisualDocument(doc);
+    expect(resolved.childrenByParentId.servicing).toEqual([
+      "account-management",
+      "customer-support",
+      "communications",
+    ]);
+    expect(resolved.nodesById["account-management"]?.isOnCanvas).toBe(true);
   });
 });
 

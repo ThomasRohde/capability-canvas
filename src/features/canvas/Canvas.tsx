@@ -39,6 +39,7 @@ import {
   sameSize,
   transaction,
   updateNodeColors,
+  updateVisualNodeState,
 } from "../../domain/commands/operations";
 import {
   hasCanvasChildren,
@@ -125,6 +126,14 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     [selected, viewDoc.nodesById],
   );
   const contextNode = contextMenu ? viewDoc.nodesById[contextMenu.nodeId] : null;
+  const contextViewState = contextMenu
+    ? doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
+        contextMenu.nodeId
+      ]
+    : undefined;
+  const contextHasSourceChildren = contextMenu
+    ? (doc.childrenByParentId[contextMenu.nodeId]?.length ?? 0) > 0
+    : false;
 
   useEffect(() => {
     const element = canvasRef.current;
@@ -807,6 +816,26 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
               }}
             >
               Fit parent
+            </button>
+          )}
+          {contextHasSourceChildren && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                execute(
+                  updateVisualNodeState(
+                    doc.visual.activeViewId,
+                    contextMenu.nodeId,
+                    { isCollapsed: !contextViewState?.isCollapsed },
+                  ),
+                );
+                setContextMenu(null);
+              }}
+            >
+              {contextViewState?.isCollapsed
+                ? "Expand in view"
+                : "Collapse in view"}
             </button>
           )}
           <button

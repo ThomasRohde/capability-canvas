@@ -307,12 +307,19 @@ export function resolveVisualDocument(
       .filter(([, state]) => state.isCollapsed)
       .map(([nodeId]) => nodeId),
   );
+  const childrenByParentId = Object.fromEntries(
+    Object.entries(doc.childrenByParentId).map(([parentId, childIds]) => [
+      parentId,
+      [...childIds],
+    ]),
+  );
   if (collapsed.size > 0) {
     for (const node of Object.values(nodesById)) {
       if (hasCollapsedAncestor(doc, node.id, collapsed)) {
         nodesById[node.id] = { ...node, isOnCanvas: false };
       }
     }
+    for (const nodeId of collapsed) childrenByParentId[nodeId] = [];
   }
 
   const layout = resolveViewLayout(doc.layout, view);
@@ -321,6 +328,7 @@ export function resolveVisualDocument(
     ...doc,
     version: DOCUMENT_VERSION,
     nodesById,
+    childrenByParentId,
     settings: { ...doc.settings, layoutMode: layout.mode },
     layout,
     heatmap,
@@ -335,10 +343,19 @@ export function applyResolvedVisualDocument(
   const visual = cloneVisualWorkspace(base.visual);
   const view = visual.viewsById[visual.activeViewId];
   if (!view) return base;
+  const collapsed = collapsedNodeIds(view);
 
   for (const [nodeId, baseNode] of Object.entries(base.nodesById)) {
     const resolvedNode = resolved.nodesById[nodeId];
     if (!resolvedNode) continue;
+    if (hasCollapsedAncestor(base, nodeId, collapsed)) {
+      if (view.nodeStatesById[nodeId]) {
+        view.nodeStatesById[nodeId] = cloneVisualNodeState(
+          view.nodeStatesById[nodeId],
+        );
+      }
+      continue;
+    }
     const previous = view.nodeStatesById[nodeId] ?? {};
     view.nodeStatesById[nodeId] = {
       ...previous,
@@ -422,7 +439,13 @@ export function computeVisualBounds(
   nodeStatesById = activeVisualView(doc).nodeStatesById,
 ): Bounds {
   const boxes: Bounds[] = [];
+  const collapsed = new Set(
+    Object.entries(nodeStatesById)
+      .filter(([, state]) => state.isCollapsed)
+      .map(([nodeId]) => nodeId),
+  );
   for (const node of Object.values(doc.nodesById)) {
+    if (hasCollapsedAncestor(doc, node.id, collapsed)) continue;
     const state = nodeStatesById[node.id];
     const onCanvas = state?.isOnCanvas ?? node.isOnCanvas;
     if (!onCanvas) continue;
@@ -516,6 +539,14 @@ function hasCollapsedAncestor(
     current = doc.nodesById[current.parentId];
   }
   return false;
+}
+
+function collapsedNodeIds(view: VisualView): Set<NodeId> {
+  return new Set(
+    Object.entries(view.nodeStatesById)
+      .filter(([, state]) => state.isCollapsed)
+      .map(([nodeId]) => nodeId),
+  );
 }
 
 function finiteOrNow(value: unknown): number {

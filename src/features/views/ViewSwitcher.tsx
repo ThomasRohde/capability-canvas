@@ -96,6 +96,17 @@ export function ViewSwitcher({ readonly = false }: { readonly?: boolean }) {
         <span>{activeView.name}</span>
         <ChevronDown />
       </button>
+      {!readonly && (
+        <button
+          className="cc-btn cc-view-create"
+          type="button"
+          aria-label="Create visual view"
+          title="Create visual view"
+          onClick={() => execute(createVisualView({ name: "New view" }))}
+        >
+          <Plus /> New view
+        </button>
+      )}
       {open && (
         <div className="cc-view-menu" role="menu" aria-label="Visual views">
           {orderedViews.map((view) => (

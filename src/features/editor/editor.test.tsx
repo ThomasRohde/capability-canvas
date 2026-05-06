@@ -170,14 +170,13 @@ describe("editor shell", () => {
   it("creates and switches visual views from the toolbar", async () => {
     render(<EditorRoute />);
     await userEvent.click(
-      screen.getByRole("button", { name: "Switch visual view" }),
+      screen.getByRole("button", { name: "Create visual view" }),
     );
-    await userEvent.click(screen.getByRole("menuitem", { name: /New view/i }));
 
     expect(useDocumentStore.getState().doc.visual.viewOrder).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "Switch visual view" }),
-    ).toHaveTextContent("Full model default");
+    ).toHaveTextContent("New view");
 
     await userEvent.click(
       screen.getByRole("button", { name: "Switch visual view" }),

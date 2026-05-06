@@ -659,6 +659,9 @@ button:focus-visible {
 
 .cc-view-switcher {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex: 0 0 auto;
 }
 
@@ -688,6 +691,10 @@ button:focus-visible {
   flex: 0 0 auto;
   width: 15px;
   height: 15px;
+}
+
+.cc-view-create {
+  height: 34px;
 }
 
 .cc-view-menu {

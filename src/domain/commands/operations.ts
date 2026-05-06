@@ -48,6 +48,8 @@ import {
 } from "./types";
 
 type MutableDoc = CapabilityDocument;
+const COLLAPSED_VISIBILITY_KEY = "collapsedDescendantVisibilityById";
+
 interface AddCapabilityOptions {
   isOnCanvas?: boolean;
 }
@@ -542,16 +544,47 @@ export function updateVisualNodeState(
       const next = cloneDocument(doc);
       const visual = cloneVisualWorkspace(next.visual);
       const nextView = visual.viewsById[viewId]!;
-      nextView.nodeStatesById[nodeId] = {
+      let nodeState: VisualNodeState = {
         ...(nextView.nodeStatesById[nodeId] ?? {}),
         ...patch,
       };
+      if (patch.isCollapsed === true) {
+        const visibility: Record<NodeId, boolean> = {};
+        for (const descendantId of subtreeNodeIds(doc, nodeId).slice(1)) {
+          const descendant = doc.nodesById[descendantId];
+          if (!descendant) continue;
+          const descendantState = nextView.nodeStatesById[descendantId];
+          visibility[descendantId] =
+            typeof descendantState?.isOnCanvas === "boolean"
+              ? descendantState.isOnCanvas
+              : isNodeOnCanvas(descendant);
+        }
+        nodeState = {
+          ...nodeState,
+          [COLLAPSED_VISIBILITY_KEY]: visibility,
+        };
+      }
+      if (patch.isCollapsed === false) {
+        const savedVisibility = readCollapsedVisibility(nodeState);
+        for (const descendantId of subtreeNodeIds(doc, nodeId).slice(1)) {
+          const descendant = doc.nodesById[descendantId];
+          if (!descendant) continue;
+          nextView.nodeStatesById[descendantId] = {
+            ...(nextView.nodeStatesById[descendantId] ?? {}),
+            isOnCanvas:
+              savedVisibility?.[descendantId] ?? isNodeOnCanvas(descendant),
+          };
+        }
+        delete nodeState.isCollapsed;
+        delete nodeState[COLLAPSED_VISIBILITY_KEY];
+      }
+      nextView.nodeStatesById[nodeId] = nodeState;
+      next.visual = visual;
       nextView.layout = {
         ...nextView.layout,
         boundingBox: computeDocumentBounds(resolveVisualDocument(next, viewId)),
       };
       nextView.updatedAt = now();
-      next.visual = visual;
       return ok(materializeActiveViewMetadata(next));
     }),
   ]);
@@ -1157,6 +1190,19 @@ function ok(doc: CapabilityDocument) {
 
 function fail(doc: CapabilityDocument, code: string, message: string) {
   return { doc, diagnostics: [error(code, message)] };
+}
+
+function readCollapsedVisibility(
+  state: VisualNodeState,
+): Record<NodeId, boolean> | null {
+  const value = state[COLLAPSED_VISIBILITY_KEY];
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return null;
+  const visibility: Record<NodeId, boolean> = {};
+  for (const [nodeId, visible] of Object.entries(value)) {
+    if (typeof visible === "boolean") visibility[nodeId] = visible;
+  }
+  return visibility;
 }
 
 function updateView(
