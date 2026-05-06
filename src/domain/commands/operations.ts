@@ -330,9 +330,18 @@ export function updateNode(
           "The selected capability no longer exists.",
         );
       const next = cloneDocument(doc);
+      const nodePatch = { ...patch };
+      const colorPatch: Partial<CapabilityNode> = {};
+      if (Object.hasOwn(patch, "color") && patch.color) {
+        colorPatch.colorOverride = patch.color;
+        delete nodePatch.color;
+      } else if (Object.hasOwn(patch, "colorOverride")) {
+        colorPatch.colorOverride = patch.colorOverride;
+      }
       next.nodesById[nodeId] = {
         ...node,
-        ...patch,
+        ...nodePatch,
+        ...colorPatch,
         id: node.id,
         updatedAt: now(),
       };
@@ -360,8 +369,12 @@ export function updateNodeColors(
               "missing-node",
               "The selected capability no longer exists.",
             );
-          if (node.color === color) continue;
-          next.nodesById[nodeId] = { ...node, color, updatedAt: now() };
+          if (node.colorOverride === color) continue;
+          next.nodesById[nodeId] = {
+            ...node,
+            colorOverride: color,
+            updatedAt: now(),
+          };
           changed = true;
         }
         return ok(changed ? next : doc);

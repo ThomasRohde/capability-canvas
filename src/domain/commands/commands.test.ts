@@ -74,8 +74,10 @@ describe("commands", () => {
     const result = runTransaction(doc, updateNodeColors(nodeIds, "lavender"));
 
     expect(result.diagnostics).toHaveLength(0);
-    for (const nodeId of nodeIds)
-      expect(result.doc.nodesById[nodeId]!.color).toBe("lavender");
+    for (const nodeId of nodeIds) {
+      expect(result.doc.nodesById[nodeId]!.color).toBe("coral");
+      expect(result.doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
+    }
   });
 
   it("aligns centers to the selected group center", () => {

@@ -6,10 +6,11 @@ import {
   updateDocumentTitle,
   updateHeatmapSettings,
 } from "../../domain/commands/operations";
-import type { LayoutMode } from "../../domain/document/types";
+import type { CapabilityColor, LayoutMode } from "../../domain/document/types";
 import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { importHeatmapCsv } from "../heatmap/csvImport";
+import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 import { IconButton } from "../shared/IconButton";
 
 const LAYOUT_MODES: Array<{ value: LayoutMode; label: string }> = [
@@ -140,6 +141,12 @@ export function SettingsDrawer() {
               }
             />
           </div>
+          <LeafColorSetting
+            value={doc.settings.leafColor}
+            onChange={(leafColor) =>
+              execute(updateDocumentSettings({ leafColor }))
+            }
+          />
           <div className="cc-section-title">New parent defaults</div>
           <div className="cc-field-row">
             <NumberSetting
@@ -338,6 +345,35 @@ export function SettingsDrawer() {
         </section>
       </div>
     </aside>
+  );
+}
+
+function LeafColorSetting({
+  value,
+  onChange,
+}: {
+  value: CapabilityColor;
+  onChange: (value: CapabilityColor) => void;
+}) {
+  return (
+    <div className="cc-field">
+      <span className="cc-section-title">Default leaf color</span>
+      <div className="cc-color-row">
+        {CAPABILITY_COLORS.map((color) => (
+          <button
+            key={color}
+            type="button"
+            aria-label={`Set default leaf color ${color}`}
+            className={`cc-color-swatch ${value === color ? "on" : ""}`}
+            style={{
+              color: CATEGORY_STYLES[color].border,
+              background: CATEGORY_STYLES[color].background,
+            }}
+            onClick={() => onChange(color)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 

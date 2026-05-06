@@ -38,6 +38,7 @@ export interface CapabilityNode extends Bounds {
   label: string;
   type: NodeType;
   color: CapabilityColor;
+  colorOverride?: CapabilityColor;
   description?: string;
   metadata: Record<string, unknown>;
   layoutPreferences?: Partial<LayoutPreferences>;
@@ -62,6 +63,7 @@ export interface DiagramSettings {
   resizeSnapToGrid: boolean;
   fixedLeafWidth: number;
   fixedLeafHeight: number;
+  leafColor: CapabilityColor;
   defaultParentWidth: number;
   defaultParentHeight: number;
   containerPaddingTop: number;

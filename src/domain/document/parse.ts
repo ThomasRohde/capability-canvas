@@ -182,7 +182,9 @@ function finalizeDocument(
   doc: CapabilityDocument,
   diagnostics: Diagnostic[],
 ): ParseResult {
-  const rebuilt = breakInvalidRelations(rebuildChildren(doc), diagnostics);
+  const rebuilt = migrateLegacyColorOverrides(
+    breakInvalidRelations(rebuildChildren(doc), diagnostics),
+  );
   const visual = normalizeVisualWorkspace(rebuilt, rebuilt.visual);
   let withVisual = { ...rebuilt, visual: visual.visual };
   for (const item of visual.diagnostics) {
@@ -196,6 +198,22 @@ function finalizeDocument(
   const validation = validateDocument(contained.doc);
   diagnostics.push(...validation.diagnostics);
   return { doc: contained.doc, diagnostics };
+}
+
+function migrateLegacyColorOverrides(doc: CapabilityDocument): CapabilityDocument {
+  let changed = false;
+  const nodesById = { ...doc.nodesById };
+  for (const node of Object.values(doc.nodesById)) {
+    if (node.colorOverride) continue;
+    if (node.type !== "leaf" || node.isTextLabel) continue;
+    const parentColor = node.parentId
+      ? doc.nodesById[node.parentId]?.color
+      : undefined;
+    if (!parentColor || node.color === parentColor) continue;
+    nodesById[node.id] = { ...node, colorOverride: node.color };
+    changed = true;
+  }
+  return changed ? { ...doc, nodesById } : doc;
 }
 
 export function parseDocumentJson(json: string): ParseResult {

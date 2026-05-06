@@ -265,7 +265,8 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
             const node = doc.nodesById[item.getId()];
             if (!node) return null;
             const active = selected.includes(node.id);
-            const style = CATEGORY_STYLES[node.color];
+            const viewNode = viewDoc.nodesById[node.id];
+            const style = CATEGORY_STYLES[viewNode?.color ?? node.color];
             const itemProps = item.getProps();
             const subtreeIds = subtreeNodeIds(doc, node.id);
             const hasHiddenCanvasNodes = subtreeIds.some(
@@ -278,7 +279,7 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
               doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
                 node.id
               ];
-            const visibleInView = isNodeOnCanvas(viewDoc.nodesById[node.id]);
+            const visibleInView = isNodeOnCanvas(viewNode);
             return (
               <div
                 {...itemProps}

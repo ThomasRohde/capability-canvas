@@ -37,6 +37,9 @@ export const NodeSchema = z
       "peach",
       "teal",
     ]),
+    colorOverride: z
+      .enum(["mint", "sky", "coral", "amber", "lavender", "peach", "teal"])
+      .optional(),
     description: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).default({}),
     layoutPreferences: LayoutPreferencesSchema.optional(),
@@ -66,6 +69,9 @@ export const SettingsSchema = z
     resizeSnapToGrid: z.boolean().default(DEFAULT_SETTINGS.resizeSnapToGrid),
     fixedLeafWidth: positiveNumber,
     fixedLeafHeight: positiveNumber,
+    leafColor: z
+      .enum(["mint", "sky", "coral", "amber", "lavender", "peach", "teal"])
+      .default(DEFAULT_SETTINGS.leafColor),
     defaultParentWidth: positiveNumber,
     defaultParentHeight: positiveNumber,
     containerPaddingTop: spacingNumber.default(

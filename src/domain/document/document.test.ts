@@ -7,6 +7,8 @@ import {
   deleteVisualView,
   resetVisualViewFromTemplate,
   runTransaction,
+  updateDocumentSettings,
+  updateNode,
   updateVisualNodeState,
 } from "../commands/operations";
 import { createSampleDocument } from "../fixtures/sample";
@@ -98,6 +100,7 @@ describe("document JSON adapter", () => {
     delete legacySettings.containerLabelOffsetTop;
     delete legacySettings.childGapX;
     delete legacySettings.childGapY;
+    delete legacySettings.leafColor;
 
     const parsed = parseDocument(wire);
     expect(parsed.doc).not.toBeNull();
@@ -125,6 +128,7 @@ describe("document JSON adapter", () => {
     );
     expect(parsed.doc!.settings.childGapX).toBe(DEFAULT_SETTINGS.childGapX);
     expect(parsed.doc!.settings.childGapY).toBe(DEFAULT_SETTINGS.childGapY);
+    expect(parsed.doc!.settings.leafColor).toBe(DEFAULT_SETTINGS.leafColor);
   });
 
   it("defaults legacy nodes without canvas membership to visible", () => {
@@ -170,6 +174,7 @@ describe("document JSON adapter", () => {
         containerLabelOffsetTop: 6,
         childGapX: 52,
         childGapY: 20,
+        leafColor: "lavender" as const,
       },
     };
 
@@ -185,7 +190,49 @@ describe("document JSON adapter", () => {
       containerLabelOffsetTop: 6,
       childGapX: 52,
       childGapY: 20,
+      leafColor: "lavender",
     });
+  });
+
+  it("applies the global leaf color unless a node color is overridden", () => {
+    const themed = runTransaction(
+      createSampleDocument(),
+      updateDocumentSettings({ leafColor: "lavender" }),
+    ).doc;
+
+    const resolved = resolveVisualDocument(themed);
+    expect(resolved.nodesById["credit-risk"]?.color).toBe("lavender");
+    expect(resolved.nodesById.risk?.color).toBe("coral");
+
+    const overridden = runTransaction(
+      themed,
+      updateNode("credit-risk", { color: "amber" }),
+    ).doc;
+    expect(overridden.nodesById["credit-risk"]?.colorOverride).toBe("amber");
+    expect(resolveVisualDocument(overridden).nodesById["credit-risk"]?.color).toBe(
+      "amber",
+    );
+
+    const l1 = runTransaction(
+      themed,
+      createVisualView({ templateId: "level-1-map@1" }),
+    ).doc;
+    expect(resolveVisualDocument(l1).nodesById.customer?.color).toBe(
+      "lavender",
+    );
+  });
+
+  it("preserves legacy leaf color differences as explicit overrides", () => {
+    const wire = serializeDocument(createSampleDocument());
+    const creditRisk = wire.nodes.find((node) => node.id === "credit-risk")!;
+    delete creditRisk.colorOverride;
+    creditRisk.color = "lavender";
+
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc?.nodesById["credit-risk"]?.colorOverride).toBe(
+      "lavender",
+    );
   });
 
   it("migrates v1.0 documents to a default visual view", () => {

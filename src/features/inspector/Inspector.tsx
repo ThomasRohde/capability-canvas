@@ -67,8 +67,8 @@ export function Inspector({ readonly = false }: { readonly?: boolean }) {
         )}
         {selected.length === 0 && <EmptyInspector />}
         {viewNode && readonly && <ViewerDetails node={viewNode} />}
-        {sourceNode && !readonly && tab === "inspector" && (
-          <Properties node={sourceNode} />
+        {sourceNode && !readonly && tab === "inspector" && viewNode && (
+          <Properties node={sourceNode} viewNode={viewNode} />
         )}
         {viewNode && !readonly && tab === "layout" && (
           <LayoutProperties node={viewNode} />
@@ -81,7 +81,13 @@ export function Inspector({ readonly = false }: { readonly?: boolean }) {
   );
 }
 
-function Properties({ node }: { node: CapabilityNode }) {
+function Properties({
+  node,
+  viewNode,
+}: {
+  node: CapabilityNode;
+  viewNode: CapabilityNode;
+}) {
   const execute = useDocumentStore((state) => state.execute);
   return (
     <>
@@ -105,7 +111,7 @@ function Properties({ node }: { node: CapabilityNode }) {
           placeholder="Enter description..."
         />
       </div>
-      <ColorEditor node={node} />
+      <ColorEditor node={node} viewNode={viewNode} />
       <div className="cc-field">
         <label htmlFor="heatmap-value">Heatmap value</label>
         <CommitNumberInput
@@ -321,18 +327,38 @@ function ViewerDetails({ node }: { node: CapabilityNode }) {
   );
 }
 
-function ColorEditor({ node }: { node: CapabilityNode }) {
+function ColorEditor({
+  node,
+  viewNode,
+}: {
+  node: CapabilityNode;
+  viewNode: CapabilityNode;
+}) {
   const execute = useDocumentStore((state) => state.execute);
+  const usesLeafDefault = viewNode.type === "leaf" && !viewNode.isTextLabel;
+  const activeColor = node.colorOverride ?? viewNode.color;
   return (
     <div className="cc-field">
       <span className="cc-section-title">Color</span>
       <div className="cc-color-row">
+        {usesLeafDefault && node.colorOverride && (
+          <button
+            type="button"
+            aria-label="Use default leaf color"
+            className="cc-btn"
+            onClick={() =>
+              execute(updateNode(node.id, { colorOverride: undefined }))
+            }
+          >
+            Default
+          </button>
+        )}
         {CAPABILITY_COLORS.map((color) => (
           <button
             key={color}
             type="button"
             aria-label={`Set color ${color}`}
-            className={`cc-color-swatch ${node.color === color ? "on" : ""}`}
+            className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
             style={{
               color: CATEGORY_STYLES[color].border,
               background: CATEGORY_STYLES[color].background,

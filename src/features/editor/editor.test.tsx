@@ -333,7 +333,7 @@ describe("editor shell", () => {
     const minimapBlobs = [
       ...container.querySelectorAll(".cc-minimap-blob"),
     ] as HTMLElement[];
-    const doc = useDocumentStore.getState().doc;
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
     const expectedFills = Object.values(doc.nodesById)
       .map((node) => {
         const fill = resolveNodeFill(node, doc.heatmap);
@@ -369,6 +369,9 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
     expect(screen.getByLabelText("Leaf width")).toHaveValue(175);
     expect(screen.getByLabelText("Leaf height")).toHaveValue(50);
+    expect(
+      screen.getByRole("button", { name: "Set default leaf color mint" }),
+    ).toHaveClass("on");
     expect(screen.getByLabelText("Title area")).toHaveValue(28);
     expect(screen.getByLabelText("Label top offset")).toHaveValue(4);
   });
@@ -463,6 +466,37 @@ describe("editor shell", () => {
     expect(useDocumentStore.getState().doc.settings.resizeSnapToGrid).toBe(
       false,
     );
+  });
+
+  it("applies the default leaf color setting to real and template leaf nodes", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set default leaf color lavender" }),
+    );
+
+    expect(useDocumentStore.getState().doc.settings.leafColor).toBe(
+      "lavender",
+    );
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById[
+        "account-management"
+      ]?.color,
+    ).toBe("lavender");
+
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    await userEvent.selectOptions(
+      screen.getByLabelText("View template"),
+      "level-1-map@1",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById.customer
+        ?.color,
+    ).toBe("lavender");
   });
 
   it("collapses and restores the outline from the rail", async () => {
@@ -1125,7 +1159,8 @@ describe("editor shell", () => {
 
     const doc = useDocumentStore.getState().doc;
     for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
-      expect(doc.nodesById[nodeId]!.color).toBe("lavender");
+      expect(doc.nodesById[nodeId]!.color).toBe("coral");
+      expect(doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
     }
   });
 

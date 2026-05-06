@@ -332,6 +332,14 @@ export function resolveVisualDocument(
     nodesById,
     childrenByParentId,
   });
+  materializeEffectiveColors(
+    {
+      ...doc,
+      nodesById,
+      childrenByParentId,
+    },
+    view,
+  );
 
   const layout = resolveViewLayout(doc.layout, view);
   const heatmap = resolveViewHeatmap(doc.heatmap, view);
@@ -551,6 +559,21 @@ function materializeCanvasLeafTypes(doc: CapabilityDocument): void {
     }
     if (canvasChildrenOf(doc, nodeId).length > 0) continue;
     doc.nodesById[nodeId] = { ...node, type: "leaf" };
+  }
+}
+
+function materializeEffectiveColors(
+  doc: CapabilityDocument,
+  view: VisualView,
+): void {
+  for (const [nodeId, node] of Object.entries(doc.nodesById)) {
+    const usesLeafDefault = node.type === "leaf" && !node.isTextLabel;
+    const color =
+      view.nodeStatesById[nodeId]?.colorOverride ??
+      node.colorOverride ??
+      (usesLeafDefault ? doc.settings.leafColor : node.color);
+    if (node.color === color) continue;
+    doc.nodesById[nodeId] = { ...node, color };
   }
 }
 
