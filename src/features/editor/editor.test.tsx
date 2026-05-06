@@ -196,7 +196,7 @@ describe("editor shell", () => {
 
     expect(
       screen.getAllByText(
-        "Shows exactly the nodes that are currently visible on the canvas, using the current layout and export settings. Use this when you want a view that mirrors the working model without hiding levels.",
+        "Current working canvas with no level filter or export framing.",
       ).length,
     ).toBeGreaterThan(0);
 
@@ -206,14 +206,14 @@ describe("editor shell", () => {
     );
     expect(
       screen.getByText(
-        "Shows the top three structural levels and collapses level-2 parents that have children. Uses 16:9 export framing and shows the heatmap legend when heatmap is active.",
+        "Top three levels with deeper branches collapsed and 16:9 export framing.",
       ),
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Create" }));
     expect(
       screen.getAllByText(
-        "Shows the top three structural levels and collapses level-2 parents that have children. Uses 16:9 export framing and shows the heatmap legend when heatmap is active.",
+        "Top three levels with deeper branches collapsed and 16:9 export framing.",
       ).length,
     ).toBeGreaterThan(1);
   });

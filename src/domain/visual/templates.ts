@@ -25,50 +25,46 @@ export const BUILT_IN_VIEW_TEMPLATES: VisualTemplateDefinition[] = [
   {
     id: "full-model-default@1",
     name: "Full model default",
-    description:
-      "Shows exactly the nodes that are currently visible on the canvas, using the current layout and export settings. Use this when you want a view that mirrors the working model without hiding levels.",
+    description: "Current working canvas with no level filter or export framing.",
   },
   {
     id: "level-1-map@1",
     name: "Level 1 map",
-    description:
-      "Shows root capabilities and their direct children only. Grandchildren and deeper nodes are hidden so the view stays at the first decomposition level.",
+    description: "Roots and direct children only; hides level 2 and deeper.",
   },
   {
     id: "level-2-map@1",
     name: "Level 2 map",
-    description:
-      "Shows root capabilities, their children, and grandchildren. Level 3 and deeper nodes are hidden for a mid-level capability map.",
+    description: "Roots through grandchildren; hides level 3 and deeper.",
   },
   {
     id: "level-3-map@1",
     name: "Level 3 map",
-    description:
-      "Shows root capabilities down through level 3, including great-grandchildren. Any deeper nodes are hidden while more operational detail remains visible.",
+    description: "Roots through level 3; hides deeper detail.",
   },
   {
     id: "executive-overview@1",
     name: "Executive overview",
     description:
-      "Shows the top three structural levels and collapses level-2 parents that have children. Uses 16:9 export framing and shows the heatmap legend when heatmap is active.",
+      "Top three levels with deeper branches collapsed and 16:9 export framing.",
   },
   {
     id: "domain-deep-dive@1",
     name: "Domain deep-dive",
     description:
-      "Focuses on the selected capability subtree, or the first root when nothing is selected. Includes up to four descendant levels and hides the rest of the model.",
+      "Selected capability plus up to four descendant levels; hides the rest.",
   },
   {
     id: "heatmap-overview@1",
     name: "Heatmap overview",
     description:
-      "Shows root capabilities down through level 3, enables heatmap mode, and places the legend in the bottom-right. Use this to compare scores across a compact model overview.",
+      "Level 3 map with heatmap enabled and legend shown bottom-right.",
   },
   {
     id: "presentation-slide@1",
     name: "Presentation slide",
     description:
-      "Shows the full current visible model but applies presentation export defaults: 16:9 page, title and footer on, and grid off. Use this when preparing a slide export.",
+      "Current working canvas with 16:9 slide export settings.",
   },
 ];
 
