@@ -190,6 +190,29 @@ describe("editor shell", () => {
     );
   });
 
+  it("renders depth-limited view endpoints as leaf cards", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    await userEvent.selectOptions(
+      screen.getByLabelText("View template"),
+      "level-1-map@1",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    const canvas = screen.getByTestId("canvas");
+    const customerNode = within(canvas)
+      .getByText("Customer")
+      .closest(".cc-node") as HTMLElement;
+    const rootNode = within(canvas)
+      .getByText("Retail Banking")
+      .closest(".cc-node") as HTMLElement;
+
+    expect(customerNode).not.toHaveClass("cc-node-container");
+    expect(customerNode.querySelector(".cc-node-title")).not.toBeInTheDocument();
+    expect(rootNode).toHaveClass("cc-node-container");
+    expect(within(canvas).queryByText("Channels")).not.toBeInTheDocument();
+  });
+
   it("shows template and saved view descriptions in the views drawer", async () => {
     render(<EditorRoute />);
     await userEvent.click(screen.getByRole("button", { name: "Open views" }));

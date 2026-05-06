@@ -268,6 +268,25 @@ describe("document store layout settings", () => {
     ).toEqual([]);
   });
 
+  it("auto-lays out depth-limited template endpoints as leaves", async () => {
+    useDocumentStore
+      .getState()
+      .execute(createVisualView({ templateId: "level-1-map@1" }));
+    await waitForStoreRelayout();
+
+    const doc = useDocumentStore.getState().doc;
+    const resolved = resolveVisualDocument(doc);
+    expect(resolved.nodesById.root?.type).toBe("root");
+    expect(resolved.nodesById.servicing?.type).toBe("leaf");
+    expect(resolved.nodesById["account-management"]?.isOnCanvas).toBe(false);
+    expect(resolved.nodesById.servicing!.w).toBeLessThanOrEqual(
+      doc.settings.fixedLeafWidth + doc.settings.gridSize,
+    );
+    expect(resolved.nodesById.servicing!.h).toBeLessThanOrEqual(
+      doc.settings.fixedLeafHeight + doc.settings.gridSize,
+    );
+  });
+
   it("auto-lays out collapsed and expanded containers in the active view", async () => {
     const viewId = useDocumentStore.getState().doc.visual.activeViewId;
     await useDocumentStore.getState().autoLayout(true);

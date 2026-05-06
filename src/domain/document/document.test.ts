@@ -242,6 +242,9 @@ describe("document JSON adapter", () => {
     expect(l1Resolved.nodesById.customer?.isOnCanvas).toBe(true);
     expect(l1Resolved.nodesById.risk?.isOnCanvas).toBe(true);
     expect(l1Resolved.nodesById.channels?.isOnCanvas).toBe(false);
+    expect(l1.nodesById.customer?.type).toBe("parent");
+    expect(l1Resolved.nodesById.customer?.type).toBe("leaf");
+    expect(l1Resolved.nodesById["retail-banking"]?.type).toBe("root");
 
     const l2 = runTransaction(
       createSampleDocument(),
@@ -251,6 +254,8 @@ describe("document JSON adapter", () => {
     expect(l2Resolved.nodesById.channels?.isOnCanvas).toBe(true);
     expect(l2Resolved.nodesById.servicing?.isOnCanvas).toBe(true);
     expect(l2Resolved.nodesById.digital?.isOnCanvas).toBe(false);
+    expect(l2Resolved.nodesById.customer?.type).toBe("parent");
+    expect(l2Resolved.nodesById.channels?.type).toBe("leaf");
 
     const l3 = runTransaction(
       createSampleDocument(),
@@ -260,6 +265,7 @@ describe("document JSON adapter", () => {
     expect(l3Resolved.nodesById.digital?.isOnCanvas).toBe(true);
     expect(l3Resolved.nodesById.branch?.isOnCanvas).toBe(true);
     expect(l3Resolved.nodesById["digital-onboarding"]?.isOnCanvas).toBe(false);
+    expect(l3Resolved.nodesById.digital?.type).toBe("leaf");
   });
 
   it("preserves domain deep-dive template context through JSON and reset", () => {
