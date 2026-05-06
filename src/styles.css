@@ -237,6 +237,16 @@ button:disabled {
   background: var(--cc-brand-700-hover);
 }
 
+.cc-btn-danger {
+  color: var(--cc-white);
+  background: var(--cc-danger);
+  border-color: var(--cc-danger);
+}
+
+.cc-btn-danger:hover {
+  background: #dc2626;
+}
+
 .cc-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -665,6 +675,19 @@ button:focus-visible {
   border-radius: 8px;
   background: var(--cc-white);
   box-shadow: var(--cc-shadow-md);
+}
+
+.cc-confirm-dialog {
+  width: min(460px, calc(100vw - 40px));
+  gap: 14px;
+  padding: 18px;
+}
+
+.cc-confirm-body {
+  margin: 0;
+  color: var(--cc-slate-700);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .cc-modal-head,

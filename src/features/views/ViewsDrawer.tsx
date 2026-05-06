@@ -30,7 +30,16 @@ import {
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { IconButton } from "../shared/IconButton";
+
+interface ConfirmRequest {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  tone?: "default" | "danger";
+  onConfirm: () => void;
+}
 
 export function ViewsDrawer() {
   const doc = useDocumentStore((state) => state.doc);
@@ -46,6 +55,9 @@ export function ViewsDrawer() {
   const setSelection = useUiStore((state) => state.setSelection);
   const [templateId, setTemplateId] =
     useState<VisualTemplateId>("full-model-default@1");
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(
+    null,
+  );
   const orderedViews = doc.visual.viewOrder
     .map((viewId) => doc.visual.viewsById[viewId])
     .filter(Boolean);
@@ -197,12 +209,16 @@ export function ViewsDrawer() {
                   icon={RotateCcw}
                   label={`Reset ${view.name}`}
                   onClick={() => {
-                    if (
-                      viewHasChanges(view) &&
-                      !window.confirm(`Reset "${view.name}" to source defaults?`)
-                    )
+                    if (!viewHasChanges(view)) {
+                      execute(resetVisualView(view.id));
                       return;
-                    execute(resetVisualView(view.id));
+                    }
+                    setConfirmRequest({
+                      title: "Reset view",
+                      body: `Reset "${view.name}" to source defaults? This discards layout, visibility, collapse, and view settings for this view.`,
+                      confirmLabel: "Reset",
+                      onConfirm: () => execute(resetVisualView(view.id)),
+                    });
                   }}
                 />
                 <IconButton
@@ -210,14 +226,18 @@ export function ViewsDrawer() {
                   label={`Reset ${view.name} to ${templateNameForView(view)} template`}
                   onClick={() => {
                     const viewTemplateId = templateIdForView(view);
-                    if (
-                      viewHasChanges(view) &&
-                      !window.confirm(
-                        `Reset "${view.name}" to the ${templateById(viewTemplateId).name} template?`,
-                      )
-                    )
+                    const templateName = templateById(viewTemplateId).name;
+                    if (!viewHasChanges(view)) {
+                      execute(resetVisualViewFromTemplate(view.id, viewTemplateId));
                       return;
-                    execute(resetVisualViewFromTemplate(view.id, viewTemplateId));
+                    }
+                    setConfirmRequest({
+                      title: "Reset from template",
+                      body: `Reset "${view.name}" to the ${templateName} template? This discards layout, visibility, collapse, and view settings for this view.`,
+                      confirmLabel: "Reset",
+                      onConfirm: () =>
+                        execute(resetVisualViewFromTemplate(view.id, viewTemplateId)),
+                    });
                   }}
                 />
                 <IconButton
@@ -225,9 +245,13 @@ export function ViewsDrawer() {
                   label={`Delete ${view.name}`}
                   disabled={!hasMultipleViews}
                   onClick={() => {
-                    if (!window.confirm(`Delete visual view "${view.name}"?`))
-                      return;
-                    execute(deleteVisualView(view.id));
+                    setConfirmRequest({
+                      title: "Delete view",
+                      body: `Delete visual view "${view.name}"? This cannot be undone from the Views drawer.`,
+                      confirmLabel: "Delete",
+                      tone: "danger",
+                      onConfirm: () => execute(deleteVisualView(view.id)),
+                    });
                   }}
                 />
               </div>
@@ -235,6 +259,20 @@ export function ViewsDrawer() {
           </div>
         </section>
       </div>
+      {confirmRequest && (
+        <ConfirmDialog
+          title={confirmRequest.title}
+          body={confirmRequest.body}
+          confirmLabel={confirmRequest.confirmLabel}
+          tone={confirmRequest.tone}
+          onCancel={() => setConfirmRequest(null)}
+          onConfirm={() => {
+            const action = confirmRequest.onConfirm;
+            setConfirmRequest(null);
+            action();
+          }}
+        />
+      )}
     </aside>
   );
 }

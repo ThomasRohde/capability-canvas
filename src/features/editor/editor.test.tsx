@@ -191,7 +191,6 @@ describe("editor shell", () => {
   });
 
   it("resets each view to its own template instead of the create picker template", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<EditorRoute />);
     await userEvent.click(screen.getByRole("button", { name: "Open views" }));
     await userEvent.selectOptions(
@@ -205,6 +204,13 @@ describe("editor shell", () => {
         name: "Reset Default view to Full model default template",
       }),
     );
+    const dialog = screen.getByRole("alertdialog", {
+      name: "Reset from template",
+    });
+    expect(
+      within(dialog).getByText(/Full model default template/),
+    ).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Reset" }));
 
     const doc = useDocumentStore.getState().doc;
     const defaultView = resolveVisualDocument(doc, "view-default");
