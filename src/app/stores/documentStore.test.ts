@@ -222,50 +222,59 @@ describe("document store layout settings", () => {
     expect(unchangedFirst).toBe(beforeFirstState);
   });
 
-  it("treats collapsed containers as leaves for layout and restores children on expand", async () => {
+  it("auto-lays out collapsed and expanded containers in the active view", async () => {
     const viewId = useDocumentStore.getState().doc.visual.activeViewId;
     await useDocumentStore.getState().autoLayout(true);
     const expandedBefore = resolveVisualDocument(
       useDocumentStore.getState().doc,
-    ).nodesById.servicing!;
+    ).nodesById.operations!;
 
     useDocumentStore
       .getState()
-      .execute(updateVisualNodeState(viewId, "servicing", { isCollapsed: true }));
-    await useDocumentStore.getState().autoLayout(true);
+      .execute(updateVisualNodeState(viewId, "operations", { isCollapsed: true }));
+    await waitForStoreRelayout();
 
     let doc = useDocumentStore.getState().doc;
     let resolved = resolveVisualDocument(doc);
-    expect(resolved.childrenByParentId.servicing).toEqual([]);
-    expect(resolved.nodesById.servicing!.type).toBe("leaf");
-    expect(resolved.nodesById.servicing!.w).toBeLessThan(expandedBefore.w);
-    expect(resolved.nodesById.servicing!.h).toBeLessThanOrEqual(
+    expect(resolved.childrenByParentId.operations).toEqual([]);
+    expect(resolved.nodesById.operations!.type).toBe("leaf");
+    expect(resolved.nodesById.operations!.w).toBeLessThan(expandedBefore.w);
+    expect(resolved.nodesById.operations!.h).toBeLessThanOrEqual(
       expandedBefore.h,
     );
-    expect(resolved.nodesById.servicing!.w).toBeLessThanOrEqual(
+    expect(resolved.nodesById.operations!.w).toBeLessThanOrEqual(
       doc.settings.fixedLeafWidth + doc.settings.gridSize,
     );
-    expect(resolved.nodesById.servicing!.h).toBeLessThanOrEqual(
+    expect(resolved.nodesById.operations!.h).toBeLessThanOrEqual(
       doc.settings.fixedLeafHeight + doc.settings.gridSize,
     );
-    expect(resolved.nodesById["account-management"]?.isOnCanvas).toBe(false);
+    expect(resolved.nodesById["process-management"]?.isOnCanvas).toBe(false);
     expect(
-      doc.visual.viewsById[viewId]!.nodeStatesById["account-management"]
+      doc.visual.viewsById[viewId]!.nodeStatesById["process-management"]
         ?.isOnCanvas,
     ).not.toBe(false);
 
     useDocumentStore
       .getState()
-      .execute(updateVisualNodeState(viewId, "servicing", { isCollapsed: false }));
+      .execute(updateVisualNodeState(viewId, "operations", { isCollapsed: false }));
+    await waitForStoreRelayout();
 
     doc = useDocumentStore.getState().doc;
     resolved = resolveVisualDocument(doc);
-    expect(resolved.childrenByParentId.servicing).toEqual([
-      "account-management",
-      "customer-support",
-      "communications",
+    expect(resolved.childrenByParentId.operations).toEqual([
+      "process-management",
+      "data-management",
+      "technology-operations",
+      "vendor-management",
     ]);
-    expect(resolved.nodesById["account-management"]?.isOnCanvas).toBe(true);
+    expect(resolved.nodesById["process-management"]?.isOnCanvas).toBe(true);
+    expectChildrenInsideParent(resolved, "operations", [
+      "process-management",
+      "data-management",
+      "technology-operations",
+      "vendor-management",
+    ]);
+    expect(findParentContainmentViolations(resolved)).toEqual([]);
   });
 });
 
@@ -472,6 +481,21 @@ function geometrySnapshot(doc: CapabilityDocument, ids: string[]) {
       return [id, { x: node.x, y: node.y, w: node.w, h: node.h }];
     }),
   );
+}
+
+function expectChildrenInsideParent(
+  doc: CapabilityDocument,
+  parentId: string,
+  childIds: string[],
+) {
+  const parent = doc.nodesById[parentId]!;
+  for (const childId of childIds) {
+    const child = doc.nodesById[childId]!;
+    expect(child.x).toBeGreaterThanOrEqual(parent.x);
+    expect(child.y).toBeGreaterThanOrEqual(parent.y);
+    expect(child.x + child.w).toBeLessThanOrEqual(parent.x + parent.w);
+    expect(child.y + child.h).toBeLessThanOrEqual(parent.y + parent.h);
+  }
 }
 
 async function waitForStoreRelayout() {

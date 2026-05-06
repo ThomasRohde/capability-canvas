@@ -535,59 +535,83 @@ export function updateVisualNodeState(
   nodeId: NodeId,
   patch: VisualNodeState,
 ): Transaction {
-  return transaction("Update visual node state", [
-    command("update-visual-node-state", { viewId, nodeId, patch }, (doc) => {
-      if (!doc.nodesById[nodeId])
-        return fail(doc, "missing-node", "The selected capability no longer exists.");
-      const view = doc.visual.viewsById[viewId];
-      if (!view) return fail(doc, "missing-view", "Select a valid view.");
-      const next = cloneDocument(doc);
-      const visual = cloneVisualWorkspace(next.visual);
-      const nextView = visual.viewsById[viewId]!;
-      let nodeState: VisualNodeState = {
-        ...(nextView.nodeStatesById[nodeId] ?? {}),
-        ...patch,
-      };
-      if (patch.isCollapsed === true) {
-        const visibility: Record<NodeId, boolean> = {};
-        for (const descendantId of subtreeNodeIds(doc, nodeId).slice(1)) {
-          const descendant = doc.nodesById[descendantId];
-          if (!descendant) continue;
-          const descendantState = nextView.nodeStatesById[descendantId];
-          visibility[descendantId] =
-            typeof descendantState?.isOnCanvas === "boolean"
-              ? descendantState.isOnCanvas
-              : isNodeOnCanvas(descendant);
-        }
-        nodeState = {
-          ...nodeState,
-          [COLLAPSED_VISIBILITY_KEY]: visibility,
+  const isCollapseToggle = typeof patch.isCollapsed === "boolean";
+  const label =
+    patch.isCollapsed === true
+      ? "Collapse capability"
+      : patch.isCollapsed === false
+        ? "Expand capability"
+        : "Update visual node state";
+
+  return transaction(
+    label,
+    [
+      command("update-visual-node-state", { viewId, nodeId, patch }, (doc) => {
+        if (!doc.nodesById[nodeId])
+          return fail(
+            doc,
+            "missing-node",
+            "The selected capability no longer exists.",
+          );
+        const view = doc.visual.viewsById[viewId];
+        if (!view) return fail(doc, "missing-view", "Select a valid view.");
+        const next = cloneDocument(doc);
+        const visual = cloneVisualWorkspace(next.visual);
+        const nextView = visual.viewsById[viewId]!;
+        let nodeState: VisualNodeState = {
+          ...(nextView.nodeStatesById[nodeId] ?? {}),
+          ...patch,
         };
-      }
-      if (patch.isCollapsed === false) {
-        const savedVisibility = readCollapsedVisibility(nodeState);
-        for (const descendantId of subtreeNodeIds(doc, nodeId).slice(1)) {
-          const descendant = doc.nodesById[descendantId];
-          if (!descendant) continue;
-          nextView.nodeStatesById[descendantId] = {
-            ...(nextView.nodeStatesById[descendantId] ?? {}),
-            isOnCanvas:
-              savedVisibility?.[descendantId] ?? isNodeOnCanvas(descendant),
+        if (patch.isCollapsed === true) {
+          const visibility: Record<NodeId, boolean> = {};
+          for (const descendantId of subtreeNodeIds(doc, nodeId).slice(1)) {
+            const descendant = doc.nodesById[descendantId];
+            if (!descendant) continue;
+            const descendantState = nextView.nodeStatesById[descendantId];
+            visibility[descendantId] =
+              typeof descendantState?.isOnCanvas === "boolean"
+                ? descendantState.isOnCanvas
+                : isNodeOnCanvas(descendant);
+          }
+          nodeState = {
+            ...nodeState,
+            [COLLAPSED_VISIBILITY_KEY]: visibility,
           };
         }
-        delete nodeState.isCollapsed;
-        delete nodeState[COLLAPSED_VISIBILITY_KEY];
-      }
-      nextView.nodeStatesById[nodeId] = nodeState;
-      next.visual = visual;
-      nextView.layout = {
-        ...nextView.layout,
-        boundingBox: computeDocumentBounds(resolveVisualDocument(next, viewId)),
-      };
-      nextView.updatedAt = now();
-      return ok(materializeActiveViewMetadata(next));
-    }),
-  ]);
+        if (patch.isCollapsed === false) {
+          const savedVisibility = readCollapsedVisibility(nodeState);
+          for (const descendantId of subtreeNodeIds(doc, nodeId).slice(1)) {
+            const descendant = doc.nodesById[descendantId];
+            if (!descendant) continue;
+            nextView.nodeStatesById[descendantId] = {
+              ...(nextView.nodeStatesById[descendantId] ?? {}),
+              isOnCanvas:
+                savedVisibility?.[descendantId] ?? isNodeOnCanvas(descendant),
+            };
+          }
+          delete nodeState.isCollapsed;
+          delete nodeState[COLLAPSED_VISIBILITY_KEY];
+        }
+        nextView.nodeStatesById[nodeId] = nodeState;
+        next.visual = visual;
+        nextView.layout = {
+          ...nextView.layout,
+          boundingBox: computeDocumentBounds(resolveVisualDocument(next, viewId)),
+        };
+        nextView.updatedAt = now();
+        return ok(materializeActiveViewMetadata(next));
+      }),
+    ],
+    isCollapseToggle
+      ? {
+          relayout: {
+            scope: (_beforeDoc, afterDoc) =>
+              visualNodeParentRelayoutScope(afterDoc, nodeId),
+            force: true,
+          },
+        }
+      : undefined,
+  );
 }
 
 export function resetVisualView(viewId: VisualViewId): Transaction {
@@ -1190,6 +1214,16 @@ function ok(doc: CapabilityDocument) {
 
 function fail(doc: CapabilityDocument, code: string, message: string) {
   return { doc, diagnostics: [error(code, message)] };
+}
+
+function visualNodeParentRelayoutScope(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): NodeId[] {
+  const node = doc.nodesById[nodeId];
+  if (!node || !isNodeOnCanvas(node)) return [];
+  const parent = node.parentId ? doc.nodesById[node.parentId] : undefined;
+  return parent && isNodeOnCanvas(parent) ? [parent.id] : [nodeId];
 }
 
 function readCollapsedVisibility(
