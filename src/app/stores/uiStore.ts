@@ -13,7 +13,7 @@ export interface CanvasSizeState {
   h: number;
 }
 
-export type ActiveDrawer = "settings" | "export" | null;
+export type ActiveDrawer = "settings" | "export" | "views" | null;
 
 export const DEFAULT_OUTLINE_WIDTH = 260;
 export const MIN_OUTLINE_WIDTH = 220;

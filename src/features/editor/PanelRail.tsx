@@ -1,4 +1,4 @@
-import { Download, PanelLeft, PanelRight, Settings } from 'lucide-react';
+import { Download, Layers3, PanelLeft, PanelRight, Settings } from 'lucide-react';
 import { useUiStore } from '../../app/stores/uiStore';
 
 export function PanelRail() {
@@ -30,6 +30,16 @@ export function PanelRail() {
         onClick={toggleInspector}
       >
         <PanelRight />
+      </button>
+      <button
+        className={`cc-rail-btn ${activeDrawer === 'views' ? 'active' : ''}`}
+        type="button"
+        aria-label="Open views"
+        aria-pressed={activeDrawer === 'views'}
+        title="Views"
+        onClick={() => setActiveDrawer(activeDrawer === 'views' ? null : 'views')}
+      >
+        <Layers3 />
       </button>
       <span className="cc-rail-separator" />
       <button

@@ -5,6 +5,7 @@ import { ExportDrawer } from "../export/ExportDrawer";
 import { Inspector } from "../inspector/Inspector";
 import { Outline } from "../outline/Outline";
 import { SettingsDrawer } from "../settings/SettingsDrawer";
+import { ViewsDrawer } from "../views/ViewsDrawer";
 import { PanelRail } from "./PanelRail";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
@@ -32,6 +33,7 @@ export function EditorRoute() {
       <StatusBar />
       <ExportDrawer />
       <SettingsDrawer />
+      <ViewsDrawer />
     </div>
   );
 }

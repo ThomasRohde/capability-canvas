@@ -5,8 +5,11 @@ import {
 } from "@headless-tree/core";
 import { useTree } from "@headless-tree/react";
 import {
+  ChevronsRight,
   ChevronDown,
   ChevronRight,
+  Eye,
+  EyeOff,
   Filter,
   MoreHorizontal,
   Plus,
@@ -275,6 +278,7 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
               doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
                 node.id
               ];
+            const visibleInView = isNodeOnCanvas(viewDoc.nodesById[node.id]);
             return (
               <div
                 {...itemProps}
@@ -306,13 +310,27 @@ export function Outline({ readonly = false }: { readonly?: boolean }) {
                   style={{ color: style.border, background: style.background }}
                 />
                 <span className="cc-tree-label">{node.label}</span>
-                <span className="cc-tree-visibility">
-                  {isNodeOnCanvas(viewDoc.nodesById[node.id])
-                    ? "On view"
-                    : "Hidden"}
+                <span
+                  className={`cc-tree-visibility ${visibleInView ? "visible" : "hidden"}`}
+                  title={
+                    visibleInView
+                      ? "Visible in active view"
+                      : "Hidden in active view"
+                  }
+                >
+                  {visibleInView ? (
+                    <Eye aria-label="Visible in active view" />
+                  ) : (
+                    <EyeOff aria-label="Hidden in active view" />
+                  )}
                 </span>
                 {activeViewState?.isCollapsed && (
-                  <span className="cc-tree-visibility">Collapsed</span>
+                  <span
+                    className="cc-tree-visibility collapsed"
+                    title="Collapsed in active view"
+                  >
+                    <ChevronsRight aria-label="Collapsed in active view" />
+                  </span>
                 )}
                 {viewDoc.heatmap.enabled && node.heatmapValue !== undefined && (
                   <span className="cc-tree-score">

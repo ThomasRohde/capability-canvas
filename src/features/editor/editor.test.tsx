@@ -48,7 +48,7 @@ describe("editor shell", () => {
     render(<EditorRoute />);
     expect(screen.getByText("Capability Canvas")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Switch visual view" }),
+      screen.getByRole("button", { name: "Open active view" }),
     ).toBeInTheDocument();
     expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
     expect(screen.getByText("Outline")).toBeInTheDocument();
@@ -167,21 +167,23 @@ describe("editor shell", () => {
     expect(Number.isFinite(centeredViewport.y)).toBe(true);
   });
 
-  it("creates and switches visual views from the toolbar", async () => {
+  it("creates and switches visual views from the views drawer", async () => {
     render(<EditorRoute />);
     await userEvent.click(
-      screen.getByRole("button", { name: "Create visual view" }),
+      screen.getByRole("button", { name: "Open views" }),
     );
+    expect(
+      screen.getByRole("complementary", { name: "Views" }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
 
     expect(useDocumentStore.getState().doc.visual.viewOrder).toHaveLength(2);
     expect(
-      screen.getByRole("button", { name: "Switch visual view" }),
-    ).toHaveTextContent("New view");
-
+      screen.getByRole("button", { name: "Open active view" }),
+    ).toHaveTextContent("Full model default");
     await userEvent.click(
-      screen.getByRole("button", { name: "Switch visual view" }),
+      screen.getByRole("button", { name: "Use Default view" }),
     );
-    await userEvent.click(screen.getByRole("menuitem", { name: "Default view" }));
 
     expect(useDocumentStore.getState().doc.visual.activeViewId).toBe(
       "view-default",
@@ -768,11 +770,19 @@ describe("editor shell", () => {
     expect(frame.style.height).toBe("32px");
   });
 
-  it("switches settings and export drawers from the rail", async () => {
+  it("switches views, settings and export drawers from the rail", async () => {
     render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    expect(
+      screen.getByRole("complementary", { name: "Views" }),
+    ).toBeInTheDocument();
+
     await userEvent.click(
       screen.getByRole("button", { name: "Open settings" }),
     );
+    expect(
+      screen.queryByRole("complementary", { name: "Views" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("complementary", { name: "Settings" }),
     ).toBeInTheDocument();

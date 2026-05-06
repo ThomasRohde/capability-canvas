@@ -237,9 +237,16 @@ describe("document store layout settings", () => {
     let doc = useDocumentStore.getState().doc;
     let resolved = resolveVisualDocument(doc);
     expect(resolved.childrenByParentId.servicing).toEqual([]);
+    expect(resolved.nodesById.servicing!.type).toBe("leaf");
     expect(resolved.nodesById.servicing!.w).toBeLessThan(expandedBefore.w);
     expect(resolved.nodesById.servicing!.h).toBeLessThanOrEqual(
       expandedBefore.h,
+    );
+    expect(resolved.nodesById.servicing!.w).toBeLessThanOrEqual(
+      doc.settings.fixedLeafWidth + doc.settings.gridSize,
+    );
+    expect(resolved.nodesById.servicing!.h).toBeLessThanOrEqual(
+      doc.settings.fixedLeafHeight + doc.settings.gridSize,
     );
     expect(resolved.nodesById["account-management"]?.isOnCanvas).toBe(false);
     expect(

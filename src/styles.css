@@ -528,14 +528,36 @@ button:focus-visible {
 }
 
 .cc-tree-visibility {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
   border: 1px solid var(--cc-slate-200);
   border-radius: 999px;
   color: var(--cc-slate-500);
-  font-size: 10px;
-  line-height: 1;
-  padding: 3px 5px;
-  white-space: nowrap;
+}
+
+.cc-tree-visibility svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 1.8;
+}
+
+.cc-tree-visibility.visible {
+  color: var(--cc-brand-700);
+  background: var(--cc-brand-50);
+}
+
+.cc-tree-visibility.hidden {
+  color: var(--cc-slate-400);
+  background: var(--cc-slate-50);
+}
+
+.cc-tree-visibility.collapsed {
+  color: var(--cc-warning);
+  background: #fffbeb;
 }
 
 .cc-tree-actions {
@@ -758,7 +780,7 @@ button:focus-visible {
 
 .cc-view-row {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto auto auto auto auto auto;
+  grid-template-columns: 28px minmax(120px, 1fr) repeat(5, 32px) auto 32px;
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -766,8 +788,57 @@ button:focus-visible {
   border-radius: 8px;
 }
 
+.cc-view-row.active {
+  border-color: var(--cc-brand-300);
+  background: var(--cc-brand-50);
+}
+
+.cc-view-use {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cc-slate-500);
+}
+
+.cc-view-use[aria-current="true"] {
+  color: var(--cc-brand-700);
+}
+
+.cc-view-use svg {
+  width: 15px;
+  height: 15px;
+}
+
+.cc-view-template-reset {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
 .cc-view-row .cc-icon-btn {
   font-size: 11px;
+}
+
+.cc-active-view-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-slate-50);
+  font-size: 12px;
+}
+
+.cc-active-view-card span {
+  color: var(--cc-slate-500);
 }
 
 .cc-paste-json {
@@ -1394,6 +1465,21 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   width: 360px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-views-drawer {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  bottom: 4px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 80px));
   border: 1px solid var(--cc-slate-200);
   border-radius: 10px;
   background: #fff;

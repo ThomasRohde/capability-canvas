@@ -469,9 +469,14 @@ function resolveVisualNode(
   state: VisualNodeState | undefined,
 ): CapabilityNode {
   if (!state) return { ...node, metadata: { ...node.metadata } };
+  const isCollapsed = state.isCollapsed === true;
   return {
     ...node,
     metadata: { ...node.metadata },
+    type:
+      isCollapsed && node.type !== "text" && !node.isTextLabel
+        ? "leaf"
+        : node.type,
     x: numberOr(state.x, node.x),
     y: numberOr(state.y, node.y),
     w: positiveOr(state.w, node.w),
