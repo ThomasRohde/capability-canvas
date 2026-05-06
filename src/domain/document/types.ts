@@ -126,6 +126,9 @@ export interface VisualView {
   createdAt: number;
   updatedAt: number;
   templateId?: string;
+  templateContext?: {
+    rootId?: NodeId;
+  };
   nodeStatesById: Record<NodeId, VisualNodeState>;
   viewport?: VisualViewport;
   layout: {

@@ -414,30 +414,36 @@ export function createVisualView(args: {
   templateId?: VisualTemplateId;
   rootId?: NodeId;
 } = {}): Transaction {
-  return transaction("Create visual view", [
-    command("create-visual-view", args, (doc) => {
-      const next = cloneDocument(doc);
-      const id = makeId("view");
-      const view = args.templateId
-        ? createViewFromTemplate(doc, {
-            id,
-            templateId: args.templateId,
-            name: args.name,
-            context: { rootId: args.rootId },
-          })
-        : createVisualViewFromDocument(doc, {
-            id,
-            name: args.name?.trim() || "New view",
-            templateId: "full-model-default@1",
-          });
-      const visual = cloneVisualWorkspace(next.visual);
-      visual.viewsById[id] = view;
-      visual.viewOrder.push(id);
-      visual.activeViewId = id;
-      next.visual = visual;
-      return ok(materializeActiveViewMetadata(next));
-    }),
-  ]);
+  const id = makeId("view");
+  return transaction(
+    "Create visual view",
+    [
+      command("create-visual-view", { ...args, id }, (doc) => {
+        const next = cloneDocument(doc);
+        const view = args.templateId
+          ? createViewFromTemplate(doc, {
+              id,
+              templateId: args.templateId,
+              name: args.name,
+              context: { rootId: args.rootId },
+            })
+          : createVisualViewFromDocument(doc, {
+              id,
+              name: args.name?.trim() || "New view",
+              templateId: "full-model-default@1",
+            });
+        const visual = cloneVisualWorkspace(next.visual);
+        visual.viewsById[id] = view;
+        visual.viewOrder.push(id);
+        visual.activeViewId = id;
+        next.visual = visual;
+        return ok(materializeActiveViewMetadata(next));
+      }),
+    ],
+    args.templateId
+      ? { relayout: { scope: "document", force: true, viewId: id } }
+      : undefined,
+  );
 }
 
 export function duplicateVisualView(viewId?: VisualViewId): Transaction {
@@ -643,26 +649,35 @@ export function resetVisualViewFromTemplate(
   templateId: VisualTemplateId,
   rootId?: NodeId,
 ): Transaction {
-  return transaction("Reset visual view from template", [
-    command("reset-visual-view-from-template", { viewId, templateId, rootId }, (doc) => {
-      const existing = doc.visual.viewsById[viewId];
-      if (!existing) return fail(doc, "missing-view", "Select a valid view.");
-      const next = cloneDocument(doc);
-      const visual = cloneVisualWorkspace(next.visual);
-      visual.viewsById[viewId] = {
-        ...createViewFromTemplate(doc, {
-          id: viewId,
-          templateId,
-          name: existing.name,
-          context: { rootId },
-        }),
-        createdAt: existing.createdAt,
-        updatedAt: now(),
-      };
-      next.visual = visual;
-      return ok(materializeActiveViewMetadata(next));
-    }),
-  ]);
+  return transaction(
+    "Reset visual view from template",
+    [
+      command(
+        "reset-visual-view-from-template",
+        { viewId, templateId, rootId },
+        (doc) => {
+          const existing = doc.visual.viewsById[viewId];
+          if (!existing) return fail(doc, "missing-view", "Select a valid view.");
+          const contextRootId = rootId ?? existing.templateContext?.rootId;
+          const next = cloneDocument(doc);
+          const visual = cloneVisualWorkspace(next.visual);
+          visual.viewsById[viewId] = {
+            ...createViewFromTemplate(doc, {
+              id: viewId,
+              templateId,
+              name: existing.name,
+              context: { rootId: contextRootId },
+            }),
+            createdAt: existing.createdAt,
+            updatedAt: now(),
+          };
+          next.visual = visual;
+          return ok(materializeActiveViewMetadata(next));
+        },
+      ),
+    ],
+    { relayout: { scope: "document", force: true, viewId } },
+  );
 }
 
 export function setDefaultVisualView(viewId: VisualViewId): Transaction {

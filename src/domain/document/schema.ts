@@ -166,6 +166,12 @@ export const VisualViewSchema = z
     createdAt: finiteNumber,
     updatedAt: finiteNumber,
     templateId: z.string().optional(),
+    templateContext: z
+      .object({
+        rootId: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
     nodeStatesById: z.record(z.string(), VisualNodeStateSchema).default({}),
     viewport: z
       .object({

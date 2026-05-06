@@ -3,6 +3,9 @@ import { createVisualViewFromDocument } from "./workspace";
 
 export type VisualTemplateId =
   | "full-model-default@1"
+  | "level-1-map@1"
+  | "level-2-map@1"
+  | "level-3-map@1"
   | "executive-overview@1"
   | "domain-deep-dive@1"
   | "heatmap-overview@1"
@@ -22,27 +25,50 @@ export const BUILT_IN_VIEW_TEMPLATES: VisualTemplateDefinition[] = [
   {
     id: "full-model-default@1",
     name: "Full model default",
-    description: "Current visible model with the current layout and export defaults.",
+    description:
+      "Shows exactly the nodes that are currently visible on the canvas, using the current layout and export settings. Use this when you want a view that mirrors the working model without hiding levels.",
+  },
+  {
+    id: "level-1-map@1",
+    name: "Level 1 map",
+    description:
+      "Shows root capabilities and their direct children only. Grandchildren and deeper nodes are hidden so the view stays at the first decomposition level.",
+  },
+  {
+    id: "level-2-map@1",
+    name: "Level 2 map",
+    description:
+      "Shows root capabilities, their children, and grandchildren. Level 3 and deeper nodes are hidden for a mid-level capability map.",
+  },
+  {
+    id: "level-3-map@1",
+    name: "Level 3 map",
+    description:
+      "Shows root capabilities down through level 3, including great-grandchildren. Any deeper nodes are hidden while more operational detail remains visible.",
   },
   {
     id: "executive-overview@1",
     name: "Executive overview",
-    description: "Top levels only, presentation-friendly framing, and legend when heatmap is enabled.",
+    description:
+      "Shows the top three structural levels and collapses level-2 parents that have children. Uses 16:9 export framing and shows the heatmap legend when heatmap is active.",
   },
   {
     id: "domain-deep-dive@1",
     name: "Domain deep-dive",
-    description: "Selected domain or first root with deeper visible decomposition.",
+    description:
+      "Focuses on the selected capability subtree, or the first root when nothing is selected. Includes up to four descendant levels and hides the rest of the model.",
   },
   {
     id: "heatmap-overview@1",
     name: "Heatmap overview",
-    description: "Heatmap enabled, legend visible, and compact adaptive layout.",
+    description:
+      "Shows root capabilities down through level 3, enables heatmap mode, and places the legend in the bottom-right. Use this to compare scores across a compact model overview.",
   },
   {
     id: "presentation-slide@1",
     name: "Presentation slide",
-    description: "16:9 export defaults with title and footer enabled.",
+    description:
+      "Shows the full current visible model but applies presentation export defaults: 16:9 page, title and footer on, and grid off. Use this when preparing a slide export.",
   },
 ];
 
@@ -62,6 +88,7 @@ export function createViewFromTemplate(
     name: args.name ?? definition.name,
     description: definition.description,
     templateId: args.templateId,
+    templateContext: cloneTemplateContext(args.context),
     visibleNodeIds,
     collapsedNodeIds:
       args.templateId === "executive-overview@1"
@@ -112,8 +139,14 @@ function visibleNodesForTemplate(
   if (templateId === "full-model-default@1" || templateId === "presentation-slide@1") {
     return undefined;
   }
-  if (templateId === "executive-overview@1") {
+  if (templateId === "level-1-map@1") {
+    return new Set(nodesAtDepthOrLess(doc, 1));
+  }
+  if (templateId === "level-2-map@1" || templateId === "executive-overview@1") {
     return new Set(nodesAtDepthOrLess(doc, 2));
+  }
+  if (templateId === "level-3-map@1") {
+    return new Set(nodesAtDepthOrLess(doc, 3));
   }
   if (templateId === "domain-deep-dive@1") {
     const rootId = context?.rootId ?? childrenOf(doc, null)[0];
@@ -164,4 +197,10 @@ function subtreeIds(
   };
   walk(rootId, 0);
   return out;
+}
+
+function cloneTemplateContext(
+  context: VisualTemplateContext | undefined,
+): VisualTemplateContext | undefined {
+  return context?.rootId ? { rootId: context.rootId } : undefined;
 }

@@ -89,6 +89,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
                 ? {
                     scope: txn.meta.relayout.scope,
                     force: txn.meta.relayout.force ?? false,
+                    viewId: txn.meta.relayout.viewId,
                   }
                 : undefined,
             },
@@ -102,6 +103,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         after: result.doc,
         scope: txn.meta.relayout.scope,
         force: txn.meta.relayout.force ?? false,
+        viewId: txn.meta.relayout.viewId,
         label: txn.label,
         get,
         set,
@@ -201,6 +203,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         after,
         scope: entry.relayout.scope,
         force: entry.relayout.force,
+        viewId: entry.relayout.viewId,
         label: entry.label,
         get,
         set,
@@ -460,19 +463,20 @@ async function runRelayout(args: {
   after: CapabilityDocument;
   scope: RelayoutScope;
   force: boolean;
+  viewId?: VisualViewId;
   label: string;
   get: () => DocumentState;
   set: (partial: Partial<DocumentState>) => void;
 }): Promise<void> {
-  const { before, after, scope, force, get, set } = args;
+  const { before, after, scope, force, viewId, get, set } = args;
   if (get().doc !== after) return;
-  const resolvedBefore = resolveVisualDocument(before);
-  const resolvedAfter = resolveVisualDocument(after);
+  const resolvedBefore = resolveVisualDocument(before, viewId);
+  const resolvedAfter = resolveVisualDocument(after, viewId);
   const ids = resolveScope(scope, resolvedBefore, resolvedAfter);
   if (ids?.length === 0) return;
 
   try {
-    const result = await layoutAndRepair(after, force, ids ?? undefined);
+    const result = await layoutAndRepair(after, force, ids ?? undefined, viewId);
     if (get().doc !== after) return;
     if (result.doc === after) {
       const merged = mergeDiagnostics(
@@ -497,7 +501,7 @@ async function runRelayout(args: {
           label: args.label,
           before: cloneDocument(before),
           after: cloneDocument(result.doc),
-          relayout: { scope, force },
+          relayout: { scope, force, viewId },
         };
 
     set({
@@ -547,8 +551,9 @@ async function layoutAndRepair(
   doc: CapabilityDocument,
   force: boolean,
   affectedNodeIds?: NodeId[],
+  viewId?: VisualViewId,
 ): Promise<{ doc: CapabilityDocument; diagnostics: Diagnostic[] }> {
-  const resolved = resolveVisualDocument(doc);
+  const resolved = resolveVisualDocument(doc, viewId);
   const result = await layoutDocument({
     doc: resolved,
     affectedNodeIds,
@@ -558,7 +563,9 @@ async function layoutAndRepair(
   const laidOut = applyLayoutPatches(resolved, result.patches);
   const repaired = ensureParentContainment(laidOut);
   const nextDoc =
-    repaired.doc === resolved ? doc : applyResolvedVisualDocument(doc, repaired.doc);
+    repaired.doc === resolved
+      ? doc
+      : applyResolvedVisualDocument(doc, repaired.doc, viewId);
   return {
     doc: nextDoc,
     diagnostics:

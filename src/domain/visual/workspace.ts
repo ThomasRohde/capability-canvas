@@ -50,6 +50,7 @@ export function createVisualViewFromDocument(
     description?: string;
     templateId?: string;
     timestamp?: number;
+    templateContext?: VisualView["templateContext"];
     visibleNodeIds?: Set<NodeId>;
     collapsedNodeIds?: Set<NodeId>;
     layoutMode?: VisualView["layout"]["mode"];
@@ -74,6 +75,7 @@ export function createVisualViewFromDocument(
     createdAt: timestamp,
     updatedAt: timestamp,
     templateId: options.templateId,
+    templateContext: cloneTemplateContext(options.templateContext),
     nodeStatesById,
     viewport: { x: 0, y: 0, zoom: 1 },
     layout: {
@@ -144,6 +146,7 @@ export function normalizeVisualWorkspace(
       name: rawView.name?.trim() || "Untitled view",
       createdAt: finiteOrNow(rawView.createdAt),
       updatedAt: finiteOrNow(rawView.updatedAt),
+      templateContext: cloneTemplateContext(rawView.templateContext),
       nodeStatesById,
       viewport: cloneViewport(rawView.viewport),
       layout: {
@@ -248,6 +251,7 @@ export function cloneVisualWorkspace(
 export function cloneVisualView(view: VisualView): VisualView {
   return {
     ...view,
+    templateContext: cloneTemplateContext(view.templateContext),
     nodeStatesById: Object.fromEntries(
       Object.entries(view.nodeStatesById).map(([id, state]) => [
         id,
@@ -339,9 +343,10 @@ export function resolveVisualDocument(
 export function applyResolvedVisualDocument(
   base: CapabilityDocument,
   resolved: CapabilityDocument,
+  viewId = base.visual.activeViewId,
 ): CapabilityDocument {
   const visual = cloneVisualWorkspace(base.visual);
-  const view = visual.viewsById[visual.activeViewId];
+  const view = visual.viewsById[viewId];
   if (!view) return base;
   const collapsed = collapsedNodeIds(view);
 
@@ -578,4 +583,10 @@ function cloneViewport(
   viewport: VisualViewport | undefined,
 ): VisualViewport | undefined {
   return viewport ? { ...viewport } : undefined;
+}
+
+function cloneTemplateContext(
+  context: VisualView["templateContext"],
+): VisualView["templateContext"] {
+  return context ? { ...context } : undefined;
 }

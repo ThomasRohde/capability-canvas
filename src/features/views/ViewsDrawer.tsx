@@ -21,7 +21,11 @@ import {
   resetVisualViewFromTemplate,
   setDefaultVisualView,
 } from "../../domain/commands/operations";
-import type { VisualView } from "../../domain/document/types";
+import type {
+  CapabilityDocument,
+  NodeId,
+  VisualView,
+} from "../../domain/document/types";
 import {
   BUILT_IN_VIEW_TEMPLATES,
   templateById,
@@ -62,6 +66,8 @@ export function ViewsDrawer() {
     .map((viewId) => doc.visual.viewsById[viewId])
     .filter(Boolean);
   const hasMultipleViews = orderedViews.length > 1;
+  const activeView = doc.visual.viewsById[doc.visual.activeViewId];
+  const selectedTemplate = templateById(templateId);
 
   useEffect(() => {
     if (!open) return;
@@ -115,8 +121,15 @@ export function ViewsDrawer() {
             <span>Active View</span>
           </div>
           <div className="cc-active-view-card">
-            <strong>{doc.visual.viewsById[doc.visual.activeViewId]?.name}</strong>
-            <span>
+            <div className="cc-active-view-summary">
+              <strong>{activeView?.name}</strong>
+              {activeView ? (
+                <p className="cc-view-description">
+                  {descriptionForView(activeView, doc)}
+                </p>
+              ) : null}
+            </div>
+            <span className="cc-active-view-count">
               {orderedViews.length} view{orderedViews.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -145,11 +158,21 @@ export function ViewsDrawer() {
             <button
               className="cc-btn cc-btn-primary"
               type="button"
-              onClick={() => execute(createVisualView({ templateId }))}
+              onClick={() =>
+                execute(
+                  createVisualView({
+                    templateId,
+                    rootId: rootIdForTemplate(doc, templateId, selected),
+                  }),
+                )
+              }
             >
               <Plus /> Create
             </button>
           </div>
+          <p className="cc-view-template-description">
+            {selectedTemplate.description}
+          </p>
         </section>
 
         <section className="cc-settings-section">
@@ -174,14 +197,19 @@ export function ViewsDrawer() {
                 >
                   <Eye />
                 </button>
-                <input
-                  className="cc-input"
-                  aria-label={`Name for ${view.name}`}
-                  value={view.name}
-                  onChange={(event) =>
-                    execute(renameVisualView(view.id, event.target.value))
-                  }
-                />
+                <div className="cc-view-details">
+                  <input
+                    className="cc-input"
+                    aria-label={`Name for ${view.name}`}
+                    value={view.name}
+                    onChange={(event) =>
+                      execute(renameVisualView(view.id, event.target.value))
+                    }
+                  />
+                  <p className="cc-view-description">
+                    {descriptionForView(view, doc)}
+                  </p>
+                </div>
                 <IconButton
                   icon={ArrowUp}
                   label={`Move ${view.name} up`}
@@ -289,6 +317,30 @@ function templateIdForView(view: VisualView): VisualTemplateId {
 
 function templateNameForView(view: VisualView): string {
   return templateById(templateIdForView(view)).name;
+}
+
+function descriptionForView(view: VisualView, doc?: CapabilityDocument): string {
+  const viewTemplateId = templateIdForView(view);
+  const description = isBuiltInTemplateId(view.templateId)
+    ? templateById(viewTemplateId).description
+    : view.description || templateById(viewTemplateId).description;
+  if (viewTemplateId !== "domain-deep-dive@1" || !doc) return description;
+  const target = view.templateContext?.rootId
+    ? doc.nodesById[view.templateContext.rootId]
+    : undefined;
+  return target ? `${description} Target: ${target.label}.` : description;
+}
+
+function rootIdForTemplate(
+  doc: CapabilityDocument,
+  templateId: VisualTemplateId,
+  selectedNodeIds: NodeId[],
+): NodeId | undefined {
+  if (templateId !== "domain-deep-dive@1") return undefined;
+  return selectedNodeIds.find((nodeId) => {
+    const node = doc.nodesById[nodeId];
+    return node && !node.isTextLabel;
+  });
 }
 
 function isBuiltInTemplateId(value: unknown): value is VisualTemplateId {

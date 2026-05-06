@@ -5,6 +5,7 @@ import { serializeDocument } from "./serialize";
 import {
   createVisualView,
   deleteVisualView,
+  resetVisualViewFromTemplate,
   runTransaction,
   updateVisualNodeState,
 } from "../commands/operations";
@@ -229,6 +230,64 @@ describe("document JSON adapter", () => {
     expect(resolveVisualDocument(parsed.doc!, viewId).nodesById[
       "digital-onboarding"
     ]?.isOnCanvas).toBe(false);
+  });
+
+  it("creates level map templates with the expected visible depth", () => {
+    const l1 = runTransaction(
+      createSampleDocument(),
+      createVisualView({ templateId: "level-1-map@1" }),
+    ).doc;
+    const l1Resolved = resolveVisualDocument(l1);
+    expect(l1Resolved.nodesById["retail-banking"]?.isOnCanvas).toBe(true);
+    expect(l1Resolved.nodesById.customer?.isOnCanvas).toBe(true);
+    expect(l1Resolved.nodesById.risk?.isOnCanvas).toBe(true);
+    expect(l1Resolved.nodesById.channels?.isOnCanvas).toBe(false);
+
+    const l2 = runTransaction(
+      createSampleDocument(),
+      createVisualView({ templateId: "level-2-map@1" }),
+    ).doc;
+    const l2Resolved = resolveVisualDocument(l2);
+    expect(l2Resolved.nodesById.channels?.isOnCanvas).toBe(true);
+    expect(l2Resolved.nodesById.servicing?.isOnCanvas).toBe(true);
+    expect(l2Resolved.nodesById.digital?.isOnCanvas).toBe(false);
+
+    const l3 = runTransaction(
+      createSampleDocument(),
+      createVisualView({ templateId: "level-3-map@1" }),
+    ).doc;
+    const l3Resolved = resolveVisualDocument(l3);
+    expect(l3Resolved.nodesById.digital?.isOnCanvas).toBe(true);
+    expect(l3Resolved.nodesById.branch?.isOnCanvas).toBe(true);
+    expect(l3Resolved.nodesById["digital-onboarding"]?.isOnCanvas).toBe(false);
+  });
+
+  it("preserves domain deep-dive template context through JSON and reset", () => {
+    const first = runTransaction(
+      createSampleDocument(),
+      createVisualView({
+        templateId: "domain-deep-dive@1",
+        rootId: "operations",
+      }),
+    ).doc;
+    const viewId = first.visual.activeViewId;
+
+    const parsed = parseDocument(serializeDocument(first)).doc!;
+    expect(parsed.visual.viewsById[viewId]?.templateContext).toEqual({
+      rootId: "operations",
+    });
+
+    const reset = runTransaction(
+      parsed,
+      resetVisualViewFromTemplate(viewId, "domain-deep-dive@1"),
+    ).doc;
+    const resolved = resolveVisualDocument(reset, viewId);
+    expect(reset.visual.viewsById[viewId]?.templateContext?.rootId).toBe(
+      "operations",
+    );
+    expect(resolved.nodesById.operations?.isOnCanvas).toBe(true);
+    expect(resolved.nodesById["process-management"]?.isOnCanvas).toBe(true);
+    expect(resolved.nodesById.customer?.isOnCanvas).toBe(false);
   });
 
   it("warns and drops stale visual node references on import", () => {

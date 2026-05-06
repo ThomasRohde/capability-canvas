@@ -190,6 +190,57 @@ describe("editor shell", () => {
     );
   });
 
+  it("shows template and saved view descriptions in the views drawer", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+
+    expect(
+      screen.getAllByText(
+        "Shows exactly the nodes that are currently visible on the canvas, using the current layout and export settings. Use this when you want a view that mirrors the working model without hiding levels.",
+      ).length,
+    ).toBeGreaterThan(0);
+
+    await userEvent.selectOptions(
+      screen.getByLabelText("View template"),
+      "executive-overview@1",
+    );
+    expect(
+      screen.getByText(
+        "Shows the top three structural levels and collapses level-2 parents that have children. Uses 16:9 export framing and shows the heatmap legend when heatmap is active.",
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(
+      screen.getAllByText(
+        "Shows the top three structural levels and collapses level-2 parents that have children. Uses 16:9 export framing and shows the heatmap legend when heatmap is active.",
+      ).length,
+    ).toBeGreaterThan(1);
+  });
+
+  it("creates domain deep-dive views from the selected capability", async () => {
+    useUiStore.getState().setSelection(["operations"]);
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    await userEvent.selectOptions(
+      screen.getByLabelText("View template"),
+      "domain-deep-dive@1",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    const doc = useDocumentStore.getState().doc;
+    const activeView = doc.visual.viewsById[doc.visual.activeViewId]!;
+    const resolved = resolveVisualDocument(doc);
+    expect(activeView.templateContext?.rootId).toBe("operations");
+    expect(resolved.nodesById.operations?.isOnCanvas).toBe(true);
+    expect(resolved.nodesById["process-management"]?.isOnCanvas).toBe(true);
+    expect(resolved.nodesById.customer?.isOnCanvas).toBe(false);
+    expect(resolved.nodesById.risk?.isOnCanvas).toBe(false);
+    expect(screen.getAllByText(/Target: Operations\./).length).toBeGreaterThan(
+      0,
+    );
+  });
+
   it("resets each view to its own template instead of the create picker template", async () => {
     render(<EditorRoute />);
     await userEvent.click(screen.getByRole("button", { name: "Open views" }));
@@ -487,11 +538,11 @@ describe("editor shell", () => {
       screen.queryByRole("button", { name: "Notifications" }),
     ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Hide layers" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide outline" }));
     expect(screen.queryByText("Outline")).not.toBeInTheDocument();
     expect(useUiStore.getState().outlineOpen).toBe(false);
 
-    await userEvent.click(screen.getByRole("button", { name: "Show layers" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show outline" }));
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(useUiStore.getState().outlineOpen).toBe(true);
 

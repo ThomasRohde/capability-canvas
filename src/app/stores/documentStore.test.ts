@@ -6,6 +6,7 @@ import {
   deleteNodes,
   moveNodes,
   reparentNode,
+  resetVisualViewFromTemplate,
   resizeNode,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
@@ -14,6 +15,7 @@ import {
   createEmptyDocument,
   createNode,
 } from "../../domain/document/defaults";
+import { createSampleDocument } from "../../domain/fixtures/sample";
 import { parseDocument } from "../../domain/document/parse";
 import {
   childrenOf,
@@ -220,6 +222,50 @@ describe("document store layout settings", () => {
       afterDoc.visual.viewsById[firstViewId]!.nodeStatesById.servicing?.x;
     expect(movedSecond).toBeGreaterThan(beforeFirstState ?? Number.NEGATIVE_INFINITY);
     expect(unchangedFirst).toBe(beforeFirstState);
+  });
+
+  it("re-lays out template resets on the targeted view only", async () => {
+    useDocumentStore.setState({
+      doc: createSampleDocument(),
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    const defaultViewId = useDocumentStore.getState().doc.visual.activeViewId;
+    const defaultRootBefore = resolveVisualDocument(
+      useDocumentStore.getState().doc,
+      defaultViewId,
+    ).nodesById["retail-banking"]!.x;
+
+    useDocumentStore
+      .getState()
+      .execute(createVisualView({ templateId: "executive-overview@1" }));
+    await waitForStoreRelayout();
+    const executiveViewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore.getState().execute(moveNodes(["risk"], 80, 0));
+    const activeRiskX = resolveVisualDocument(
+      useDocumentStore.getState().doc,
+    ).nodesById.risk!.x;
+
+    useDocumentStore
+      .getState()
+      .execute(
+        resetVisualViewFromTemplate(defaultViewId, "full-model-default@1"),
+      );
+    await waitForStoreRelayout();
+
+    const after = useDocumentStore.getState().doc;
+    expect(after.visual.activeViewId).toBe(executiveViewId);
+    expect(resolveVisualDocument(after).nodesById.risk!.x).toBe(activeRiskX);
+    expect(
+      resolveVisualDocument(after, defaultViewId).nodesById["retail-banking"]!.x,
+    ).not.toBe(defaultRootBefore);
+    expect(
+      findParentContainmentViolations(resolveVisualDocument(after, defaultViewId)),
+    ).toEqual([]);
   });
 
   it("auto-lays out collapsed and expanded containers in the active view", async () => {

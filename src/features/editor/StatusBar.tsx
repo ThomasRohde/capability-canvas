@@ -1,8 +1,8 @@
 import {
   CheckCircle2,
   Info,
-  Layers,
   MessageSquare,
+  PanelLeft,
   PanelRight,
   TriangleAlert,
   X,
@@ -29,8 +29,8 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       ? "Hide outline"
       : "Show outline"
     : outlineOpen
-      ? "Hide layers"
-      : "Show layers";
+      ? "Hide outline"
+      : "Show outline";
   const inspectorLabel = readonly
     ? inspectorOpen
       ? "Hide details"
@@ -61,7 +61,7 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       </span>
       <span className="cc-status-actions">
         <IconButton
-          icon={Layers}
+          icon={PanelLeft}
           label={outlineLabel}
           active={outlineOpen}
           onClick={toggleOutline}

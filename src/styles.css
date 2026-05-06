@@ -794,6 +794,14 @@ button:focus-visible {
   gap: 10px;
 }
 
+.cc-view-template-description,
+.cc-view-description {
+  margin: 0;
+  color: var(--cc-slate-500);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .cc-view-list {
   display: grid;
   max-height: min(52vh, 520px);
@@ -809,6 +817,12 @@ button:focus-visible {
   padding: 8px;
   border: 1px solid var(--cc-slate-200);
   border-radius: 8px;
+}
+
+.cc-view-details {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
 }
 
 .cc-view-row.active {
@@ -843,8 +857,9 @@ button:focus-visible {
 }
 
 .cc-active-view-card {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
@@ -854,8 +869,15 @@ button:focus-visible {
   font-size: 12px;
 }
 
-.cc-active-view-card span {
+.cc-active-view-summary {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.cc-active-view-count {
   color: var(--cc-slate-500);
+  white-space: nowrap;
 }
 
 .cc-paste-json {

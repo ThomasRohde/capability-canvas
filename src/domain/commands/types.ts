@@ -1,4 +1,8 @@
-import type { CapabilityDocument, NodeId } from "../document/types";
+import type {
+  CapabilityDocument,
+  NodeId,
+  VisualViewId,
+} from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 
 export type RelayoutScope =
@@ -22,7 +26,7 @@ export interface Transaction {
   commands: Command[];
   meta?: {
     source?: "drag" | "bulk" | "edit" | "import" | "layout";
-    relayout?: { scope: RelayoutScope; force?: boolean };
+    relayout?: { scope: RelayoutScope; force?: boolean; viewId?: VisualViewId };
   };
 }
 
@@ -30,7 +34,7 @@ export interface HistoryEntry {
   label: string;
   before: CapabilityDocument;
   after: CapabilityDocument;
-  relayout?: { scope: RelayoutScope; force: boolean };
+  relayout?: { scope: RelayoutScope; force: boolean; viewId?: VisualViewId };
 }
 
 export type AlignDirection =
