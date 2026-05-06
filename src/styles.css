@@ -780,7 +780,7 @@ button:focus-visible {
 
 .cc-view-row {
   display: grid;
-  grid-template-columns: 28px minmax(120px, 1fr) repeat(5, 32px) auto 32px;
+  grid-template-columns: 28px minmax(120px, 1fr) repeat(7, 32px);
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -813,12 +813,6 @@ button:focus-visible {
 .cc-view-use svg {
   width: 15px;
   height: 15px;
-}
-
-.cc-view-template-reset {
-  height: 30px;
-  padding: 0 8px;
-  font-size: 11px;
 }
 
 .cc-view-row .cc-icon-btn {

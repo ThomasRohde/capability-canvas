@@ -190,6 +190,31 @@ describe("editor shell", () => {
     );
   });
 
+  it("resets each view to its own template instead of the create picker template", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    await userEvent.selectOptions(
+      screen.getByLabelText("View template"),
+      "executive-overview@1",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Reset Default view to Full model default template",
+      }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    const defaultView = resolveVisualDocument(doc, "view-default");
+    const executiveView = resolveVisualDocument(doc, doc.visual.activeViewId);
+    expect(defaultView.nodesById["account-management"]?.isOnCanvas).toBe(true);
+    expect(executiveView.nodesById["account-management"]?.isOnCanvas).toBe(
+      false,
+    );
+  });
+
   it("prevents browser page zoom when Ctrl-wheel zooms the canvas", () => {
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");

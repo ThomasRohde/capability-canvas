@@ -3,6 +3,7 @@ import {
   ArrowUp,
   Copy,
   Eye,
+  LayoutTemplate,
   Plus,
   RotateCcw,
   Star,
@@ -23,6 +24,7 @@ import {
 import type { VisualView } from "../../domain/document/types";
 import {
   BUILT_IN_VIEW_TEMPLATES,
+  templateById,
   type VisualTemplateId,
 } from "../../domain/visual/templates";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
@@ -203,15 +205,21 @@ export function ViewsDrawer() {
                     execute(resetVisualView(view.id));
                   }}
                 />
-                <button
-                  className="cc-btn cc-view-template-reset"
-                  type="button"
-                  onClick={() =>
-                    execute(resetVisualViewFromTemplate(view.id, templateId))
-                  }
-                >
-                  Template
-                </button>
+                <IconButton
+                  icon={LayoutTemplate}
+                  label={`Reset ${view.name} to ${templateNameForView(view)} template`}
+                  onClick={() => {
+                    const viewTemplateId = templateIdForView(view);
+                    if (
+                      viewHasChanges(view) &&
+                      !window.confirm(
+                        `Reset "${view.name}" to the ${templateById(viewTemplateId).name} template?`,
+                      )
+                    )
+                      return;
+                    execute(resetVisualViewFromTemplate(view.id, viewTemplateId));
+                  }}
+                />
                 <IconButton
                   icon={Trash2}
                   label={`Delete ${view.name}`}
@@ -233,4 +241,21 @@ export function ViewsDrawer() {
 
 function viewHasChanges(view: VisualView) {
   return Object.keys(view.nodeStatesById).length > 0;
+}
+
+function templateIdForView(view: VisualView): VisualTemplateId {
+  return isBuiltInTemplateId(view.templateId)
+    ? view.templateId
+    : "full-model-default@1";
+}
+
+function templateNameForView(view: VisualView): string {
+  return templateById(templateIdForView(view)).name;
+}
+
+function isBuiltInTemplateId(value: unknown): value is VisualTemplateId {
+  return (
+    typeof value === "string" &&
+    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
+  );
 }
