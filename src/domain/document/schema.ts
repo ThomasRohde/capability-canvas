@@ -36,9 +36,21 @@ export const NodeSchema = z
       "lavender",
       "peach",
       "teal",
+      "slate",
+      "stone",
     ]),
     colorOverride: z
-      .enum(["mint", "sky", "coral", "amber", "lavender", "peach", "teal"])
+      .enum([
+        "mint",
+        "sky",
+        "coral",
+        "amber",
+        "lavender",
+        "peach",
+        "teal",
+        "slate",
+        "stone",
+      ])
       .optional(),
     description: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).default({}),
@@ -70,7 +82,17 @@ export const SettingsSchema = z
     fixedLeafWidth: positiveNumber,
     fixedLeafHeight: positiveNumber,
     leafColor: z
-      .enum(["mint", "sky", "coral", "amber", "lavender", "peach", "teal"])
+      .enum([
+        "mint",
+        "sky",
+        "coral",
+        "amber",
+        "lavender",
+        "peach",
+        "teal",
+        "slate",
+        "stone",
+      ])
       .default(DEFAULT_SETTINGS.leafColor),
     defaultParentWidth: positiveNumber,
     defaultParentHeight: positiveNumber,
@@ -127,6 +149,8 @@ export const HeatmapSchema = z
       "lavender",
       "peach",
       "teal",
+      "slate",
+      "stone",
     ]),
   })
   .passthrough();
@@ -141,7 +165,17 @@ export const VisualNodeStateSchema = z
     isCollapsed: z.boolean().optional(),
     labelOverride: z.string().optional(),
     colorOverride: z
-      .enum(["mint", "sky", "coral", "amber", "lavender", "peach", "teal"])
+      .enum([
+        "mint",
+        "sky",
+        "coral",
+        "amber",
+        "lavender",
+        "peach",
+        "teal",
+        "slate",
+        "stone",
+      ])
       .optional(),
     textStyleOverride: z
       .object({

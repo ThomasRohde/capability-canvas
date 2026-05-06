@@ -174,7 +174,7 @@ describe("document JSON adapter", () => {
         containerLabelOffsetTop: 6,
         childGapX: 52,
         childGapY: 20,
-        leafColor: "lavender" as const,
+        leafColor: "stone" as const,
       },
     };
 
@@ -190,18 +190,18 @@ describe("document JSON adapter", () => {
       containerLabelOffsetTop: 6,
       childGapX: 52,
       childGapY: 20,
-      leafColor: "lavender",
+      leafColor: "stone",
     });
   });
 
   it("applies the global leaf color unless a node color is overridden", () => {
     const themed = runTransaction(
       createSampleDocument(),
-      updateDocumentSettings({ leafColor: "lavender" }),
+      updateDocumentSettings({ leafColor: "slate" }),
     ).doc;
 
     const resolved = resolveVisualDocument(themed);
-    expect(resolved.nodesById["credit-risk"]?.color).toBe("lavender");
+    expect(resolved.nodesById["credit-risk"]?.color).toBe("slate");
     expect(resolved.nodesById.risk?.color).toBe("coral");
 
     const overridden = runTransaction(
@@ -218,7 +218,7 @@ describe("document JSON adapter", () => {
       createVisualView({ templateId: "level-1-map@1" }),
     ).doc;
     expect(resolveVisualDocument(l1).nodesById.customer?.color).toBe(
-      "lavender",
+      "slate",
     );
   });
 

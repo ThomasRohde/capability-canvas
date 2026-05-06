@@ -14,7 +14,9 @@ export const CAPABILITY_COLORS: CapabilityColor[] = [
   'amber',
   'lavender',
   'peach',
-  'teal'
+  'teal',
+  'slate',
+  'stone'
 ];
 
 export const CATEGORY_STYLES: Record<CapabilityColor, NodeFill> = {
@@ -24,7 +26,9 @@ export const CATEGORY_STYLES: Record<CapabilityColor, NodeFill> = {
   amber: { background: '#fffbeb', border: '#fcd34d', dot: '#f59e0b', text: '#0f172a' },
   lavender: { background: '#f5f3ff', border: '#c4b5fd', dot: '#8b5cf6', text: '#0f172a' },
   peach: { background: '#fff7ed', border: '#fdba74', dot: '#f97316', text: '#0f172a' },
-  teal: { background: '#f0fdfa', border: '#14b8a6', dot: '#0f766e', text: '#0f172a' }
+  teal: { background: '#f0fdfa', border: '#14b8a6', dot: '#0f766e', text: '#0f172a' },
+  slate: { background: '#f8fafc', border: '#cbd5e1', dot: '#64748b', text: '#0f172a' },
+  stone: { background: '#fafaf9', border: '#d6d3d1', dot: '#78716c', text: '#0f172a' }
 };
 
 const HEATMAP_PALETTES: Record<HeatmapState['palette'], string[]> = {

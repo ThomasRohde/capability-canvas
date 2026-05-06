@@ -372,6 +372,12 @@ describe("editor shell", () => {
     expect(
       screen.getByRole("button", { name: "Set default leaf color mint" }),
     ).toHaveClass("on");
+    expect(
+      screen.getByRole("button", { name: "Set default leaf color slate" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Set default leaf color stone" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Title area")).toHaveValue(28);
     expect(screen.getByLabelText("Label top offset")).toHaveValue(4);
   });
@@ -474,17 +480,15 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Open settings" }),
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Set default leaf color lavender" }),
+      screen.getByRole("button", { name: "Set default leaf color slate" }),
     );
 
-    expect(useDocumentStore.getState().doc.settings.leafColor).toBe(
-      "lavender",
-    );
+    expect(useDocumentStore.getState().doc.settings.leafColor).toBe("slate");
     expect(
       resolveVisualDocument(useDocumentStore.getState().doc).nodesById[
         "account-management"
       ]?.color,
-    ).toBe("lavender");
+    ).toBe("slate");
 
     await userEvent.click(screen.getByRole("button", { name: "Open views" }));
     await userEvent.selectOptions(
@@ -496,7 +500,7 @@ describe("editor shell", () => {
     expect(
       resolveVisualDocument(useDocumentStore.getState().doc).nodesById.customer
         ?.color,
-    ).toBe("lavender");
+    ).toBe("slate");
   });
 
   it("collapses and restores the outline from the rail", async () => {

@@ -12,7 +12,9 @@ export type CapabilityColor =
   | "amber"
   | "lavender"
   | "peach"
-  | "teal";
+  | "teal"
+  | "slate"
+  | "stone";
 export type LayoutMode = "uniform" | "flow" | "adaptive" | "free";
 
 export interface Bounds {
