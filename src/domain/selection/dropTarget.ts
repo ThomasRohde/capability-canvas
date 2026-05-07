@@ -1,5 +1,6 @@
 import {
-  childrenOf,
+  collectAncestorIds,
+  isHierarchyAncestorOf,
   isNodeOnCanvas,
   type CapabilityDocument,
   type CapabilityNode,
@@ -50,15 +51,7 @@ function couldBeParent(node: CapabilityNode, draggedIds: Set<NodeId>): boolean {
 function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   const depths = new Map<NodeId, number>();
   for (const node of Object.values(doc.nodesById)) {
-    let depth = 0;
-    let current: CapabilityNode | undefined = node;
-    const seen = new Set<NodeId>();
-    while (current?.parentId && !seen.has(current.id)) {
-      seen.add(current.id);
-      depth += 1;
-      current = doc.nodesById[current.parentId];
-    }
-    depths.set(node.id, depth);
+    depths.set(node.id, collectAncestorIds(doc, node.id).ids.length);
   }
   return depths;
 }
@@ -92,11 +85,5 @@ function isDescendantOf(
   candidate: NodeId,
   ancestor: NodeId,
 ): boolean {
-  const stack: NodeId[] = [...childrenOf(doc, ancestor)];
-  while (stack.length > 0) {
-    const id = stack.pop()!;
-    if (id === candidate) return true;
-    stack.push(...childrenOf(doc, id));
-  }
-  return false;
+  return isHierarchyAncestorOf(doc, ancestor, candidate);
 }

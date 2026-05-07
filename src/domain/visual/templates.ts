@@ -1,4 +1,10 @@
-import { childrenOf, type CapabilityDocument, type NodeId } from "../document/types";
+import {
+  childrenOf,
+  collectDescendantIds,
+  computeHierarchyDepths,
+  type CapabilityDocument,
+  type NodeId,
+} from "../document/types";
 import { createVisualViewFromDocument } from "./workspace";
 
 export type VisualTemplateId =
@@ -161,24 +167,25 @@ function collapsedExecutiveNodes(doc: CapabilityDocument): Set<NodeId> {
 
 function nodesAtDepthOrLess(doc: CapabilityDocument, maxDepth: number): NodeId[] {
   const out: NodeId[] = [];
-  const walk = (nodeId: NodeId, depth: number) => {
-    if (depth > maxDepth) return;
-    out.push(nodeId);
-    for (const childId of childrenOf(doc, nodeId)) walk(childId, depth + 1);
-  };
-  for (const rootId of childrenOf(doc, null)) walk(rootId, 0);
+  const seen = new Set<NodeId>();
+  for (const rootId of childrenOf(doc, null)) {
+    for (const nodeId of collectDescendantIds(doc, rootId, {
+      includeRoot: true,
+      maxDepth,
+    }).ids) {
+      if (seen.has(nodeId)) continue;
+      seen.add(nodeId);
+      out.push(nodeId);
+    }
+  }
   return out;
 }
 
 function nodesAtDepth(doc: CapabilityDocument, targetDepth: number): NodeId[] {
-  const out: NodeId[] = [];
-  const walk = (nodeId: NodeId, depth: number) => {
-    if (depth === targetDepth) out.push(nodeId);
-    if (depth >= targetDepth) return;
-    for (const childId of childrenOf(doc, nodeId)) walk(childId, depth + 1);
-  };
-  for (const rootId of childrenOf(doc, null)) walk(rootId, 0);
-  return out;
+  const depths = computeHierarchyDepths(doc, childrenOf(doc, null)).depths;
+  return nodesAtDepthOrLess(doc, targetDepth).filter(
+    (nodeId) => depths.get(nodeId) === targetDepth,
+  );
 }
 
 function subtreeIds(
@@ -186,14 +193,10 @@ function subtreeIds(
   rootId: NodeId,
   maxDepth: number,
 ): NodeId[] {
-  const out: NodeId[] = [];
-  const walk = (nodeId: NodeId, depth: number) => {
-    if (!doc.nodesById[nodeId] || depth > maxDepth) return;
-    out.push(nodeId);
-    for (const childId of childrenOf(doc, nodeId)) walk(childId, depth + 1);
-  };
-  walk(rootId, 0);
-  return out;
+  return collectDescendantIds(doc, rootId, {
+    includeRoot: true,
+    maxDepth,
+  }).ids;
 }
 
 function cloneTemplateContext(

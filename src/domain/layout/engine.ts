@@ -6,6 +6,10 @@ import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import {
   canvasChildrenOf,
   canvasRootChildren,
+  collectAncestorIds,
+  collectDescendantIds,
+  computeHierarchyDepths,
+  isHierarchyAncestorOf,
   isNodeOnCanvas,
   type CapabilityDocument,
   type CapabilityNode,
@@ -443,31 +447,18 @@ function normalizePatchedParentBounds(
 }
 
 function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
-  const depths = new Map<NodeId, number>();
-  const visit = (nodeId: NodeId, depth: number) => {
-    depths.set(nodeId, depth);
-    for (const childId of canvasChildrenOf(doc, nodeId))
-      visit(childId, depth + 1);
-  };
-  for (const rootId of canvasRootChildren(doc)) visit(rootId, 0);
-  return depths;
+  return computeHierarchyDepths(doc, canvasRootChildren(doc), {
+    canvasOnly: true,
+  }).depths;
 }
 
 function canvasAncestorsOf(
   doc: CapabilityDocument,
   nodeId: NodeId,
 ): CapabilityNode[] {
-  const ancestors: CapabilityNode[] = [];
-  const seen = new Set<NodeId>();
-  let current = doc.nodesById[nodeId];
-  while (current?.parentId && !seen.has(current.parentId)) {
-    seen.add(current.parentId);
-    const parent = doc.nodesById[current.parentId];
-    if (!parent) break;
-    if (isNodeOnCanvas(parent)) ancestors.push(parent);
-    current = parent;
-  }
-  return ancestors;
+  return collectAncestorIds(doc, nodeId, { canvasOnly: true }).ids
+    .map((ancestorId) => doc.nodesById[ancestorId])
+    .filter((ancestor): ancestor is CapabilityNode => !!ancestor);
 }
 
 function pruneDescendantScopeRoots(
@@ -488,14 +479,7 @@ function isAncestorOf(
   ancestorId: NodeId,
   nodeId: NodeId,
 ): boolean {
-  const seen = new Set<NodeId>();
-  let current = doc.nodesById[nodeId];
-  while (current?.parentId && !seen.has(current.parentId)) {
-    if (current.parentId === ancestorId) return true;
-    seen.add(current.parentId);
-    current = doc.nodesById[current.parentId];
-  }
-  return false;
+  return isHierarchyAncestorOf(doc, ancestorId, nodeId);
 }
 
 export function computeDocumentBounds(doc: CapabilityDocument) {
@@ -512,10 +496,30 @@ async function measureSubtree(
   doc: CapabilityDocument,
   nodeId: NodeId,
   mode: LayoutMode,
+  activePath = new Set<NodeId>(),
 ): Promise<MeasuredSubtree> {
+  if (activePath.has(nodeId)) {
+    return {
+      id: nodeId,
+      w: 0,
+      h: 0,
+      patches: [],
+      blocked: true,
+      diagnostics: [
+        warning(
+          "layout-cycle-skipped",
+          `Auto layout skipped cyclic subtree at "${nodeId}".`,
+          nodeId,
+        ),
+      ],
+    };
+  }
+
   const node = doc.nodesById[nodeId];
   if (!node) return emptyMeasured(nodeId);
   if (!isNodeOnCanvas(node)) return emptyMeasured(nodeId);
+  const nextPath = new Set(activePath);
+  nextPath.add(nodeId);
 
   if (node.isLockedAsIs) {
     return {
@@ -562,7 +566,9 @@ async function measureSubtree(
   );
   const localMode = node.layoutPreferences?.mode ?? mode;
   const measuredChildren = await Promise.all(
-    childIds.map((childId) => measureSubtree(doc, childId, localMode)),
+    childIds.map((childId) =>
+      measureSubtree(doc, childId, localMode, nextPath),
+    ),
   );
   const diagnostics = measuredChildren.flatMap((child) => child.diagnostics);
 
@@ -845,6 +851,17 @@ function measureManualSubtree(
   };
   patches.push(parentPatch);
   collectCurrentSubtreePatches(doc, node.id, node.x, node.y, patches);
+  const traversalDiagnostics = collectDescendantIds(doc, node.id, {
+    canvasOnly: true,
+  }).issues
+    .filter((issue) => issue.code === "cycle")
+    .map((issue) =>
+      warning(
+        "layout-cycle-skipped",
+        `Auto layout skipped cyclic subtree at "${issue.nodeId}".`,
+        issue.nodeId,
+      ),
+    );
   return {
     id: node.id,
     w: parentPatch.w,
@@ -857,6 +874,7 @@ function measureManualSubtree(
         `Manual child positions under "${node.label}" were preserved.`,
         node.id,
       ),
+      ...traversalDiagnostics,
     ],
   };
 }
@@ -1287,8 +1305,13 @@ function collectCurrentSubtreePatches(
   originX: number,
   originY: number,
   patches: LayoutPatch[],
+  activePath = new Set<NodeId>(),
 ) {
+  if (activePath.has(nodeId)) return;
+  const nextPath = new Set(activePath);
+  nextPath.add(nodeId);
   for (const childId of canvasChildrenOf(doc, nodeId)) {
+    if (nextPath.has(childId)) continue;
     const child = doc.nodesById[childId];
     if (!child) continue;
     patches.push({
@@ -1298,7 +1321,14 @@ function collectCurrentSubtreePatches(
       w: child.w,
       h: child.h,
     });
-    collectCurrentSubtreePatches(doc, child.id, originX, originY, patches);
+    collectCurrentSubtreePatches(
+      doc,
+      child.id,
+      originX,
+      originY,
+      patches,
+      nextPath,
+    );
   }
 }
 

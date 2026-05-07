@@ -30,8 +30,9 @@ import {
   updateVisualNodeState,
 } from "../../domain/commands/operations";
 import {
+  buildSafeChildrenByParentId,
   canvasChildrenOf,
-  childrenOf,
+  isHierarchyAncestorOf,
   isNodeOnCanvas,
   ROOT_PARENT_ID,
   subtreeNodeIds,
@@ -74,6 +75,10 @@ export function Outline({
   const [filterToSelection, setFilterToSelection] = useState(false);
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
+  const safeChildrenByParentId = useMemo(
+    () => buildSafeChildrenByParentId(doc).childrenByParentId,
+    [doc],
+  );
 
   const rootItemId = "outline-root";
   const canvasTargetCenter = useMemo(
@@ -85,18 +90,20 @@ export function Outline({
   );
   const folderIds = useMemo(
     () =>
-      Object.keys(doc.nodesById).filter((id) => childrenOf(doc, id).length > 0),
-    [doc],
+      Object.keys(doc.nodesById).filter(
+        (id) => (safeChildrenByParentId[id] ?? []).length > 0,
+      ),
+    [doc.nodesById, safeChildrenByParentId],
   );
   const knownFolderIds = useRef(new Set(folderIds));
   const [expandedItems, setExpandedItems] = useState(folderIds);
   const structureSignature = useMemo(
     () =>
-      Object.entries(doc.childrenByParentId)
+      Object.entries(safeChildrenByParentId)
         .map(([parentId, childIds]) => `${parentId}:${childIds.join(",")}`)
         .sort()
         .join("|"),
-    [doc.childrenByParentId],
+    [safeChildrenByParentId],
   );
 
   useEffect(() => {
@@ -125,14 +132,14 @@ export function Outline({
     },
     isItemFolder: (item) => {
       const id = item.getId();
-      return id === rootItemId || childrenOf(doc, id).length > 0;
+      return id === rootItemId || (safeChildrenByParentId[id] ?? []).length > 0;
     },
     dataLoader: {
       getItem: (itemId) => itemId,
       getChildren: (itemId) =>
         itemId === rootItemId
-          ? (doc.childrenByParentId[ROOT_PARENT_ID] ?? [])
-          : childrenOf(doc, itemId),
+          ? (safeChildrenByParentId[ROOT_PARENT_ID] ?? [])
+          : (safeChildrenByParentId[itemId] ?? []),
     },
     features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature],
   });
@@ -433,12 +440,7 @@ function isAncestorOf(
   ancestorId: NodeId,
   nodeId: NodeId,
 ) {
-  let current = doc.nodesById[nodeId];
-  while (current?.parentId) {
-    if (current.parentId === ancestorId) return true;
-    current = doc.nodesById[current.parentId];
-  }
-  return false;
+  return isHierarchyAncestorOf(doc, ancestorId, nodeId);
 }
 
 function arraysEqual(first: string[], second: string[]) {

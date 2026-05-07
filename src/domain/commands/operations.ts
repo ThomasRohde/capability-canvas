@@ -88,6 +88,13 @@ export function runTransaction(
     next = result.doc;
   }
   const typed = refreshHierarchyTypes(next);
+  const preContainmentValidation = validateDocument(typed);
+  if (!preContainmentValidation.valid) {
+    return {
+      doc,
+      diagnostics: [...diagnostics, ...preContainmentValidation.diagnostics],
+    };
+  }
   const contained = ensureParentContainment(typed).doc;
   const validation = validateDocument(contained);
   if (!validation.valid) {

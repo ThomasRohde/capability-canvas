@@ -1,4 +1,14 @@
-import { childrenOf, ROOT_PARENT_ID, type CapabilityDocument, type NodeId } from '../document/types';
+import {
+  childrenOf,
+  collectDescendantIds,
+  collectHierarchyIssues,
+  computeHierarchyDepths,
+  isHierarchyAncestorOf,
+  ROOT_PARENT_ID,
+  type CapabilityDocument,
+  type HierarchyTraversalIssue,
+  type NodeId,
+} from '../document/types';
 import { type Diagnostic, error } from './diagnostics';
 
 export function validateDocument(doc: CapabilityDocument): { valid: boolean; diagnostics: Diagnostic[] } {
@@ -39,54 +49,43 @@ export function validateDocument(doc: CapabilityDocument): { valid: boolean; dia
 }
 
 export function descendantsOf(doc: CapabilityDocument, nodeId: NodeId): NodeId[] {
-  const out: NodeId[] = [];
-  const walk = (id: NodeId) => {
-    for (const childId of childrenOf(doc, id)) {
-      out.push(childId);
-      walk(childId);
-    }
-  };
-  walk(nodeId);
-  return out;
+  return collectDescendantIds(doc, nodeId).ids;
 }
 
 export function isDescendantOf(doc: CapabilityDocument, nodeId: NodeId, maybeAncestorId: NodeId): boolean {
-  return descendantsOf(doc, maybeAncestorId).includes(nodeId);
+  return isHierarchyAncestorOf(doc, maybeAncestorId, nodeId);
 }
 
 function detectCycles(doc: CapabilityDocument): Diagnostic[] {
-  const diagnostics: Diagnostic[] = [];
-  const visiting = new Set<NodeId>();
-  const visited = new Set<NodeId>();
-
-  const visit = (nodeId: NodeId) => {
-    if (visiting.has(nodeId)) {
-      diagnostics.push(error('cycle', `Hierarchy contains a cycle at ${nodeId}.`, nodeId));
-      return;
-    }
-    if (visited.has(nodeId)) return;
-    visiting.add(nodeId);
-    for (const childId of childrenOf(doc, nodeId)) visit(childId);
-    visiting.delete(nodeId);
-    visited.add(nodeId);
-  };
-
-  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? []) visit(rootId);
-  for (const nodeId of Object.keys(doc.nodesById)) visit(nodeId);
-  return diagnostics;
+  return collectHierarchyIssues(doc)
+    .filter((issue) => issue.code === 'cycle' || issue.code === 'missing-child')
+    .map(hierarchyIssueToDiagnostic);
 }
 
 function detectOrphans(doc: CapabilityDocument): Diagnostic[] {
-  const reachable = new Set<NodeId>();
-  const walk = (nodeId: NodeId) => {
-    if (reachable.has(nodeId)) return;
-    reachable.add(nodeId);
-    for (const childId of childrenOf(doc, nodeId)) walk(childId);
-  };
-
-  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? []) walk(rootId);
+  const reachable = new Set(
+    computeHierarchyDepths(doc, doc.childrenByParentId[ROOT_PARENT_ID] ?? [])
+      .depths.keys(),
+  );
   return Object.keys(doc.nodesById)
     .filter((nodeId) => !reachable.has(nodeId))
     .map((nodeId) => error('orphan-node', `Node ${nodeId} is unreachable from root list.`, nodeId));
 }
 
+function hierarchyIssueToDiagnostic(issue: HierarchyTraversalIssue): Diagnostic {
+  if (issue.code === 'cycle') {
+    return error('cycle', `Hierarchy contains a cycle at ${issue.nodeId}.`, issue.nodeId);
+  }
+  if (issue.code === 'missing-child') {
+    return error(
+      'missing-child',
+      `Parent ${issue.parentId ?? ROOT_PARENT_ID} references missing child ${issue.nodeId}.`,
+      issue.parentId ?? undefined,
+    );
+  }
+  return error(
+    'missing-parent',
+    `Node ${issue.nodeId} references missing parent ${issue.parentId}.`,
+    issue.nodeId,
+  );
+}

@@ -2,6 +2,7 @@ import { cloneDocument } from "../document/normalize";
 import {
   canvasChildrenOf,
   canvasRootChildren,
+  computeHierarchyDepths,
   isNodeOnCanvas,
   type Bounds,
   type CapabilityDocument,
@@ -121,14 +122,9 @@ function containmentMargin(doc: CapabilityDocument, parentId: NodeId) {
 }
 
 function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
-  const depths = new Map<NodeId, number>();
-  const visit = (nodeId: NodeId, depth: number) => {
-    depths.set(nodeId, depth);
-    for (const childId of canvasChildrenOf(doc, nodeId))
-      visit(childId, depth + 1);
-  };
-  for (const rootId of canvasRootChildren(doc)) visit(rootId, 0);
-  return depths;
+  return computeHierarchyDepths(doc, canvasRootChildren(doc), {
+    canvasOnly: true,
+  }).depths;
 }
 
 function boundsForIds(doc: CapabilityDocument, ids: NodeId[]): Bounds | null {

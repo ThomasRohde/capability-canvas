@@ -1,6 +1,7 @@
 import {
-  canvasChildrenOf,
   canvasRootChildren,
+  collectDescendantIds,
+  computeHierarchyDepths,
   isNodeOnCanvas,
   type Bounds,
   type CapabilityDocument,
@@ -37,25 +38,13 @@ export function createNodeViewModels(doc: CapabilityDocument, viewport?: Bounds)
 }
 
 export function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
-  const depths = new Map<NodeId, number>();
-  const visit = (nodeId: NodeId, depth: number) => {
-    depths.set(nodeId, depth);
-    for (const childId of canvasChildrenOf(doc, nodeId)) visit(childId, depth + 1);
-  };
-  for (const rootId of canvasRootChildren(doc)) visit(rootId, 0);
-  return depths;
+  return computeHierarchyDepths(doc, canvasRootChildren(doc), {
+    canvasOnly: true,
+  }).depths;
 }
 
 export function descendantIds(doc: CapabilityDocument, nodeId: NodeId): NodeId[] {
-  const out: NodeId[] = [];
-  const walk = (id: NodeId) => {
-    for (const childId of canvasChildrenOf(doc, id)) {
-      out.push(childId);
-      walk(childId);
-    }
-  };
-  walk(nodeId);
-  return out;
+  return collectDescendantIds(doc, nodeId, { canvasOnly: true }).ids;
 }
 
 export function viewportToDocumentBounds(

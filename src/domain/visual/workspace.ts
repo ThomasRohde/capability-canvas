@@ -1,6 +1,7 @@
 import {
   DOCUMENT_VERSION,
   canvasChildrenOf,
+  collectAncestorIds,
   isNodeOnCanvas,
   now,
   type Bounds,
@@ -633,14 +634,9 @@ function hasCollapsedAncestor(
   nodeId: NodeId,
   collapsed: Set<NodeId>,
 ): boolean {
-  let current = doc.nodesById[nodeId];
-  const seen = new Set<NodeId>();
-  while (current?.parentId && !seen.has(current.id)) {
-    seen.add(current.id);
-    if (collapsed.has(current.parentId)) return true;
-    current = doc.nodesById[current.parentId];
-  }
-  return false;
+  return collectAncestorIds(doc, nodeId).ids.some((ancestorId) =>
+    collapsed.has(ancestorId),
+  );
 }
 
 function collapsedNodeIds(view: VisualView): Set<NodeId> {

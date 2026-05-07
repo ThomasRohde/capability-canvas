@@ -1,5 +1,5 @@
 import { createEmptyDocument } from './defaults';
-import { ROOT_PARENT_ID, type CapabilityDocument, type CapabilityNode, type NodeId } from './types';
+import { buildSafeChildrenByParentId, ROOT_PARENT_ID, type CapabilityDocument, type CapabilityNode } from './types';
 import { cloneVisualWorkspace } from '../visual/workspace';
 
 export function normalizeNodes(nodes: CapabilityNode[], title = 'Untitled capability model'): CapabilityDocument {
@@ -58,13 +58,18 @@ export function rebuildChildren(doc: CapabilityDocument): CapabilityDocument {
 
 export function sortedNodes(doc: CapabilityDocument): CapabilityNode[] {
   const out: CapabilityNode[] = [];
-  const visit = (nodeId: NodeId) => {
+  const safeChildren = buildSafeChildrenByParentId(doc).childrenByParentId;
+  const stack = [...(safeChildren[ROOT_PARENT_ID] ?? [])].reverse();
+  while (stack.length > 0) {
+    const nodeId = stack.pop()!;
     const node = doc.nodesById[nodeId];
-    if (!node) return;
+    if (!node) continue;
     out.push(node);
-    for (const childId of doc.childrenByParentId[nodeId] ?? []) visit(childId);
-  };
-  for (const rootId of doc.childrenByParentId[ROOT_PARENT_ID] ?? []) visit(rootId);
+    const childIds = safeChildren[nodeId] ?? [];
+    for (let index = childIds.length - 1; index >= 0; index -= 1) {
+      stack.push(childIds[index]!);
+    }
+  }
   const seen = new Set(out.map((node) => node.id));
   for (const node of Object.values(doc.nodesById)) {
     if (!seen.has(node.id)) out.push(node);
