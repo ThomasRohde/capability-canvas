@@ -64,5 +64,11 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
 export const pptxAdapter: ExportAdapter = {
   format: 'pptx',
   label: 'PowerPoint',
+  description: 'Native PowerPoint shapes for the active view.',
+  scope: 'active-view',
+  requiresValidDocument: true,
+  hiddenNodes: 'excluded',
+  heatmap: 'active-view-display',
+  legend: 'not-rendered',
   exportDocument: pptxExport
 };

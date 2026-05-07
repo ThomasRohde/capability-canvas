@@ -13,6 +13,7 @@ import {
 } from "../commands/operations";
 import { createSampleDocument } from "../fixtures/sample";
 import { resolveVisualDocument } from "../visual/workspace";
+import { ROOT_PARENT_ID } from "./types";
 
 describe("document JSON adapter", () => {
   it("round-trips sample documents through the wire format", () => {
@@ -173,6 +174,111 @@ describe("document JSON adapter", () => {
     expect(
       parsed.diagnostics.some(
         (diag) => diag.code === "missing-parent-repaired",
+      ),
+    ).toBe(true);
+  });
+
+  it("repairs duplicate ids and ambiguous duplicate parent references deterministically", () => {
+    const wire = serializeDocument(createSampleDocument());
+    const root = { ...wire.nodes.find((node) => node.id === "customer")! };
+    const firstDuplicate = {
+      ...wire.nodes.find((node) => node.id === "channels")!,
+    };
+    const secondDuplicate = {
+      ...wire.nodes.find((node) => node.id === "digital")!,
+    };
+    const child = {
+      ...wire.nodes.find((node) => node.id === "digital-onboarding")!,
+    };
+    root.id = "root-a";
+    root.parentId = null;
+    root.type = "root";
+    firstDuplicate.id = "dup";
+    firstDuplicate.parentId = "root-a";
+    firstDuplicate.type = "leaf";
+    secondDuplicate.id = "dup";
+    secondDuplicate.parentId = "root-a";
+    secondDuplicate.type = "leaf";
+    child.id = "child";
+    child.parentId = "dup";
+    child.type = "leaf";
+    wire.nodes = [root, firstDuplicate, secondDuplicate, child];
+    delete wire.visual;
+
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc).not.toBeNull();
+    expect(parsed.doc!.nodesById.dup).toBeDefined();
+    expect(parsed.doc!.nodesById["dup-2"]).toBeDefined();
+    expect(parsed.doc!.nodesById.child).toMatchObject({
+      parentId: null,
+      type: "root",
+    });
+    expect(parsed.doc!.childrenByParentId[ROOT_PARENT_ID]).toContain("child");
+    expect(
+      parsed.diagnostics.some(
+        (diagnostic) => diagnostic.code === "duplicate-id-repaired",
+      ),
+    ).toBe(true);
+    const ambiguous = parsed.diagnostics.find(
+      (diagnostic) => diagnostic.code === "ambiguous-parent-repaired",
+    );
+    expect(ambiguous?.message).toContain("raw child id child");
+    expect(ambiguous?.message).toContain("repaired as child");
+    expect(ambiguous?.message).toContain("Parent reference dup");
+    expect(ambiguous?.message).toContain("moved to root");
+    expect(
+      parsed.diagnostics.filter(
+        (diagnostic) => diagnostic.severity === "error",
+      ),
+    ).toHaveLength(0);
+
+    const reparsed = parseDocument(serializeDocument(parsed.doc!));
+    expect(reparsed.doc).not.toBeNull();
+    expect(
+      reparsed.diagnostics.some((diagnostic) =>
+        ["duplicate-id-repaired", "ambiguous-parent-repaired"].includes(
+          diagnostic.code,
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("renames duplicate root ids while keeping both nodes at the root", () => {
+    const wire = serializeDocument(createSampleDocument());
+    const firstRoot = {
+      ...wire.nodes.find((node) => node.id === "customer")!,
+      id: "duplicate-root",
+      parentId: null,
+      type: "root" as const,
+    };
+    const secondRoot = {
+      ...wire.nodes.find((node) => node.id === "risk")!,
+      id: "duplicate-root",
+      parentId: null,
+      type: "root" as const,
+    };
+    wire.nodes = [firstRoot, secondRoot];
+    delete wire.visual;
+
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc).not.toBeNull();
+    expect(parsed.doc!.nodesById["duplicate-root"]).toMatchObject({
+      parentId: null,
+      type: "root",
+    });
+    expect(parsed.doc!.nodesById["duplicate-root-2"]).toMatchObject({
+      parentId: null,
+      type: "root",
+    });
+    expect(parsed.doc!.childrenByParentId[ROOT_PARENT_ID]).toEqual([
+      "duplicate-root",
+      "duplicate-root-2",
+    ]);
+    expect(
+      parsed.diagnostics.some(
+        (diagnostic) => diagnostic.code === "duplicate-id-repaired",
       ),
     ).toBe(true);
   });

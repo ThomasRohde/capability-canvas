@@ -38,5 +38,11 @@ export function archimateExport(doc: CapabilityDocument): ExportResult {
 export const archimateAdapter: ExportAdapter = {
   format: 'archimate',
   label: 'ArchiMate',
+  description: 'ArchiMate Open Exchange source hierarchy export.',
+  scope: 'full-model',
+  requiresValidDocument: false,
+  hiddenNodes: 'included',
+  heatmap: 'not-included',
+  legend: 'not-rendered',
   exportDocument: archimateExport
 };

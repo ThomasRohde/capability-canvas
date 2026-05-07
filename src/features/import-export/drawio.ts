@@ -42,5 +42,11 @@ export function drawioExport(doc: CapabilityDocument): ExportResult {
 export const drawioAdapter: ExportAdapter = {
   format: 'drawio',
   label: 'Draw.io',
+  description: 'diagrams.net XML for the active view.',
+  scope: 'active-view',
+  requiresValidDocument: true,
+  hiddenNodes: 'excluded',
+  heatmap: 'active-view-display',
+  legend: 'not-rendered',
   exportDocument: drawioExport
 };

@@ -48,14 +48,19 @@ export function parseDocument(input: unknown): ParseResult {
 
   const idCounts = new Map<string, number>();
   const rewrittenIds = new Map<string, string>();
+  const finalIdsByRawId = new Map<string, string[]>();
   for (const rawNode of parsed.data.nodes) {
     const count = idCounts.get(rawNode.id) ?? 0;
     idCounts.set(rawNode.id, count + 1);
     const id = count === 0 ? rawNode.id : `${rawNode.id}-${count + 1}`;
     if (id !== rawNode.id) {
-      diagnostics.push(warning('duplicate-id-repaired', `Duplicate id ${rawNode.id} was renamed to ${id}.`, rawNode.id));
+      diagnostics.push(warning('duplicate-id-repaired', `Duplicate id ${rawNode.id} was renamed to ${id}.`, id));
     }
     rewrittenIds.set(`${rawNode.id}:${count}`, id);
+    finalIdsByRawId.set(rawNode.id, [
+      ...(finalIdsByRawId.get(rawNode.id) ?? []),
+      id,
+    ]);
   }
 
   const seenByOriginal = new Map<string, number>();
@@ -63,9 +68,22 @@ export function parseDocument(input: unknown): ParseResult {
     const seen = seenByOriginal.get(rawNode.id) ?? 0;
     seenByOriginal.set(rawNode.id, seen + 1);
     const id = rewrittenIds.get(`${rawNode.id}:${seen}`) ?? rawNode.id;
-    const parentId = rawNode.parentId && idCounts.has(rawNode.parentId) ? rawNode.parentId : null;
-    if (rawNode.parentId && !idCounts.has(rawNode.parentId)) {
+    const parentCandidates = rawNode.parentId
+      ? finalIdsByRawId.get(rawNode.parentId) ?? []
+      : [];
+    let parentId: NodeId | null = null;
+    if (rawNode.parentId && parentCandidates.length === 1) {
+      parentId = parentCandidates[0]!;
+    } else if (rawNode.parentId && parentCandidates.length === 0) {
       diagnostics.push(warning('missing-parent-repaired', `Missing parent ${rawNode.parentId}; ${id} moved to root.`, id));
+    } else if (rawNode.parentId && parentCandidates.length > 1) {
+      diagnostics.push(
+        warning(
+          'ambiguous-parent-repaired',
+          `Parent reference ${rawNode.parentId} for raw child id ${rawNode.id} repaired as ${id} matched multiple imported nodes (${parentCandidates.join(', ')}); ${id} moved to root.`,
+          id,
+        ),
+      );
     }
     const node: CapabilityNode = {
       ...rawNode,

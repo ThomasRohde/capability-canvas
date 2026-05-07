@@ -164,3 +164,9 @@ Validation requirements:
 - Reject or repair malformed data with clear user feedback.
 - Report duplicate ids, missing parents, invalid dimensions, invalid versions, and invalid heatmap values.
 - Preserve unknown metadata fields where practical.
+
+Duplicate id repair must be deterministic. During import, the first node for a
+raw id keeps that id and later duplicates are renamed with numeric suffixes. A
+parent reference to a duplicated raw id is treated as ambiguous, so the affected
+child is moved to the root list and a diagnostic reports the raw child id, the
+repaired child id, the raw parent id, and the root repair decision.

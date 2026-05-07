@@ -173,7 +173,6 @@ export function addChild(
           y: snapCoordinate(next, parent.y + 64),
           w: next.settings.fixedLeafWidth,
           h: next.settings.fixedLeafHeight,
-          heatmapValue: 0,
         });
         next.nodesById[parentId] = {
           ...parent,
@@ -1532,7 +1531,6 @@ function mergePromptCapability(
     y: snapCoordinate(doc, parent.y + 64),
     w: doc.settings.fixedLeafWidth,
     h: doc.settings.fixedLeafHeight,
-    heatmapValue: 0,
   });
   doc.childrenByParentId[parentId] = [...childrenOf(doc, parentId), id];
   doc.childrenByParentId[id] = [];

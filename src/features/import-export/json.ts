@@ -16,5 +16,11 @@ export function jsonExport(doc: CapabilityDocument): ExportResult {
 export const jsonAdapter: ExportAdapter = {
   format: 'json',
   label: 'JSON',
+  description: 'Full-fidelity source model with all visual views.',
+  scope: 'full-model',
+  requiresValidDocument: false,
+  hiddenNodes: 'included',
+  heatmap: 'source-settings',
+  legend: 'source-settings',
   exportDocument: jsonExport
 };

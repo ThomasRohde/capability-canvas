@@ -112,5 +112,11 @@ function wrapLabel(label: string, maxChars: number, maxLines: number): string[] 
 export const svgAdapter: ExportAdapter = {
   format: 'svg',
   label: 'SVG',
+  description: 'Vector export of the active visual view.',
+  scope: 'active-view',
+  requiresValidDocument: true,
+  hiddenNodes: 'excluded',
+  heatmap: 'active-view-display',
+  legend: 'not-rendered',
   exportDocument: svgExport
 };

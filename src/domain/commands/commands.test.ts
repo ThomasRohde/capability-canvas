@@ -38,6 +38,11 @@ describe("commands", () => {
         (node) => node.label === "New risk capability",
       ),
     ).toBe(true);
+    expect(
+      Object.values(result.doc.nodesById).find(
+        (node) => node.label === "New risk capability",
+      )?.heatmapValue,
+    ).toBeUndefined();
   });
 
   it("rejects reparenting into a descendant", () => {
@@ -216,6 +221,9 @@ describe("commands", () => {
       isOnCanvas: true,
       description: "Confirms customer identity for digital onboarding.",
     });
+    expect(
+      result.doc.nodesById["identity-verification"]?.heatmapValue,
+    ).toBeUndefined();
   });
 
   it("merges prompt output into a non-leaf without removing existing children", () => {

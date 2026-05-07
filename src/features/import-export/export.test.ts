@@ -58,6 +58,25 @@ describe('exports', () => {
     expect(alternateFill.border).not.toBe(defaultFill.border);
   });
 
+  it('keeps explicit zero heatmap scores distinct from unscored nodes', () => {
+    const doc = createSampleDocument();
+    doc.visual.viewsById[doc.visual.activeViewId]!.heatmap.enabled = true;
+    doc.nodesById['digital-onboarding'] = {
+      ...doc.nodesById['digital-onboarding']!,
+      heatmapValue: 0,
+    };
+    const explicitZeroSvg = svgExport(doc).data;
+
+    doc.nodesById['digital-onboarding'] = {
+      ...doc.nodesById['digital-onboarding']!,
+      heatmapValue: undefined,
+    };
+    const unscoredSvg = svgExport(doc).data;
+
+    expect(explicitZeroSvg).toContain('>0.00</text>');
+    expect(unscoredSvg).not.toContain('>0.00</text>');
+  });
+
   it('escapes HTML title content and sanitizes filenames', () => {
     const doc = runTransaction(
       createSampleDocument(),

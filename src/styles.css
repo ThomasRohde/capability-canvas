@@ -1585,6 +1585,15 @@ button:focus-visible {
   background: var(--cc-brand-50);
 }
 
+.cc-export-contract {
+  display: grid;
+  gap: 3px;
+  margin-top: 6px;
+  color: var(--cc-slate-500);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .cc-validation-row {
   display: flex;
   align-items: center;
@@ -1612,6 +1621,34 @@ button:focus-visible {
 .cc-validation-result.invalid {
   background: #fffbeb;
   color: #b45309;
+}
+
+.cc-export-status {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cc-export-status.success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cc-export-status.warning,
+.cc-export-status.error {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.cc-export-diagnostics {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
 }
 
 .cc-settings-section {
