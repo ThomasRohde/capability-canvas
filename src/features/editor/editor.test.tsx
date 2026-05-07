@@ -16,6 +16,7 @@ import {
   createVisualView,
   reparentNode,
   runTransaction,
+  updateVisualNodeState,
 } from "../../domain/commands/operations";
 import {
   serializeDocument,
@@ -200,6 +201,98 @@ describe("editor shell", () => {
     );
   });
 
+  it("commits view renames once on blur and undo restores the prior name", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    const input = screen.getByLabelText("Name for Default view");
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "Executive view");
+
+    expect(
+      useDocumentStore.getState().doc.visual.viewsById["view-default"]?.name,
+    ).toBe("Default view");
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
+
+    fireEvent.blur(input);
+
+    expect(
+      useDocumentStore.getState().doc.visual.viewsById["view-default"]?.name,
+    ).toBe("Executive view");
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore + 1);
+
+    act(() => {
+      useDocumentStore.getState().undo();
+    });
+    expect(
+      useDocumentStore.getState().doc.visual.viewsById["view-default"]?.name,
+    ).toBe("Default view");
+  });
+
+  it("cancels view rename drafts with Escape without closing the drawer", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+    const input = screen.getByLabelText("Name for Default view");
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    await userEvent.type(input, " edited");
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      screen.getByRole("complementary", { name: "Views" }),
+    ).toBeInTheDocument();
+    expect(input).toHaveValue("Default view");
+    expect(
+      useDocumentStore.getState().doc.visual.viewsById["view-default"]?.name,
+    ).toBe("Default view");
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
+    expect(useDocumentStore.getState().dirty).toBe(false);
+  });
+
+  it("disables reset actions for unchanged views and confirms changed resets", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+
+    expect(
+      screen.getByRole("button", { name: "Reset layout for Default view" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Reset Default view to Full model default template",
+      }),
+    ).toBeDisabled();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(
+          updateVisualNodeState("view-default", "digital-onboarding", {
+            x: 900,
+          }),
+        );
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Reset layout for Default view" }),
+    );
+    let dialog = screen.getByRole("alertdialog", { name: "Reset layout" });
+    expect(within(dialog).getByText(/positions, sizes, layout mode/))
+      .toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Reset Default view to Full model default template",
+      }),
+    );
+    dialog = screen.getByRole("alertdialog", { name: "Reset from template" });
+    expect(
+      within(dialog).getByText(/visibility, collapse state, heatmap view settings/),
+    ).toBeInTheDocument();
+  });
+
   it("renders depth-limited view endpoints as leaf cards", async () => {
     render(<EditorRoute />);
     await userEvent.click(screen.getByRole("button", { name: "Open views" }));
@@ -282,6 +375,15 @@ describe("editor shell", () => {
       "executive-overview@1",
     );
     await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(
+          updateVisualNodeState("view-default", "account-management", {
+            isOnCanvas: false,
+          }),
+        );
+    });
 
     await userEvent.click(
       screen.getByRole("button", {
@@ -294,7 +396,9 @@ describe("editor shell", () => {
     expect(
       within(dialog).getByText(/Full model default template/),
     ).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole("button", { name: "Reset" }));
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Reset view" }),
+    );
 
     const doc = useDocumentStore.getState().doc;
     const defaultView = resolveVisualDocument(doc, "view-default");

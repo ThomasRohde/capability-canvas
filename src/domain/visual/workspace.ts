@@ -300,6 +300,7 @@ export function cloneVisualWorkspace(
 export function cloneVisualView(view: VisualView): VisualView {
   return {
     ...view,
+    baseline: view.baseline ? { ...view.baseline } : undefined,
     templateContext: cloneTemplateContext(view.templateContext),
     nodeStatesById: Object.fromEntries(
       Object.entries(view.nodeStatesById).map(([id, state]) => [

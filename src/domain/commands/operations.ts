@@ -31,6 +31,7 @@ import {
 } from "../validation/validate";
 import { error, type Diagnostic } from "../validation/diagnostics";
 import {
+  BUILT_IN_VIEW_TEMPLATES,
   createViewFromTemplate,
   type VisualTemplateId,
 } from "../visual/templates";
@@ -43,6 +44,7 @@ import {
   reconcileVisualWorkspaceWithNodes,
   resolveVisualDocument,
 } from "../visual/workspace";
+import { attachViewBaseline } from "../visual/viewChanges";
 import {
   type AlignDirection,
   type Command,
@@ -581,12 +583,15 @@ export function createVisualView(args: {
         visual.viewOrder.push(id);
         visual.activeViewId = id;
         next.visual = visual;
-        return ok(materializeActiveViewMetadata(next));
+        return ok(attachViewBaseline(materializeActiveViewMetadata(next), id, "full"));
       }),
     ],
-    args.templateId
-      ? { relayout: { scope: "document", force: true, viewId: id } }
-      : undefined,
+    {
+      baseline: { viewId: id, mode: "full" },
+      ...(args.templateId
+        ? { relayout: { scope: "document" as const, force: true, viewId: id } }
+        : {}),
+    },
   );
 }
 
@@ -617,7 +622,7 @@ export function duplicateVisualView(viewId?: VisualViewId): Transaction {
           : [...visual.viewOrder, id];
       visual.activeViewId = id;
       next.visual = visual;
-      return ok(materializeActiveViewMetadata(next));
+      return ok(attachViewBaseline(materializeActiveViewMetadata(next), id, "full"));
     }),
   ]);
 }
@@ -783,9 +788,52 @@ export function resetVisualView(viewId: VisualViewId): Transaction {
         updatedAt: now(),
       };
       next.visual = visual;
-      return ok(materializeActiveViewMetadata(next));
+      return ok(attachViewBaseline(materializeActiveViewMetadata(next), viewId, "full"));
     }),
-  ]);
+  ], { baseline: { viewId, mode: "full" } });
+}
+
+export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
+  return transaction(
+    "Reset visual view layout",
+    [
+      command("reset-visual-view-layout", { viewId }, (doc) => {
+        const existing = doc.visual.viewsById[viewId];
+        if (!existing) return fail(doc, "missing-view", "Select a valid view.");
+        const templateId = builtInTemplateId(existing.templateId);
+        const contextRootId = existing.templateContext?.rootId;
+        const baseline = createViewFromTemplate(doc, {
+          id: viewId,
+          templateId,
+          name: existing.name,
+          context: { rootId: contextRootId },
+        });
+        const next = cloneDocument(doc);
+        const visual = cloneVisualWorkspace(next.visual);
+        const current = visual.viewsById[viewId]!;
+        visual.viewsById[viewId] = {
+          ...current,
+          nodeStatesById: mergeLayoutNodeStates(
+            current.nodeStatesById,
+            baseline.nodeStatesById,
+          ),
+          layout: {
+            ...baseline.layout,
+            boundingBox: baseline.layout.boundingBox
+              ? { ...baseline.layout.boundingBox }
+              : undefined,
+          },
+          updatedAt: now(),
+        };
+        next.visual = visual;
+        return ok(attachViewBaseline(materializeActiveViewMetadata(next), viewId, "layout"));
+      }),
+    ],
+    {
+      baseline: { viewId, mode: "layout" },
+      relayout: { scope: "document", force: true, viewId },
+    },
+  );
 }
 
 export function resetVisualViewFromTemplate(
@@ -816,11 +864,16 @@ export function resetVisualViewFromTemplate(
             updatedAt: now(),
           };
           next.visual = visual;
-          return ok(materializeActiveViewMetadata(next));
+          return ok(
+            attachViewBaseline(materializeActiveViewMetadata(next), viewId, "full"),
+          );
         },
       ),
     ],
-    { relayout: { scope: "document", force: true, viewId } },
+    {
+      baseline: { viewId, mode: "full" },
+      relayout: { scope: "document", force: true, viewId },
+    },
   );
 }
 
@@ -1631,6 +1684,45 @@ function updateView(
   };
   next.visual = visual;
   return ok(materializeActiveViewMetadata(next));
+}
+
+function mergeLayoutNodeStates(
+  currentStates: Record<NodeId, VisualNodeState>,
+  baselineStates: Record<NodeId, VisualNodeState>,
+): Record<NodeId, VisualNodeState> {
+  const next: Record<NodeId, VisualNodeState> = {};
+  const nodeIds = new Set([
+    ...Object.keys(currentStates),
+    ...Object.keys(baselineStates),
+  ]);
+  for (const nodeId of nodeIds) {
+    const current = currentStates[nodeId] ?? {};
+    const baseline = baselineStates[nodeId];
+    next[nodeId] = {
+      ...current,
+      ...(baseline
+        ? {
+            x: baseline.x,
+            y: baseline.y,
+            w: baseline.w,
+            h: baseline.h,
+            lockedForView: baseline.lockedForView,
+            isManualPositioningEnabled: baseline.isManualPositioningEnabled,
+          }
+        : {}),
+    };
+  }
+  return next;
+}
+
+function builtInTemplateId(value: unknown): VisualTemplateId {
+  if (
+    typeof value === "string" &&
+    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
+  ) {
+    return value as VisualTemplateId;
+  }
+  return "full-model-default@1";
 }
 
 function updateOnly(

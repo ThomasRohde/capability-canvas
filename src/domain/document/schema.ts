@@ -212,6 +212,12 @@ export const VisualViewSchema = z
       })
       .passthrough()
       .optional(),
+    baseline: z
+      .object({
+        fullHash: z.string(),
+        layoutHash: z.string(),
+      })
+      .optional(),
     nodeStatesById: z.record(z.string(), VisualNodeStateSchema).default({}),
     viewport: z
       .object({

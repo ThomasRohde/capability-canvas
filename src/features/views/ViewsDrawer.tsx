@@ -17,7 +17,7 @@ import {
   duplicateVisualView,
   renameVisualView,
   reorderVisualViews,
-  resetVisualView,
+  resetVisualViewLayout,
   resetVisualViewFromTemplate,
   setDefaultVisualView,
 } from "../../domain/commands/operations";
@@ -32,8 +32,10 @@ import {
   type VisualTemplateId,
 } from "../../domain/visual/templates";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { viewChangeSummary } from "../../domain/visual/viewChanges";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { CommitTextInput } from "../shared/CommitTextInput";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { IconButton } from "../shared/IconButton";
 
@@ -182,107 +184,20 @@ export function ViewsDrawer() {
           </div>
           <div className="cc-view-list">
             {orderedViews.map((view, index) => (
-              <div
-                className={`cc-view-row ${view.id === doc.visual.activeViewId ? "active" : ""}`}
+              <ViewRow
                 key={view.id}
-              >
-                <button
-                  className="cc-view-use"
-                  type="button"
-                  aria-label={`Use ${view.name}`}
-                  aria-current={
-                    view.id === doc.visual.activeViewId ? "true" : undefined
-                  }
-                  onClick={() => switchToView(view.id)}
-                >
-                  <Eye />
-                </button>
-                <div className="cc-view-details">
-                  <input
-                    className="cc-input"
-                    aria-label={`Name for ${view.name}`}
-                    value={view.name}
-                    onChange={(event) =>
-                      execute(renameVisualView(view.id, event.target.value))
-                    }
-                  />
-                  <p className="cc-view-description">
-                    {descriptionForView(view, doc)}
-                  </p>
-                </div>
-                <IconButton
-                  icon={ArrowUp}
-                  label={`Move ${view.name} up`}
-                  disabled={index === 0}
-                  onClick={() => moveView(view.id, -1)}
-                />
-                <IconButton
-                  icon={ArrowDown}
-                  label={`Move ${view.name} down`}
-                  disabled={index === orderedViews.length - 1}
-                  onClick={() => moveView(view.id, 1)}
-                />
-                <IconButton
-                  icon={Copy}
-                  label={`Duplicate ${view.name}`}
-                  onClick={() => execute(duplicateVisualView(view.id))}
-                />
-                <IconButton
-                  icon={Star}
-                  label={`Set ${view.name} as default view`}
-                  active={view.id === doc.visual.defaultViewId}
-                  onClick={() => execute(setDefaultVisualView(view.id))}
-                />
-                <IconButton
-                  icon={RotateCcw}
-                  label={`Reset ${view.name}`}
-                  onClick={() => {
-                    if (!viewHasChanges(view)) {
-                      execute(resetVisualView(view.id));
-                      return;
-                    }
-                    setConfirmRequest({
-                      title: "Reset view",
-                      body: `Reset "${view.name}" to source defaults? This discards layout, visibility, collapse, and view settings for this view.`,
-                      confirmLabel: "Reset",
-                      onConfirm: () => execute(resetVisualView(view.id)),
-                    });
-                  }}
-                />
-                <IconButton
-                  icon={LayoutTemplate}
-                  label={`Reset ${view.name} to ${templateNameForView(view)} template`}
-                  onClick={() => {
-                    const viewTemplateId = templateIdForView(view);
-                    const templateName = templateById(viewTemplateId).name;
-                    if (!viewHasChanges(view)) {
-                      execute(resetVisualViewFromTemplate(view.id, viewTemplateId));
-                      return;
-                    }
-                    setConfirmRequest({
-                      title: "Reset from template",
-                      body: `Reset "${view.name}" to the ${templateName} template? This discards layout, visibility, collapse, and view settings for this view.`,
-                      confirmLabel: "Reset",
-                      onConfirm: () =>
-                        execute(resetVisualViewFromTemplate(view.id, viewTemplateId)),
-                    });
-                  }}
-                />
-                <IconButton
-                  icon={Trash2}
-                  label={`Delete ${view.name}`}
-                  disabled={!hasMultipleViews}
-                  onClick={() => {
-                    setConfirmRequest({
-                      title: "Delete view",
-                      body: `Delete visual view "${view.name}"? This cannot be undone from the Views drawer.`,
-                      confirmLabel: "Delete",
-                      tone: "danger",
-                      onConfirm: () => execute(deleteVisualView(view.id)),
-                    });
-                  }}
-                />
-              </div>
+                doc={doc}
+                execute={execute}
+                hasMultipleViews={hasMultipleViews}
+                index={index}
+                isDefault={view.id === doc.visual.defaultViewId}
+                isActive={view.id === doc.visual.activeViewId}
+                moveView={moveView}
+                orderedViewsLength={orderedViews.length}
+                setConfirmRequest={setConfirmRequest}
+                switchToView={switchToView}
+                view={view}
+              />
             ))}
           </div>
         </section>
@@ -305,18 +220,132 @@ export function ViewsDrawer() {
   );
 }
 
-function viewHasChanges(view: VisualView) {
-  return Object.keys(view.nodeStatesById).length > 0;
+function ViewRow({
+  doc,
+  execute,
+  hasMultipleViews,
+  index,
+  isActive,
+  isDefault,
+  moveView,
+  orderedViewsLength,
+  setConfirmRequest,
+  switchToView,
+  view,
+}: {
+  doc: CapabilityDocument;
+  execute: ReturnType<typeof useDocumentStore.getState>["execute"];
+  hasMultipleViews: boolean;
+  index: number;
+  isActive: boolean;
+  isDefault: boolean;
+  moveView: (viewId: string, direction: -1 | 1) => void;
+  orderedViewsLength: number;
+  setConfirmRequest: (request: ConfirmRequest) => void;
+  switchToView: (viewId: string) => void;
+  view: VisualView;
+}) {
+  const changes = viewChangeSummary(doc, view.id);
+  const viewTemplateId = templateIdForView(view);
+  const templateName = templateById(viewTemplateId).name;
+
+  return (
+    <div className={`cc-view-row ${isActive ? "active" : ""}`}>
+      <button
+        className="cc-view-use"
+        type="button"
+        aria-label={`Use ${view.name}`}
+        aria-current={isActive ? "true" : undefined}
+        onClick={() => switchToView(view.id)}
+      >
+        <Eye />
+      </button>
+      <div className="cc-view-details">
+        <CommitTextInput
+          className="cc-input"
+          aria-label={`Name for ${view.name}`}
+          value={view.name}
+          normalize={normalizeViewName}
+          onCommit={(name) => execute(renameVisualView(view.id, name))}
+        />
+        <p className="cc-view-description">{descriptionForView(view, doc)}</p>
+      </div>
+      <IconButton
+        icon={ArrowUp}
+        label={`Move ${view.name} up`}
+        disabled={index === 0}
+        onClick={() => moveView(view.id, -1)}
+      />
+      <IconButton
+        icon={ArrowDown}
+        label={`Move ${view.name} down`}
+        disabled={index === orderedViewsLength - 1}
+        onClick={() => moveView(view.id, 1)}
+      />
+      <IconButton
+        icon={Copy}
+        label={`Duplicate ${view.name}`}
+        onClick={() => execute(duplicateVisualView(view.id))}
+      />
+      <IconButton
+        icon={Star}
+        label={`Set ${view.name} as default view`}
+        active={isDefault}
+        onClick={() => execute(setDefaultVisualView(view.id))}
+      />
+      <IconButton
+        icon={RotateCcw}
+        label={`Reset layout for ${view.name}`}
+        disabled={!changes?.layoutChanged}
+        onClick={() => {
+          setConfirmRequest({
+            title: "Reset layout",
+            body: `Reset layout for "${view.name}"? This discards positions, sizes, layout mode, and layout preservation for this view. Visibility, collapse state, heatmap, export settings, and the view name are preserved.`,
+            confirmLabel: "Reset layout",
+            onConfirm: () => execute(resetVisualViewLayout(view.id)),
+          });
+        }}
+      />
+      <IconButton
+        icon={LayoutTemplate}
+        label={`Reset ${view.name} to ${templateName} template`}
+        disabled={!changes?.fullChanged}
+        onClick={() => {
+          setConfirmRequest({
+            title: "Reset from template",
+            body: `Reset "${view.name}" to the ${templateName} template? This discards layout, visibility, collapse state, heatmap view settings, and export view settings for this view. The view name is preserved.`,
+            confirmLabel: "Reset view",
+            onConfirm: () =>
+              execute(resetVisualViewFromTemplate(view.id, viewTemplateId)),
+          });
+        }}
+      />
+      <IconButton
+        icon={Trash2}
+        label={`Delete ${view.name}`}
+        disabled={!hasMultipleViews}
+        onClick={() => {
+          setConfirmRequest({
+            title: "Delete view",
+            body: `Delete visual view "${view.name}"? This cannot be undone from the Views drawer.`,
+            confirmLabel: "Delete",
+            tone: "danger",
+            onConfirm: () => execute(deleteVisualView(view.id)),
+          });
+        }}
+      />
+    </div>
+  );
+}
+
+function normalizeViewName(value: string) {
+  return value.trim() || "Untitled view";
 }
 
 function templateIdForView(view: VisualView): VisualTemplateId {
   return isBuiltInTemplateId(view.templateId)
     ? view.templateId
     : "full-model-default@1";
-}
-
-function templateNameForView(view: VisualView): string {
-  return templateById(templateIdForView(view)).name;
 }
 
 function descriptionForView(view: VisualView, doc?: CapabilityDocument): string {

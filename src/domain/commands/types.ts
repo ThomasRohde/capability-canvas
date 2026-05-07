@@ -27,6 +27,7 @@ export interface Transaction {
   meta?: {
     source?: "drag" | "bulk" | "edit" | "import" | "layout";
     relayout?: { scope: RelayoutScope; force?: boolean; viewId?: VisualViewId };
+    baseline?: { viewId: VisualViewId; mode: "full" | "layout" };
   };
 }
 

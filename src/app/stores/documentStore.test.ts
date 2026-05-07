@@ -6,8 +6,11 @@ import {
   deleteNodes,
   moveNodes,
   reparentNode,
+  resetVisualViewLayout,
   resetVisualViewFromTemplate,
   resizeNode,
+  updateActiveViewHeatmapSettings,
+  updateVisualView,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
 import type { Transaction } from "../../domain/commands/types";
@@ -24,6 +27,10 @@ import {
 } from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
+import {
+  viewChangeSummary,
+  viewHashes,
+} from "../../domain/visual/viewChanges";
 import { useDocumentStore } from "./documentStore";
 
 const SCOPED_RELAYOUT_CASES: Array<[string, () => Transaction]> = [
@@ -461,6 +468,113 @@ describe("document store layout settings", () => {
       "vendor-management",
     ]);
     expect(findParentContainmentViolations(resolved)).toEqual([]);
+  });
+
+  it("resets a full view to its template baseline in one undoable step", async () => {
+    useDocumentStore
+      .getState()
+      .execute(createVisualView({ templateId: "level-1-map@1" }));
+    await waitForStoreRelayout();
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore
+      .getState()
+      .execute(updateVisualView(viewId, { export: { pagePreset: "16:9" } }));
+    expect(viewChangeSummary(useDocumentStore.getState().doc, viewId))
+      .toMatchObject({ fullChanged: true, layoutChanged: false });
+    const historyBeforeReset = useDocumentStore.getState().past.length;
+
+    useDocumentStore
+      .getState()
+      .execute(resetVisualViewFromTemplate(viewId, "level-1-map@1"));
+    await waitForStoreRelayout();
+
+    let doc = useDocumentStore.getState().doc;
+    expect(viewChangeSummary(doc, viewId)).toMatchObject({
+      fullChanged: false,
+      layoutChanged: false,
+    });
+    expect(doc.visual.viewsById[viewId]?.export.pagePreset).toBeUndefined();
+    expect(useDocumentStore.getState().past).toHaveLength(
+      historyBeforeReset + 1,
+    );
+
+    useDocumentStore.getState().undo();
+    doc = useDocumentStore.getState().doc;
+    expect(doc.visual.viewsById[viewId]?.export.pagePreset).toBe("16:9");
+    expect(useDocumentStore.getState().past).toHaveLength(historyBeforeReset);
+  });
+
+  it("resets layout only while preserving non-layout view state", async () => {
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore
+      .getState()
+      .execute(updateVisualNodeState(viewId, "operations", { isCollapsed: true }));
+    await waitForStoreRelayout();
+    useDocumentStore
+      .getState()
+      .execute(updateActiveViewHeatmapSettings({ enabled: true, showLegend: true }));
+    useDocumentStore
+      .getState()
+      .execute(updateVisualView(viewId, { export: { pagePreset: "16:9" } }));
+    useDocumentStore
+      .getState()
+      .execute(
+        updateVisualNodeState(viewId, "risk", { x: 999, isOnCanvas: false }),
+      );
+    const movedX =
+      useDocumentStore.getState().doc.visual.viewsById[viewId]!
+        .nodeStatesById.risk?.x;
+    const historyBeforeReset = useDocumentStore.getState().past.length;
+
+    useDocumentStore.getState().execute(resetVisualViewLayout(viewId));
+    await waitForStoreRelayout();
+
+    let doc = useDocumentStore.getState().doc;
+    let view = doc.visual.viewsById[viewId]!;
+    expect(view.nodeStatesById.risk?.x).not.toBe(movedX);
+    expect(view.nodeStatesById.operations?.isCollapsed).toBe(true);
+    expect(view.nodeStatesById.risk?.isOnCanvas).toBe(false);
+    expect(view.heatmap).toMatchObject({ enabled: true, showLegend: true });
+    expect(view.export).toMatchObject({ pagePreset: "16:9" });
+    expect(viewChangeSummary(doc, viewId)).toMatchObject({
+      fullChanged: true,
+      layoutChanged: false,
+    });
+    expect(useDocumentStore.getState().past).toHaveLength(
+      historyBeforeReset + 1,
+    );
+
+    useDocumentStore.getState().undo();
+    doc = useDocumentStore.getState().doc;
+    view = doc.visual.viewsById[viewId]!;
+    expect(view.nodeStatesById.risk?.x).toBe(movedX);
+    expect(view.nodeStatesById.operations?.isCollapsed).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(historyBeforeReset);
+  });
+
+  it("stores current baseline hashes after template create and reset relayout", async () => {
+    useDocumentStore
+      .getState()
+      .execute(createVisualView({ templateId: "executive-overview@1" }));
+    await waitForStoreRelayout();
+
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+    let view = useDocumentStore.getState().doc.visual.viewsById[viewId]!;
+    expect(view.baseline).toEqual(viewHashes(view));
+
+    useDocumentStore
+      .getState()
+      .execute(updateVisualNodeState(viewId, "risk", { isOnCanvas: true }));
+    useDocumentStore
+      .getState()
+      .execute(resetVisualViewFromTemplate(viewId, "executive-overview@1"));
+    await waitForStoreRelayout();
+
+    view = useDocumentStore.getState().doc.visual.viewsById[viewId]!;
+    expect(view.baseline).toEqual(viewHashes(view));
+    expect(viewChangeSummary(useDocumentStore.getState().doc, viewId))
+      .toMatchObject({ fullChanged: false, layoutChanged: false });
   });
 });
 

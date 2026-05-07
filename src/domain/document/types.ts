@@ -133,6 +133,10 @@ export interface VisualView {
   templateContext?: {
     rootId?: NodeId;
   };
+  baseline?: {
+    fullHash: string;
+    layoutHash: string;
+  };
   nodeStatesById: Record<NodeId, VisualNodeState>;
   viewport?: VisualViewport;
   layout: {

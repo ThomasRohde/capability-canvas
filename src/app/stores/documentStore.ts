@@ -25,6 +25,7 @@ import {
   resolveVisualDocument,
   updateActiveViewViewport,
 } from "../../domain/visual/workspace";
+import { attachViewBaseline } from "../../domain/visual/viewChanges";
 import {
   applyLayoutPatches,
   computeDocumentBounds,
@@ -97,7 +98,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   isAutoLayoutRunning: false,
   execute: (txn) => {
     const before = get().doc;
-    const result = runStoreTransaction(before, txn);
+    const rawResult = runStoreTransaction(before, txn);
+    const result = applyBaselineResult(rawResult, txn);
     const committed = result.doc !== before;
     const state = get();
     set({
@@ -133,6 +135,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         label: txn.label,
         get,
         set,
+        baseline: txn.meta?.baseline,
       });
     }
     return result.diagnostics;
@@ -536,6 +539,21 @@ function runStoreTransaction(doc: CapabilityDocument, txn: Transaction) {
   };
 }
 
+function applyBaselineResult(
+  result: { doc: CapabilityDocument; diagnostics: Diagnostic[] },
+  txn: Transaction,
+): { doc: CapabilityDocument; diagnostics: Diagnostic[] } {
+  if (!txn.meta?.baseline) return result;
+  return {
+    ...result,
+    doc: attachViewBaseline(
+      result.doc,
+      txn.meta.baseline.viewId,
+      txn.meta.baseline.mode,
+    ),
+  };
+}
+
 function isVisualEditTransaction(txn: Transaction): boolean {
   return (
     txn.commands.length > 0 &&
@@ -568,6 +586,7 @@ async function runRelayout(args: {
   label: string;
   get: () => DocumentState;
   set: (partial: Partial<DocumentState>) => void;
+  baseline?: NonNullable<Transaction["meta"]>["baseline"];
 }): Promise<void> {
   const { before, after, scope, force, viewId, get, set } = args;
   if (get().doc !== after) return;
@@ -577,7 +596,17 @@ async function runRelayout(args: {
   if (ids?.length === 0) return;
 
   try {
-    const result = await layoutAndRepair(after, force, ids ?? undefined, viewId);
+    const rawResult = await layoutAndRepair(after, force, ids ?? undefined, viewId);
+    const result = args.baseline
+      ? {
+          ...rawResult,
+          doc: attachViewBaseline(
+            rawResult.doc,
+            args.baseline.viewId,
+            args.baseline.mode,
+          ),
+        }
+      : rawResult;
     if (get().doc !== after) return;
     if (result.doc === after) {
       const merged = mergeDiagnostics(
