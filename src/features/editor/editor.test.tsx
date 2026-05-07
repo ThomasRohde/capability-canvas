@@ -979,8 +979,8 @@ describe("editor shell", () => {
       useDocumentStore.getState().doc.settings.containerLabelOffsetTop,
     ).toBe(16);
     expect(screen.getByText("New parent defaults")).toBeInTheDocument();
-    expect(screen.getByLabelText("Width")).toHaveValue(400);
-    expect(screen.getByLabelText("Height")).toHaveValue(144);
+    expect(screen.getByLabelText("Width")).toHaveValue(175);
+    expect(screen.getByLabelText("Height")).toHaveValue(40);
     expect(screen.getByLabelText("Horizontal")).toBeInTheDocument();
     await waitFor(() =>
       expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),

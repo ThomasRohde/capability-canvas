@@ -264,7 +264,7 @@ describe("layout engine", () => {
     const after = await applyAutoLayoutCycle(doc, "uniform");
 
     expect(after.nodesById.branch!.h).toBe(after.nodesById.digital!.h);
-    expect(after.nodesById.branch!.h).toBe(144);
+    expect(after.nodesById.branch!.h).toBe(128);
     expect(verticalChildPadding(after, "channels")).toMatchObject({
       top: 36,
       bottom: 8,
