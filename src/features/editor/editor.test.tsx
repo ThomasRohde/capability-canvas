@@ -16,6 +16,11 @@ import {
   runTransaction,
 } from "../../domain/commands/operations";
 import { stringifyDocument } from "../../domain/document/serialize";
+import { childrenOf } from "../../domain/document/types";
+import {
+  PROMPT_MERGE_SCHEMA,
+  PROMPT_MERGE_VERSION,
+} from "../../domain/promptMerge/payload";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { EditorRoute } from "./EditorRoute";
@@ -1321,6 +1326,78 @@ describe("editor shell", () => {
     );
   });
 
+  it("copies a leaf expansion BCM prompt from the toolbar", async () => {
+    const writeText = stubClipboard();
+    render(<EditorRoute />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Prompt" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const prompt = writeText.mock.calls[0]?.[0] ?? "";
+    expect(prompt).toContain(
+      "create child capabilities under the selected leaf capability",
+    );
+    expect(prompt).toContain(PROMPT_MERGE_SCHEMA);
+    expect(prompt).toContain('"targetId": "digital-onboarding"');
+  });
+
+  it("copies a non-leaf BCM prompt with merge context", async () => {
+    useUiStore.setState({ selectedNodeIds: ["customer"] });
+    const writeText = stubClipboard();
+    render(<EditorRoute />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Prompt" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const prompt = writeText.mock.calls[0]?.[0] ?? "";
+    expect(prompt).toContain("merge generated children with existing children");
+    expect(prompt).toContain('"id": "channels"');
+    expect(prompt).toContain('"id": "digital-onboarding"');
+  });
+
+  it("imports prompt merge JSON without replacing the document", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const payload = {
+      schema: PROMPT_MERGE_SCHEMA,
+      version: PROMPT_MERGE_VERSION,
+      targetId: "digital-onboarding",
+      capabilities: [
+        {
+          id: "identity-verification",
+          name: "Identity Verification",
+          description: "Confirms customer identity for digital onboarding.",
+        },
+      ],
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: JSON.stringify(payload) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    expect(doc.title).toBe("Retail Bank Capability Model");
+    expect(doc.nodesById["retail-banking"]).toBeDefined();
+    expect(doc.nodesById["digital-onboarding"]).toMatchObject({
+      type: "parent",
+    });
+    expect(childrenOf(doc, "digital-onboarding")).toContain(
+      "identity-verification",
+    );
+    expect(doc.nodesById["identity-verification"]).toMatchObject({
+      parentId: "digital-onboarding",
+      isOnCanvas: true,
+    });
+  });
+
   it("hides outline mutation controls in the viewer route", () => {
     render(<ViewerRoute />);
 
@@ -1366,6 +1443,17 @@ describe("editor shell", () => {
   });
 
 });
+
+function stubClipboard() {
+  const writeText = vi
+    .fn<(text: string) => Promise<void>>()
+    .mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText },
+  });
+  return writeText;
+}
 
 function normalizeCssColor(color: string): string {
   if (!color.startsWith("#")) return color;

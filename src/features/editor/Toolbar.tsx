@@ -11,6 +11,7 @@ import {
   Trash2,
   Upload,
   Undo2,
+  WandSparkles,
   X,
   ZoomIn,
 } from "lucide-react";
@@ -20,11 +21,18 @@ import {
   addRoot,
   deleteNodes,
   duplicateNodes,
+  mergePromptCapabilities,
   removeNodesFromCanvas,
   updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
-import { parseDocumentJson } from "../../domain/document/parse";
+import { parseDocument } from "../../domain/document/parse";
 import { isNodeOnCanvas } from "../../domain/document/types";
+import { buildBcmPrompt } from "../../domain/promptMerge/bcmPrompt";
+import {
+  isPromptMergePayloadShape,
+  parsePromptMergePayload,
+} from "../../domain/promptMerge/payload";
+import { error, warning } from "../../domain/validation/diagnostics";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { applyImportedDocument } from "../../app/importDocument";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -40,6 +48,7 @@ export function Toolbar() {
   const undo = useDocumentStore((state) => state.undo);
   const redo = useDocumentStore((state) => state.redo);
   const autoLayout = useDocumentStore((state) => state.autoLayout);
+  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const setActiveViewViewport = useDocumentStore(
     (state) => state.setActiveViewViewport,
   );
@@ -53,6 +62,10 @@ export function Toolbar() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteDraft, setPasteDraft] = useState("");
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
+  const promptNode =
+    selected.length === 1 && selected[0] ? doc.nodesById[selected[0]] : null;
+  const canCopyPrompt =
+    !!promptNode && !promptNode.isTextLabel && promptNode.type !== "text";
   const selectedCanvasNodeIds = selected.filter((nodeId) =>
     isNodeOnCanvas(viewDoc.nodesById[nodeId]),
   );
@@ -64,11 +77,63 @@ export function Toolbar() {
 
   const importPastedJson = () => {
     if (pasteDraft.trim().length === 0) return;
-    const parsed = parseDocumentJson(pasteDraft);
+    let input: unknown;
+    try {
+      input = JSON.parse(pasteDraft) as unknown;
+    } catch {
+      setDiagnostics([
+        error("json-invalid", "The pasted content is not valid JSON."),
+      ]);
+      return;
+    }
+
+    if (isPromptMergePayloadShape(input)) {
+      const parsed = parsePromptMergePayload(input);
+      if (!parsed.payload) {
+        setDiagnostics(parsed.diagnostics);
+        return;
+      }
+      const diagnostics = execute(mergePromptCapabilities(parsed.payload));
+      if (!diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+        setPasteOpen(false);
+        setPasteDraft("");
+      }
+      return;
+    }
+
+    const parsed = parseDocument(input);
     applyImportedDocument(parsed, "Import pasted JSON");
     if (parsed.doc) {
       setPasteOpen(false);
       setPasteDraft("");
+    }
+  };
+
+  const copyPrompt = () => {
+    if (!canCopyPrompt || !promptNode) return;
+    try {
+      const prompt = buildBcmPrompt(doc, promptNode.id);
+      void copyTextToClipboard(prompt).catch((copyError: unknown) => {
+        setDiagnostics([
+          warning(
+            "prompt-copy-failed",
+            `Prompt could not be copied. ${
+              copyError instanceof Error
+                ? copyError.message
+                : String(copyError)
+            }`,
+          ),
+        ]);
+      });
+    } catch (promptError) {
+      setDiagnostics([
+        warning(
+          "prompt-build-failed",
+          promptError instanceof Error
+            ? promptError.message
+            : "Prompt could not be built.",
+        ),
+      ]);
     }
   };
 
@@ -210,6 +275,15 @@ export function Toolbar() {
         <span className={`cc-toggle ${viewDoc.heatmap.enabled ? "on" : ""}`} />
       </button>
       <span className="cc-spacer" />
+      <button
+        className="cc-btn"
+        type="button"
+        disabled={!canCopyPrompt}
+        title="Copy BCM prompt"
+        onClick={copyPrompt}
+      >
+        <WandSparkles /> Prompt
+      </button>
       <IconButton
         icon={FileJson}
         label="Import pasted JSON"
@@ -272,4 +346,33 @@ export function Toolbar() {
     )}
     </>
   );
+}
+
+async function copyTextToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Some embedded browsers expose the async clipboard API but reject it.
+      // Keep the user gesture alive by immediately trying the DOM fallback.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.opacity = "0";
+  document.body.append(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Clipboard fallback was rejected.");
+    }
+  } finally {
+    textarea.remove();
+  }
 }

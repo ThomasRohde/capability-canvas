@@ -5,6 +5,7 @@ import {
   alignNodes,
   fitParentToChildren,
   lockSubtree,
+  mergePromptCapabilities,
   moveNodes,
   repairSiblingOverlaps,
   removeNodesFromCanvas,
@@ -17,6 +18,11 @@ import {
 } from "./operations";
 import { createSampleDocument } from "../fixtures/sample";
 import { childrenOf } from "../document/types";
+import {
+  PROMPT_MERGE_SCHEMA,
+  PROMPT_MERGE_VERSION,
+  type PromptMergePayload,
+} from "../promptMerge/payload";
 
 describe("commands", () => {
   it("adds children transactionally", () => {
@@ -153,6 +159,108 @@ describe("commands", () => {
     expect(txn.meta?.relayout?.scope).toEqual(["risk"]);
   });
 
+  it("creates children under a selected leaf from prompt merge output", () => {
+    const doc = createSampleDocument();
+    const payload = promptPayload("digital-onboarding", [
+      {
+        id: "identity-verification",
+        name: "Identity Verification",
+        description: "Confirms customer identity for digital onboarding.",
+      },
+      {
+        id: "application-capture",
+        name: "Application Capture",
+      },
+    ]);
+
+    const result = runTransaction(doc, mergePromptCapabilities(payload));
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.nodesById["digital-onboarding"]).toMatchObject({
+      type: "parent",
+    });
+    expect(childrenOf(result.doc, "digital-onboarding")).toEqual([
+      "identity-verification",
+      "application-capture",
+    ]);
+    expect(result.doc.nodesById["identity-verification"]).toMatchObject({
+      parentId: "digital-onboarding",
+      type: "leaf",
+      isOnCanvas: true,
+      description: "Confirms customer identity for digital onboarding.",
+    });
+  });
+
+  it("merges prompt output into a non-leaf without removing existing children", () => {
+    const doc = createSampleDocument();
+    const payload = promptPayload("risk", [
+      {
+        id: "credit-risk",
+        name: "Credit Risk Management",
+        description: "Manages retail credit risk exposure.",
+        metadata: { source: "prompt" },
+      },
+      {
+        id: "model-risk",
+        name: "Model Risk",
+      },
+    ]);
+
+    const result = runTransaction(doc, mergePromptCapabilities(payload));
+    const riskChildren = childrenOf(result.doc, "risk");
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(riskChildren).toContain("credit-risk");
+    expect(riskChildren).toContain("fraud-risk");
+    expect(riskChildren).toContain("operational-risk");
+    expect(riskChildren).toContain("model-risk");
+    expect(result.doc.nodesById["credit-risk"]).toMatchObject({
+      label: "Credit Risk Management",
+      description: "Manages retail credit risk exposure.",
+      metadata: { source: "prompt" },
+    });
+  });
+
+  it("matches prompt capabilities by id then normalized sibling label", () => {
+    const doc = createSampleDocument();
+    const beforeChildren = childrenOf(doc, "risk");
+    const payload = promptPayload("risk", [
+      {
+        id: "fraud-risk",
+        name: "Fraud Risk",
+        description: "Updated by id.",
+      },
+      {
+        name: "operational   risk",
+        description: "Updated by label.",
+      },
+    ]);
+
+    const result = runTransaction(doc, mergePromptCapabilities(payload));
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(childrenOf(result.doc, "risk")).toEqual(beforeChildren);
+    expect(result.doc.nodesById["fraud-risk"]?.description).toBe(
+      "Updated by id.",
+    );
+    expect(result.doc.nodesById["operational-risk"]?.description).toBe(
+      "Updated by label.",
+    );
+  });
+
+  it("rejects prompt merge output with an invalid target", () => {
+    const doc = createSampleDocument();
+    const result = runTransaction(
+      doc,
+      mergePromptCapabilities(promptPayload("missing", [{ name: "New" }])),
+    );
+
+    expect(result.doc).toBe(doc);
+    expect(
+      result.diagnostics.some((diagnostic) => diagnostic.code === "missing-target"),
+    ).toBe(true);
+  });
+
   it("can add and remove a subtree from the canvas without changing hierarchy", () => {
     const doc = createSampleDocument();
     const hidden = runTransaction(
@@ -235,3 +343,15 @@ describe("commands", () => {
     });
   });
 });
+
+function promptPayload(
+  targetId: string,
+  capabilities: PromptMergePayload["capabilities"],
+): PromptMergePayload {
+  return {
+    schema: PROMPT_MERGE_SCHEMA,
+    version: PROMPT_MERGE_VERSION,
+    targetId,
+    capabilities,
+  };
+}
