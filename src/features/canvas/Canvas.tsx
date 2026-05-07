@@ -28,11 +28,11 @@ import {
 import {
   addChild,
   alignNodes,
-  deleteNodes,
   distributeNodes,
   duplicateNodes,
   fitParentToChildren,
   moveNodes,
+  removeNodesFromCanvas,
   repairSiblingOverlaps,
   reparentNode,
   resizeNode,
@@ -249,8 +249,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         if (event.key === "Escape") (event.target as HTMLElement).blur();
         return;
       }
-      if (event.key === "Delete" && selected.length > 0)
-        execute(deleteNodes(selected));
+      if (event.key === "Delete" && canvasSelected.length > 0) {
+        event.preventDefault();
+        execute(removeNodesFromCanvas(canvasSelected));
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         if (event.shiftKey) useDocumentStore.getState().redo();
@@ -311,7 +313,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [execute, fitView, readonly, selected, viewDoc]);
+  }, [canvasSelected, execute, fitView, readonly, selected, viewDoc]);
 
   const zoomAround = useCallback(
     (delta: number, anchorX: number, anchorY: number) => {
@@ -843,11 +845,11 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
             role="menuitem"
             className="danger"
             onClick={() => {
-              execute(deleteNodes([contextMenu.nodeId]));
+              execute(removeNodesFromCanvas([contextMenu.nodeId]));
               setContextMenu(null);
             }}
           >
-            Delete
+            Remove from canvas
           </button>
         </div>
       )}
@@ -1064,8 +1066,8 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
       />
       <IconButton
         icon={Trash2}
-        label="Delete"
-        onClick={() => execute(deleteNodes(selected))}
+        label="Remove from canvas"
+        onClick={() => execute(removeNodesFromCanvas(selected))}
       />
     </div>
   );

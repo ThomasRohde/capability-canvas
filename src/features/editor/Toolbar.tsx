@@ -20,9 +20,11 @@ import {
   addRoot,
   deleteNodes,
   duplicateNodes,
+  removeNodesFromCanvas,
   updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
 import { parseDocumentJson } from "../../domain/document/parse";
+import { isNodeOnCanvas } from "../../domain/document/types";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { applyImportedDocument } from "../../app/importDocument";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -51,6 +53,9 @@ export function Toolbar() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteDraft, setPasteDraft] = useState("");
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
+  const selectedCanvasNodeIds = selected.filter((nodeId) =>
+    isNodeOnCanvas(viewDoc.nodesById[nodeId]),
+  );
   const importDocument = () => {
     void openDocumentFile().then((parsed) =>
       applyImportedDocument(parsed, "Import file"),
@@ -127,9 +132,17 @@ export function Toolbar() {
       />
       <IconButton
         icon={Trash2}
-        label="Delete"
+        label={
+          selectedCanvasNodeIds.length > 0 ? "Remove from canvas" : "Delete"
+        }
         disabled={selected.length === 0}
-        onClick={() => execute(deleteNodes(selected))}
+        onClick={() => {
+          if (selectedCanvasNodeIds.length > 0) {
+            execute(removeNodesFromCanvas(selectedCanvasNodeIds));
+            return;
+          }
+          execute(deleteNodes(selected));
+        }}
       />
       <span className="cc-divider" />
       <IconButton icon={Undo2} label="Undo" onClick={undo} />

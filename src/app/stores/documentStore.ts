@@ -413,6 +413,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 const VISUAL_COMMAND_TYPES = new Set([
   "add-subtree-to-canvas",
   "remove-subtree-from-canvas",
+  "remove-nodes-from-canvas",
   "move-nodes",
   "resize-node",
   "align-nodes",

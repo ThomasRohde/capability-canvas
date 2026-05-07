@@ -285,6 +285,41 @@ export function removeSubtreeFromCanvas(nodeId: NodeId): Transaction {
   );
 }
 
+export function removeNodesFromCanvas(nodeIds: NodeId[]): Transaction {
+  return transaction(
+    "Remove from canvas",
+    [
+      command("remove-nodes-from-canvas", { nodeIds }, (doc) => {
+        const next = cloneDocument(doc);
+        const toRemove = new Set<NodeId>();
+        for (const nodeId of nodeIds) {
+          if (!next.nodesById[nodeId]) continue;
+          for (const id of subtreeNodeIds(next, nodeId)) toRemove.add(id);
+        }
+
+        let changed = false;
+        for (const id of toRemove) {
+          const node = next.nodesById[id];
+          if (!node || !isNodeOnCanvas(node)) continue;
+          next.nodesById[id] = {
+            ...node,
+            isOnCanvas: false,
+            updatedAt: now(),
+          };
+          changed = true;
+        }
+        return ok(changed ? next : doc);
+      }),
+    ],
+    {
+      relayout: {
+        scope: (beforeDoc) => canvasRemovalRelayoutScope(beforeDoc, nodeIds),
+        force: true,
+      },
+    },
+  );
+}
+
 export function addTextLabel(
   parentId: NodeId | null,
   label = "Text label",
@@ -1252,6 +1287,20 @@ function visualNodeParentRelayoutScope(
   if (!node || !isNodeOnCanvas(node)) return [];
   const parent = node.parentId ? doc.nodesById[node.parentId] : undefined;
   return parent && isNodeOnCanvas(parent) ? [parent.id] : [nodeId];
+}
+
+function canvasRemovalRelayoutScope(
+  doc: CapabilityDocument,
+  nodeIds: NodeId[],
+): NodeId[] {
+  const parents = new Set<NodeId>();
+  for (const nodeId of nodeIds) {
+    const node = doc.nodesById[nodeId];
+    if (!node || !isNodeOnCanvas(node)) continue;
+    const parent = node.parentId ? doc.nodesById[node.parentId] : undefined;
+    if (parent && isNodeOnCanvas(parent)) parents.add(parent.id);
+  }
+  return [...parents];
 }
 
 function readCollapsedVisibility(

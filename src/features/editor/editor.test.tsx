@@ -653,6 +653,25 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Label")).toHaveValue("Data Management");
   });
 
+  it("removes a node from the canvas context menu without deleting it from the model", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const dataManagement = within(canvas).getByText("Data Management");
+    const node = dataManagement.closest(".cc-node") as HTMLElement;
+
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
+    const menu = screen.getByRole("menu", { name: "Capability context menu" });
+    await userEvent.click(
+      within(menu).getByRole("menuitem", { name: "Remove from canvas" }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    const resolved = resolveVisualDocument(doc);
+    expect(doc.nodesById["data-management"]).toBeDefined();
+    expect(resolved.nodesById["data-management"]?.isOnCanvas).toBe(false);
+    expect(within(canvas).queryByText("Data Management")).not.toBeInTheDocument();
+  });
+
   it("renders a leaf as a container after another capability is reparented into it", () => {
     const reparentedDoc = runTransaction(
       useDocumentStore.getState().doc,
@@ -1073,6 +1092,20 @@ describe("editor shell", () => {
     ).toBeDefined();
   });
 
+  it("removes the selected canvas node on Delete without deleting it from the model", async () => {
+    render(<EditorRoute />);
+
+    await userEvent.keyboard("{Delete}");
+
+    const doc = useDocumentStore.getState().doc;
+    const resolved = resolveVisualDocument(doc);
+    expect(doc.nodesById["digital-onboarding"]).toBeDefined();
+    expect(resolved.nodesById["digital-onboarding"]?.isOnCanvas).toBe(false);
+    expect(
+      within(screen.getByTestId("canvas")).queryByText("Digital Onboarding"),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not nudge the selected node when arrow keys are pressed inside an inspector field", () => {
     render(<EditorRoute />);
     const description = screen.getByLabelText("Description");
@@ -1133,7 +1166,7 @@ describe("editor shell", () => {
       "Match size to first selected",
       "Change selected color",
       "Duplicate",
-      "Delete",
+      "Remove from canvas",
     ]) {
       expect(
         within(bulkToolbar).getByRole("button", { name: label }),

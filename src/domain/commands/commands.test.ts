@@ -7,6 +7,7 @@ import {
   lockSubtree,
   moveNodes,
   repairSiblingOverlaps,
+  removeNodesFromCanvas,
   removeSubtreeFromCanvas,
   reparentNode,
   resizeNode,
@@ -177,6 +178,25 @@ describe("commands", () => {
     );
     expect(visible.nodesById.digital!.x).toBeGreaterThan(200);
     expect(visible.nodesById.digital!.y).toBeGreaterThan(200);
+  });
+
+  it("can remove multiple selected subtrees from the canvas without deleting them", () => {
+    const doc = createSampleDocument();
+    const hidden = runTransaction(
+      doc,
+      removeNodesFromCanvas(["digital", "risk"]),
+    ).doc;
+
+    expect(hidden.nodesById.digital).toBeDefined();
+    expect(hidden.nodesById.risk).toBeDefined();
+    expect(hidden.nodesById["digital-onboarding"]).toBeDefined();
+    expect(hidden.nodesById["credit-risk"]).toBeDefined();
+    expect(hidden.nodesById.digital!.isOnCanvas).toBe(false);
+    expect(hidden.nodesById["digital-onboarding"]!.isOnCanvas).toBe(false);
+    expect(hidden.nodesById.risk!.isOnCanvas).toBe(false);
+    expect(hidden.nodesById["credit-risk"]!.isOnCanvas).toBe(false);
+    expect(childrenOf(hidden, "channels")).toContain("digital");
+    expect(childrenOf(hidden, "retail-banking")).toContain("risk");
   });
 
   it("repairs sibling overlaps after a drag in auto mode", () => {
