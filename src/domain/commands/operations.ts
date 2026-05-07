@@ -334,7 +334,7 @@ export function addSubtreeToCanvas(
           const parent = node?.parentId
             ? afterDoc.nodesById[node.parentId]
             : undefined;
-          return parent && isNodeOnCanvas(parent) ? [parent.id] : [nodeId];
+          return parent && isNodeOnCanvas(parent) ? [parent.id] : [];
         },
         force: true,
       },

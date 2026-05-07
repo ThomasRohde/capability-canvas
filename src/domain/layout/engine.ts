@@ -58,6 +58,12 @@ interface PackedBoxes {
   diagnostics: Diagnostic[];
 }
 
+interface NormalizedLayoutScope {
+  rootIds: NodeId[];
+  documentScope: boolean;
+  diagnostics: Diagnostic[];
+}
+
 export async function layoutDocument(
   request: LayoutRequest,
 ): Promise<LayoutResult> {
@@ -96,20 +102,26 @@ export async function layoutDocument(
 
   const patches: LayoutPatch[] = [];
   const diagnostics: Diagnostic[] = [];
-  const roots = request.affectedNodeIds?.length
-    ? request.affectedNodeIds.filter((nodeId) =>
-        isNodeOnCanvas(doc.nodesById[nodeId]),
-      )
-    : canvasRootChildren(doc);
+  const scopedRequest = !!request.affectedNodeIds?.length;
+  const scope = scopedRequest
+    ? normalizeScopedLayoutRoots(doc, request.affectedNodeIds!)
+    : {
+        rootIds: canvasRootChildren(doc),
+        documentScope: true,
+        diagnostics: [],
+      };
+  diagnostics.push(...scope.diagnostics);
+  const roots = scope.rootIds;
   if (roots.length === 0) {
     return {
       patches: [],
       diagnostics: [
+        ...diagnostics,
         info(
-          request.affectedNodeIds?.length
+          scopedRequest
             ? "layout-scope-empty"
             : "layout-document-empty",
-          request.affectedNodeIds?.length
+          scopedRequest
             ? "Auto layout skipped because no visible nodes matched the requested scope."
             : "Auto layout skipped because the document has no visible root capabilities.",
         ),
@@ -122,7 +134,7 @@ export async function layoutDocument(
   for (const measured of measuredRoots)
     diagnostics.push(...measured.diagnostics);
 
-  if (request.affectedNodeIds?.length) {
+  if (scopedRequest && !scope.documentScope) {
     for (const measured of measuredRoots) {
       const node = doc.nodesById[measured.id];
       if (!node) continue;
@@ -142,27 +154,142 @@ export async function layoutDocument(
     );
   }
 
-  if (measuredRoots.some((measured) => measured.blocked)) {
-    let cursorY = rootOffset;
-    for (const measured of measuredRoots) {
+  const placedRoots = await placeMeasuredDocumentRoots(
+    doc,
+    measuredRoots,
+    mode,
+    rootOffset,
+    rootGapY,
+  );
+  patches.push(...placedRoots.patches);
+  diagnostics.push(...placedRoots.diagnostics);
+
+  return finishLayoutResult(request, mode, patches, diagnostics, measuredRoots);
+}
+
+function normalizeScopedLayoutRoots(
+  doc: CapabilityDocument,
+  affectedNodeIds: NodeId[],
+): NormalizedLayoutScope {
+  const rootIds = new Set<NodeId>();
+  const diagnostics: Diagnostic[] = [];
+  let documentScope = false;
+
+  for (const affectedNodeId of affectedNodeIds) {
+    const node = doc.nodesById[affectedNodeId];
+    if (!isNodeOnCanvas(node)) continue;
+
+    const ancestors = canvasAncestorsOf(doc, node.id);
+    const lockedAncestor = ancestors.find((ancestor) => ancestor.isLockedAsIs);
+    if (lockedAncestor) {
+      diagnostics.push(
+        warning(
+          "layout-scope-blocked-by-locked-ancestor",
+          `Scoped auto layout for "${node.label}" was skipped because locked ancestor "${lockedAncestor.label}" preserves that subtree.`,
+          node.id,
+        ),
+      );
+      continue;
+    }
+
+    const manualAncestor = ancestors.find(
+      (ancestor) => ancestor.isManualPositioningEnabled,
+    );
+    if (manualAncestor) {
+      rootIds.add(manualAncestor.id);
+      diagnostics.push(
+        info(
+          "layout-scope-promoted",
+          `Scoped auto layout for "${node.label}" was promoted to manual ancestor "${manualAncestor.label}".`,
+          manualAncestor.id,
+        ),
+      );
+      continue;
+    }
+
+    const parent = ancestors[0];
+    if (!parent) {
+      documentScope = true;
+      continue;
+    }
+    rootIds.add(parent.id);
+  }
+
+  if (documentScope) {
+    return {
+      rootIds: canvasRootChildren(doc),
+      documentScope: true,
+      diagnostics,
+    };
+  }
+
+  return {
+    rootIds: pruneDescendantScopeRoots(doc, [...rootIds]),
+    documentScope: false,
+    diagnostics,
+  };
+}
+
+async function placeMeasuredDocumentRoots(
+  doc: CapabilityDocument,
+  measuredRoots: MeasuredSubtree[],
+  mode: LayoutMode,
+  rootOffset: number,
+  rootGapY: number,
+): Promise<{ patches: LayoutPatch[]; diagnostics: Diagnostic[] }> {
+  const patches: LayoutPatch[] = [];
+  const diagnostics: Diagnostic[] = [];
+  const blockedRoots = measuredRoots.filter((measured) => measured.blocked);
+  const freeRoots = measuredRoots.filter((measured) => !measured.blocked);
+  const byId = new Map(
+    measuredRoots.map((measured) => [measured.id, measured]),
+  );
+
+  if (blockedRoots.length > 0) {
+    const blockedBoxes: Array<{ x: number; y: number; w: number; h: number }> =
+      [];
+    for (const measured of blockedRoots) {
       const node = doc.nodesById[measured.id];
       if (!node) continue;
-      if (measured.blocked) {
-        translatePatches(measured.patches, node.x, node.y, patches);
-        cursorY = Math.max(cursorY, node.y + measured.h + rootGapY);
-        continue;
-      }
-      const snappedY = snapLayoutStartAfter(doc, cursorY);
-      translatePatches(measured.patches, rootOffset, snappedY, patches);
-      cursorY = snappedY + measured.h + rootGapY;
+      translatePatches(measured.patches, node.x, node.y, patches);
+      blockedBoxes.push({ x: node.x, y: node.y, w: measured.w, h: measured.h });
     }
-    return finishLayoutResult(
-      request,
-      mode,
-      patches,
-      diagnostics,
-      measuredRoots,
-    );
+
+    if (freeRoots.length > 0) {
+      const packedFreeRoots = await packBoxes(
+        freeRoots.map((measured) => ({
+          id: measured.id,
+          w: measured.w,
+          h: measured.h,
+        })),
+        snapLayoutSpacing(doc, doc.settings.childGapX),
+        rootGapY,
+        mode,
+        "document-roots",
+        doc,
+      );
+      diagnostics.push(...packedFreeRoots.diagnostics);
+      const blockedBounds = boundsForBoxes(blockedBoxes);
+      const startY = snapLayoutStartAfter(
+        doc,
+        Math.max(
+          rootOffset,
+          blockedBounds ? blockedBounds.y + blockedBounds.h + rootGapY : 0,
+        ),
+      );
+      for (const packed of packedFreeRoots.boxes) {
+        const measured = byId.get(packed.id);
+        if (!measured) continue;
+        translatePatches(
+          measured.patches,
+          rootOffset + packed.x,
+          startY + packed.y,
+          patches,
+        );
+      }
+    }
+
+    return { patches, diagnostics };
   }
 
   const packedRoots = await packBoxes(
@@ -178,9 +305,6 @@ export async function layoutDocument(
     doc,
   );
   diagnostics.push(...packedRoots.diagnostics);
-  const byId = new Map(
-    measuredRoots.map((measured) => [measured.id, measured]),
-  );
   for (const packed of packedRoots.boxes) {
     const measured = byId.get(packed.id);
     if (!measured) continue;
@@ -192,9 +316,14 @@ export async function layoutDocument(
     );
   }
 
-  return finishLayoutResult(request, mode, patches, diagnostics, measuredRoots);
+  return { patches, diagnostics };
 }
 
+/**
+ * Applies layout-generated geometry patches. Persisted callers should still run
+ * the full layout pipeline: layoutDocument -> applyLayoutPatches ->
+ * ensureParentContainment.
+ */
 export function applyLayoutPatches(
   doc: CapabilityDocument,
   patches: LayoutPatch[],
@@ -206,6 +335,7 @@ export function applyLayoutPatches(
   for (const patch of patches) {
     const node = nodesById[patch.id];
     if (!node) continue;
+    if (node.isLockedAsIs) continue;
     patchedIds.add(patch.id);
     const nextX = Math.round(patch.x);
     const nextY = Math.round(patch.y);
@@ -260,7 +390,7 @@ function normalizePatchedParentBounds(
   for (const parentId of parentIds) {
     const parent = nodesById[parentId];
     if (!parent) continue;
-    if (parent.isManualPositioningEnabled) continue;
+    if (parent.isLockedAsIs || parent.isManualPositioningEnabled) continue;
     const childBounds = boundsForIds(
       nextDoc,
       canvasChildrenOf(nextDoc, parentId),
@@ -315,6 +445,51 @@ function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   };
   for (const rootId of canvasRootChildren(doc)) visit(rootId, 0);
   return depths;
+}
+
+function canvasAncestorsOf(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): CapabilityNode[] {
+  const ancestors: CapabilityNode[] = [];
+  const seen = new Set<NodeId>();
+  let current = doc.nodesById[nodeId];
+  while (current?.parentId && !seen.has(current.parentId)) {
+    seen.add(current.parentId);
+    const parent = doc.nodesById[current.parentId];
+    if (!parent) break;
+    if (isNodeOnCanvas(parent)) ancestors.push(parent);
+    current = parent;
+  }
+  return ancestors;
+}
+
+function pruneDescendantScopeRoots(
+  doc: CapabilityDocument,
+  rootIds: NodeId[],
+): NodeId[] {
+  return rootIds.filter(
+    (rootId) =>
+      !rootIds.some(
+        (candidateId) =>
+          candidateId !== rootId && isAncestorOf(doc, candidateId, rootId),
+      ),
+  );
+}
+
+function isAncestorOf(
+  doc: CapabilityDocument,
+  ancestorId: NodeId,
+  nodeId: NodeId,
+): boolean {
+  const seen = new Set<NodeId>();
+  let current = doc.nodesById[nodeId];
+  while (current?.parentId && !seen.has(current.parentId)) {
+    if (current.parentId === ancestorId) return true;
+    seen.add(current.parentId);
+    current = doc.nodesById[current.parentId];
+  }
+  return false;
 }
 
 export function computeDocumentBounds(doc: CapabilityDocument) {

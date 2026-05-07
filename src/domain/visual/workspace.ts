@@ -24,6 +24,30 @@ export interface VisualWorkspaceDiagnostics {
   nodeId?: string;
 }
 
+interface VisualViewInput {
+  id?: VisualViewId;
+  name?: string;
+  description?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  templateId?: string;
+  templateContext?: VisualView["templateContext"];
+  nodeStatesById?: Record<NodeId, VisualNodeState>;
+  viewport?: VisualViewport;
+  layout?: Partial<VisualView["layout"]>;
+  heatmap?: Partial<VisualView["heatmap"]>;
+  export?: Partial<VisualView["export"]>;
+  [key: string]: unknown;
+}
+
+interface VisualWorkspaceInput {
+  activeViewId?: VisualViewId;
+  defaultViewId?: VisualViewId;
+  viewOrder?: VisualViewId[];
+  viewsById?: Record<VisualViewId, VisualViewInput>;
+  [key: string]: unknown;
+}
+
 export function createVisualWorkspaceFromDocument(
   doc: CapabilityDocument,
   name = "Default view",
@@ -82,6 +106,7 @@ export function createVisualViewFromDocument(
     layout: {
       mode: options.layoutMode ?? doc.layout.mode ?? doc.settings.layoutMode,
       boundingBox: computeVisualBounds(doc, nodeStatesById),
+      isUserArranged: doc.layout.isUserArranged,
       preservePositions: doc.layout.preservePositions,
     },
     heatmap: {
@@ -103,7 +128,7 @@ export function createVisualViewFromDocument(
 
 export function normalizeVisualWorkspace(
   doc: CapabilityDocument,
-  visual: VisualWorkspace | undefined,
+  visual: VisualWorkspaceInput | undefined,
 ): {
   visual: VisualWorkspace;
   diagnostics: VisualWorkspaceDiagnostics[];
@@ -112,9 +137,9 @@ export function normalizeVisualWorkspace(
     return { visual: createVisualWorkspaceFromDocument(doc), diagnostics: [] };
   }
   if (
-    visual.viewOrder.length === 1 &&
+    visual.viewOrder?.length === 1 &&
     visual.viewOrder[0] === DEFAULT_VIEW_ID &&
-    Object.keys(visual.viewsById[DEFAULT_VIEW_ID]?.nodeStatesById ?? {})
+    Object.keys(visual.viewsById?.[DEFAULT_VIEW_ID]?.nodeStatesById ?? {})
       .length === 0 &&
     Object.keys(doc.nodesById).length > 0
   ) {
@@ -125,7 +150,7 @@ export function normalizeVisualWorkspace(
   const nodeIds = new Set(Object.keys(doc.nodesById));
   const viewsById: Record<VisualViewId, VisualView> = {};
 
-  for (const [viewId, rawView] of Object.entries(visual.viewsById)) {
+  for (const [viewId, rawView] of Object.entries(visual.viewsById ?? {})) {
     const nodeStatesById: Record<NodeId, VisualNodeState> = {};
     for (const [nodeId, state] of Object.entries(
       rawView.nodeStatesById ?? {},
@@ -154,6 +179,8 @@ export function normalizeVisualWorkspace(
         ...rawView.layout,
         mode: rawView.layout?.mode ?? doc.layout.mode,
         boundingBox: cloneBounds(rawView.layout?.boundingBox),
+        isUserArranged:
+          rawView.layout?.isUserArranged ?? doc.layout.isUserArranged,
         preservePositions:
           rawView.layout?.preservePositions ?? doc.layout.preservePositions,
       },
@@ -167,7 +194,7 @@ export function normalizeVisualWorkspace(
     };
   }
 
-  const order = visual.viewOrder.filter((id) => viewsById[id]);
+  const order = (visual.viewOrder ?? []).filter((id) => viewsById[id]);
   for (const viewId of Object.keys(viewsById)) {
     if (!order.includes(viewId)) order.push(viewId);
   }
@@ -177,10 +204,10 @@ export function normalizeVisualWorkspace(
     return { visual: fallback, diagnostics };
   }
 
-  const activeViewId = viewsById[visual.activeViewId]
+  const activeViewId = visual.activeViewId && viewsById[visual.activeViewId]
     ? visual.activeViewId
     : firstViewId;
-  const defaultViewId = viewsById[visual.defaultViewId]
+  const defaultViewId = visual.defaultViewId && viewsById[visual.defaultViewId]
     ? visual.defaultViewId
     : activeViewId;
 
@@ -228,6 +255,27 @@ export function reconcileVisualWorkspaceWithNodes(
         ...view.layout,
         boundingBox: computeVisualBounds(after, view.nodeStatesById),
       };
+    }
+  }
+
+  const activeView = visual.viewsById[activeViewId];
+  if (activeView) {
+    const nextLayout = {
+      ...activeView.layout,
+      mode: after.layout.mode,
+      isUserArranged: after.layout.isUserArranged,
+      preservePositions: after.layout.preservePositions,
+      boundingBox: computeVisualBounds(after, activeView.nodeStatesById),
+    };
+    if (
+      activeView.layout.mode !== nextLayout.mode ||
+      activeView.layout.isUserArranged !== nextLayout.isUserArranged ||
+      activeView.layout.preservePositions !== nextLayout.preservePositions ||
+      !sameBounds(activeView.layout.boundingBox, nextLayout.boundingBox)
+    ) {
+      activeView.layout = nextLayout;
+      activeView.updatedAt = now();
+      changed = true;
     }
   }
 
@@ -396,6 +444,7 @@ export function applyResolvedVisualDocument(
   view.layout = {
     ...view.layout,
     mode: resolved.layout.mode,
+    isUserArranged: resolved.layout.isUserArranged,
     preservePositions: resolved.layout.preservePositions,
     boundingBox: cloneBounds(resolved.layout.boundingBox),
   };
@@ -533,6 +582,7 @@ function resolveViewLayout(
   return {
     ...fallback,
     mode: view.layout.mode,
+    isUserArranged: view.layout.isUserArranged ?? fallback.isUserArranged,
     preservePositions: view.layout.preservePositions,
     boundingBox: cloneBounds(view.layout.boundingBox) ?? {
       ...fallback.boundingBox,
@@ -618,6 +668,19 @@ function positiveOr(value: unknown, fallback: number): number {
 
 function cloneBounds(bounds: Bounds | undefined): Bounds | undefined {
   return bounds ? { ...bounds } : undefined;
+}
+
+function sameBounds(
+  left: Bounds | undefined,
+  right: Bounds | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.w === right.w &&
+    left.h === right.h
+  );
 }
 
 function cloneViewport(

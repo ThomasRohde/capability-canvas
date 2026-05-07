@@ -223,6 +223,12 @@ button:disabled {
   background: var(--cc-slate-50);
 }
 
+.cc-input:disabled {
+  color: var(--cc-slate-500);
+  background: var(--cc-slate-100);
+  cursor: not-allowed;
+}
+
 .cc-doc-label:hover {
   background: var(--cc-white);
 }

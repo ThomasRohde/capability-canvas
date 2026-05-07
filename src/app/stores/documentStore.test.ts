@@ -224,6 +224,44 @@ describe("document store layout settings", () => {
     expect(unchangedFirst).toBe(beforeFirstState);
   });
 
+  it("preserves user-arranged positions per active visual view", async () => {
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore.getState().execute(moveNodes(["risk"], 40, 0));
+    const moved = resolveVisualDocument(useDocumentStore.getState().doc);
+    const movedX = moved.nodesById.risk!.x;
+
+    expect(
+      useDocumentStore.getState().doc.visual.viewsById[viewId]!.layout
+        .isUserArranged,
+    ).toBe(true);
+
+    await useDocumentStore.getState().autoLayout(false);
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById.risk!.x).toBe(movedX);
+    expect(
+      useDocumentStore
+        .getState()
+        .lastDiagnostics.some(
+          (diagnostic) => diagnostic.code === "positions-preserved",
+        ),
+    ).toBe(true);
+  });
+
+  it("clears active-view isUserArranged after forced auto layout", async () => {
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore.getState().execute(moveNodes(["risk"], 40, 0));
+    await useDocumentStore.getState().autoLayout(true);
+
+    const state = useDocumentStore.getState();
+    expect(state.doc.visual.viewsById[viewId]!.layout.isUserArranged).toBe(
+      false,
+    );
+    expect(resolveVisualDocument(state.doc).layout.isUserArranged).toBe(false);
+  });
+
   it("re-lays out template resets on the targeted view only", async () => {
     useDocumentStore.setState({
       doc: createSampleDocument(),

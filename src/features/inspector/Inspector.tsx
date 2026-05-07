@@ -128,7 +128,7 @@ function Properties({
       <div className="cc-info-card">
         <Info size={16} />
         <span>
-          Manual and locked states control how auto layout treats this
+          Manual and preserved states control how auto layout treats this
           capability and its descendants.
         </span>
       </div>
@@ -143,7 +143,7 @@ function LayoutProperties({ node }: { node: CapabilityNode }) {
   return (
     <>
       <div className="cc-field">
-        <span className="cc-section-title">Manual positioning</span>
+        <span className="cc-section-title">Layout behavior</span>
         <div className="cc-seg">
           <button
             className={
@@ -161,11 +161,20 @@ function LayoutProperties({ node }: { node: CapabilityNode }) {
           </button>
           <button
             className={node.isLockedAsIs ? "on" : ""}
+            aria-label="Preserve from auto layout"
+            title="Preserve from auto layout"
             onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
           >
-            Locked
+            Preserve
           </button>
         </div>
+      </div>
+      <div className="cc-info-card">
+        <Info size={16} />
+        <span>
+          Preserved nodes are skipped by auto layout and cannot be resized, but
+          can still be moved manually.
+        </span>
       </div>
       <div className="cc-field-row">
         <NumberField
@@ -190,6 +199,12 @@ function LayoutProperties({ node }: { node: CapabilityNode }) {
           key={`w-${node.id}-${node.w}`}
           label="W"
           value={node.w}
+          disabled={node.isLockedAsIs}
+          title={
+            node.isLockedAsIs
+              ? "Preserved nodes cannot be resized."
+              : undefined
+          }
           onCommit={(w) => {
             const next =
               doc.settings.gridEnabled && doc.settings.resizeSnapToGrid
@@ -202,6 +217,12 @@ function LayoutProperties({ node }: { node: CapabilityNode }) {
           key={`h-${node.id}-${node.h}`}
           label="H"
           value={node.h}
+          disabled={node.isLockedAsIs}
+          title={
+            node.isLockedAsIs
+              ? "Preserved nodes cannot be resized."
+              : undefined
+          }
           onCommit={(h) => {
             const next =
               doc.settings.gridEnabled && doc.settings.resizeSnapToGrid
@@ -216,7 +237,10 @@ function LayoutProperties({ node }: { node: CapabilityNode }) {
         type="button"
         onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
       >
-        <Lock /> {node.isLockedAsIs ? "Unlock layout" : "Lock layout"}
+        <Lock />{" "}
+        {node.isLockedAsIs
+          ? "Stop preserving layout"
+          : "Preserve from auto layout"}
       </button>
     </>
   );
@@ -374,18 +398,24 @@ function ColorEditor({
 function NumberField({
   label,
   value,
+  disabled = false,
+  title,
   onCommit,
 }: {
   label: string;
   value: number;
+  disabled?: boolean;
+  title?: string;
   onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(() => String(Math.round(value)));
   const skipCommit = useRef(false);
+  const inputId = `layout-field-${label.toLowerCase()}`;
   useEffect(() => {
     setDraft(String(Math.round(value)));
   }, [value]);
   const commit = () => {
+    if (disabled) return;
     if (skipCommit.current) {
       skipCommit.current = false;
       return;
@@ -400,10 +430,13 @@ function NumberField({
   };
   return (
     <div className="cc-field">
-      <label>{label}</label>
+      <label htmlFor={inputId}>{label}</label>
       <input
+        id={inputId}
         className="cc-input"
         type="number"
+        disabled={disabled}
+        title={title}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}

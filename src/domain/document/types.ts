@@ -138,6 +138,7 @@ export interface VisualView {
   layout: {
     mode: LayoutMode;
     boundingBox?: Bounds;
+    isUserArranged: boolean;
     preservePositions: boolean;
   };
   heatmap: {

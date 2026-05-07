@@ -225,6 +225,7 @@ export const VisualViewSchema = z
       .object({
         mode: z.enum(["uniform", "flow", "adaptive", "free"]),
         boundingBox: VisualBoundsSchema.optional(),
+        isUserArranged: z.boolean().optional(),
         preservePositions: z.boolean(),
       })
       .passthrough(),

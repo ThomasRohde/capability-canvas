@@ -62,6 +62,63 @@ describe("layout engine", () => {
     );
   });
 
+  it("does not scoped-layout inside a locked ancestor", async () => {
+    const doc = runTransaction(
+      createSampleDocument(),
+      updateNode("risk", { isLockedAsIs: true }),
+    ).doc;
+
+    const result = await layoutDocument({
+      doc,
+      affectedNodeIds: ["credit-risk"],
+      force: true,
+      mode: "adaptive",
+    });
+
+    expect(
+      result.patches.find((patch) => patch.id === "credit-risk"),
+    ).toBeUndefined();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "layout-scope-blocked-by-locked-ancestor",
+        severity: "warning",
+        nodeId: "credit-risk",
+      }),
+    );
+  });
+
+  it("preserves descendants inside a manual ancestor during scoped layout", async () => {
+    const doc = runTransaction(
+      createSampleDocument(),
+      updateNode("risk", { isManualPositioningEnabled: true }),
+    ).doc;
+    const beforeDx =
+      doc.nodesById["credit-risk"]!.x - doc.nodesById.risk!.x;
+    const beforeDy =
+      doc.nodesById["credit-risk"]!.y - doc.nodesById.risk!.y;
+
+    const result = await layoutDocument({
+      doc,
+      affectedNodeIds: ["credit-risk"],
+      force: true,
+      mode: "adaptive",
+    });
+    const after = applyLayoutPatches(doc, result.patches);
+
+    expect(after.nodesById["credit-risk"]!.x - after.nodesById.risk!.x).toBe(
+      beforeDx,
+    );
+    expect(after.nodesById["credit-risk"]!.y - after.nodesById.risk!.y).toBe(
+      beforeDy,
+    );
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "manual-subtree-preserved",
+        nodeId: "risk",
+      }),
+    );
+  });
+
   it("lays out full and scoped large fixtures within explicit budgets", async () => {
     const doc = createThousandNodeDocument();
     const start = performance.now();
@@ -78,19 +135,11 @@ describe("layout engine", () => {
       mode: "adaptive",
     });
     const scopedElapsed = performance.now() - scopedStart;
-    expect(scoped.patches.map((patch) => patch.id).sort()).toEqual([
-      "root-0-parent-0",
-      "root-0-parent-0-leaf-0",
-      "root-0-parent-0-leaf-1",
-      "root-0-parent-0-leaf-2",
-      "root-0-parent-0-leaf-3",
-      "root-0-parent-0-leaf-4",
-      "root-0-parent-0-leaf-5",
-      "root-0-parent-0-leaf-6",
-      "root-0-parent-0-leaf-7",
-      "root-0-parent-0-leaf-8",
-      "root-0-parent-0-leaf-9",
-    ]);
+    const scopedPatchIds = scoped.patches.map((patch) => patch.id).sort();
+    expect(scopedPatchIds).toContain("root-0");
+    expect(scopedPatchIds).toContain("root-0-parent-0");
+    expect(scopedPatchIds).toContain("root-0-parent-8-leaf-9");
+    expect(scopedPatchIds.some((id) => id.startsWith("root-1"))).toBe(false);
     expect(scopedElapsed).toBeLessThan(1000);
   });
 
@@ -307,20 +356,36 @@ describe("layout engine", () => {
     ).toMatchObject({ x: 219, y: 68 });
   });
 
-  it("limits scoped layout patches to the requested subtree", async () => {
+  it("normalizes scoped layout to the parent while preserving unrelated roots", async () => {
     const doc = twoRootScopedDocument();
+    const rootBBefore = { ...doc.nodesById["root-b"]! };
+    const bGroupBefore = { ...doc.nodesById["b-group"]! };
     const result = await layoutDocument({
       doc,
       affectedNodeIds: ["a-group"],
       force: true,
       mode: "adaptive",
     });
+    const after = applyLayoutPatches(doc, result.patches);
 
     expect(result.patches.map((patch) => patch.id).sort()).toEqual([
       "a-group",
       "a-leaf-1",
       "a-leaf-2",
+      "root-a",
     ]);
+    expect(after.nodesById["root-b"]).toMatchObject({
+      x: rootBBefore.x,
+      y: rootBBefore.y,
+      w: rootBBefore.w,
+      h: rootBBefore.h,
+    });
+    expect(after.nodesById["b-group"]).toMatchObject({
+      x: bGroupBefore.x,
+      y: bGroupBefore.y,
+      w: bGroupBefore.w,
+      h: bGroupBefore.h,
+    });
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
         code: "layout-applied",
@@ -385,6 +450,22 @@ describe("layout engine", () => {
       result.patches.find((patch) => patch.id === "digital-servicing"),
     ).toBeUndefined();
     expect(findContainmentViolations(after)).toEqual([]);
+    expect(findSiblingOverlaps(after)).toEqual([]);
+  });
+
+  it("does not place free roots on top of later blocked roots", async () => {
+    const doc = twoRootScopedDocument();
+    doc.childrenByParentId[ROOT_PARENT_ID] = ["root-a", "root-b"];
+    doc.nodesById["root-b"] = {
+      ...doc.nodesById["root-b"]!,
+      x: 24,
+      y: 24,
+      isLockedAsIs: true,
+    };
+
+    const result = await layoutDocument({ doc, force: true, mode: "uniform" });
+    const after = applyLayoutPatches(doc, result.patches);
+
     expect(findSiblingOverlaps(after)).toEqual([]);
   });
 
@@ -511,6 +592,27 @@ describe("layout engine", () => {
     expect(after.nodesById[stableNode.id]).toBe(stableNode);
     expect(after.nodesById[driftNode.id]).not.toBe(driftNode);
     expect(after.nodesById[driftNode.id]!.x).toBe(driftNode.x + 24);
+  });
+
+  it("does not apply direct geometry patches to locked nodes", () => {
+    const doc = runTransaction(
+      createSampleDocument(),
+      updateNode("risk", { isLockedAsIs: true }),
+    ).doc;
+    const riskBefore = doc.nodesById.risk!;
+
+    const after = applyLayoutPatches(doc, [
+      {
+        id: "risk",
+        x: riskBefore.x + 200,
+        y: riskBefore.y + 200,
+        w: riskBefore.w + 100,
+        h: riskBefore.h + 100,
+      },
+    ]);
+
+    expect(after).toBe(doc);
+    expect(after.nodesById.risk).toBe(riskBefore);
   });
 
   it("returns the same document reference when every patch is a no-op", () => {

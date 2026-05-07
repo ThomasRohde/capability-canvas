@@ -837,6 +837,24 @@ describe("editor shell", () => {
     expect(after.nodesById["credit-risk"]!.y - childBefore.y).toBe(expectedDy);
   });
 
+  it("clarifies preserved layout and disables size fields for locked nodes", () => {
+    useDocumentStore.getState().execute(lockSubtree("risk", true));
+    useUiStore.setState({ selectedNodeIds: ["risk"], inspectorTab: "layout" });
+
+    render(<EditorRoute />);
+
+    expect(
+      screen.getByRole("button", { name: "Preserve from auto layout" }),
+    ).toHaveClass("on");
+    expect(
+      screen.getByText(/Preserved nodes are skipped by auto layout/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("X")).not.toBeDisabled();
+    expect(screen.getByLabelText("Y")).not.toBeDisabled();
+    expect(screen.getByLabelText("W")).toBeDisabled();
+    expect(screen.getByLabelText("H")).toBeDisabled();
+  });
+
   it("snaps resize handles to the grid when enabled", () => {
     useUiStore.setState({ selectedNodeIds: ["data-management"] });
     render(<EditorRoute />);
