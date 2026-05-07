@@ -15,6 +15,7 @@ import {
   updateNodeColors,
 } from "./operations";
 import { createSampleDocument } from "../fixtures/sample";
+import { childrenOf } from "../document/types";
 
 describe("commands", () => {
   it("adds children transactionally", () => {
@@ -103,8 +104,15 @@ describe("commands", () => {
     doc.settings.containerPaddingBottom = 8;
 
     const result = runTransaction(doc, resizeNode("risk", 1, 1));
+    const risk = doc.nodesById.risk!;
+    const children = childrenOf(doc, "risk").map((id) => doc.nodesById[id]!);
+    const childRight = Math.max(...children.map((child) => child.x + child.w));
+    const childBottom = Math.max(...children.map((child) => child.y + child.h));
     expect(result.diagnostics).toHaveLength(0);
-    expect(result.doc.nodesById.risk).toMatchObject({ w: 416, h: 120 });
+    expect(result.doc.nodesById.risk).toMatchObject({
+      w: childRight - risk.x + doc.settings.containerPaddingRight,
+      h: childBottom - risk.y + doc.settings.containerPaddingBottom,
+    });
   });
 
   it("preserves explicit resize dimensions for manual-positioning parents", () => {

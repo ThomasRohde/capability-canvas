@@ -10,8 +10,8 @@ describe("drop target detection", () => {
     const digital = doc.nodesById.digital!;
     const target = findDropTarget({
       doc,
-      pointDocX: digital.x + digital.w / 2,
-      pointDocY: digital.y + digital.h / 2,
+      pointDocX: digital.x + 16,
+      pointDocY: digital.y + 16,
       draggedIds: new Set(),
     });
     expect(target.parentId).toBe("digital");
@@ -42,8 +42,8 @@ describe("drop target detection", () => {
     const digital = doc.nodesById.digital!;
     const target = findDropTarget({
       doc,
-      pointDocX: digital.x + digital.w / 2,
-      pointDocY: digital.y + digital.h / 2,
+      pointDocX: digital.x + 16,
+      pointDocY: digital.y + 16,
       draggedIds: new Set(),
     });
     expect(target.parentId).not.toBe("digital");

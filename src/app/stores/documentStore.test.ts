@@ -238,6 +238,17 @@ describe("document store layout settings", () => {
       useDocumentStore.getState().doc,
       defaultViewId,
     ).nodesById["retail-banking"]!.x;
+    useDocumentStore
+      .getState()
+      .execute(
+        updateVisualNodeState(defaultViewId, "retail-banking", {
+          x: defaultRootBefore + 80,
+        }),
+      );
+    const defaultRootMoved = resolveVisualDocument(
+      useDocumentStore.getState().doc,
+      defaultViewId,
+    ).nodesById["retail-banking"]!.x;
 
     useDocumentStore
       .getState()
@@ -262,7 +273,7 @@ describe("document store layout settings", () => {
     expect(resolveVisualDocument(after).nodesById.risk!.x).toBe(activeRiskX);
     expect(
       resolveVisualDocument(after, defaultViewId).nodesById["retail-banking"]!.x,
-    ).not.toBe(defaultRootBefore);
+    ).not.toBe(defaultRootMoved);
     expect(
       findParentContainmentViolations(resolveVisualDocument(after, defaultViewId)),
     ).toEqual([]);

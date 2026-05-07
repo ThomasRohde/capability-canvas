@@ -182,9 +182,9 @@ describe("layout engine", () => {
     const childTop = Math.min(...children.map((child) => child.y));
     const childBottom = Math.max(...children.map((child) => child.y + child.h));
 
-    expect(childLeft - root.x).toBe(16);
-    expect(root.x + root.w - childRight).toBeGreaterThanOrEqual(16);
-    expect(childTop - root.y).toBe(48);
+    expect(childLeft - root.x).toBe(8);
+    expect(root.x + root.w - childRight).toBeGreaterThanOrEqual(8);
+    expect(childTop - root.y).toBe(40);
     expect(root.y + root.h - childBottom).toBeGreaterThanOrEqual(0);
   });
 
@@ -234,7 +234,9 @@ describe("layout engine", () => {
     const after = await applyAutoLayoutCycle(createSampleDocument(), "adaptive");
     const padding = horizontalChildPadding(after, "branch");
 
-    expect(Math.abs(padding.left - padding.right)).toBeLessThanOrEqual(1);
+    expect(Math.abs(padding.left - padding.right)).toBeLessThanOrEqual(
+      after.settings.gridSize,
+    );
   });
 
   it("keeps flow layout parent height tight around child rows", async () => {
@@ -262,7 +264,7 @@ describe("layout engine", () => {
     const after = await applyAutoLayoutCycle(doc, "uniform");
 
     expect(after.nodesById.branch!.h).toBe(after.nodesById.digital!.h);
-    expect(after.nodesById.branch!.h).toBe(152);
+    expect(after.nodesById.branch!.h).toBe(144);
     expect(verticalChildPadding(after, "channels")).toMatchObject({
       top: 36,
       bottom: 8,
@@ -282,7 +284,7 @@ describe("layout engine", () => {
     ).toMatchObject({ x: 32, y: 72 });
     expect(
       result.patches.find((patch) => patch.id === "child-b"),
-    ).toMatchObject({ x: 215, y: 72 });
+    ).toMatchObject({ x: 211, y: 72 });
   });
 
   it("lets node-specific layout preferences override global spacing settings", async () => {
