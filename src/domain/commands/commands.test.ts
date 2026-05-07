@@ -16,8 +16,11 @@ import {
   setManualPositioning,
   updateNodeColors,
 } from "./operations";
+import { createEmptyDocument, createNode } from "../document/defaults";
 import { createSampleDocument } from "../fixtures/sample";
-import { childrenOf } from "../document/types";
+import { childrenOf, ROOT_PARENT_ID } from "../document/types";
+import { ensureParentContainment } from "../layout/containment";
+import { applyLayoutPatches, layoutDocument } from "../layout/engine";
 import {
   PROMPT_MERGE_SCHEMA,
   PROMPT_MERGE_VERSION,
@@ -151,6 +154,29 @@ describe("commands", () => {
     const result = runTransaction(oversized, fitParentToChildren("risk"));
     expect(result.doc.nodesById.risk!.w).toBeLessThan(before.w + 400);
     expect(result.doc.nodesById.risk!.h).toBeLessThan(before.h + 200);
+  });
+
+  it("keeps a snapped auto-laid parent stable when fitting to children", async () => {
+    const doc = subGridPaddingDocument();
+    const layout = await layoutDocument({
+      doc,
+      force: true,
+      mode: "adaptive",
+    });
+    const laidOut = ensureParentContainment(
+      applyLayoutPatches(doc, layout.patches),
+    ).doc;
+    const before = laidOut.nodesById.root!;
+
+    const result = runTransaction(laidOut, fitParentToChildren("root"));
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.nodesById.root).toMatchObject({
+      x: before.x,
+      y: before.y,
+      w: before.w,
+      h: before.h,
+    });
   });
 
   it("annotates addChild with relayout meta scoped to the parent", () => {
@@ -343,6 +369,38 @@ describe("commands", () => {
     });
   });
 });
+
+function subGridPaddingDocument() {
+  const doc = createEmptyDocument();
+  doc.layout.preservePositions = false;
+  doc.layout.isUserArranged = false;
+  doc.settings.gridEnabled = true;
+  doc.settings.gridSize = 16;
+  doc.settings.fixedLeafWidth = 168;
+  doc.settings.fixedLeafHeight = 56;
+  doc.settings.defaultParentWidth = 200;
+  doc.settings.defaultParentHeight = 40;
+  doc.settings.containerPaddingTop = 8;
+  doc.settings.containerPaddingRight = 8;
+  doc.settings.containerPaddingBottom = 8;
+  doc.settings.containerPaddingLeft = 8;
+  doc.settings.containerTitleHeight = 36;
+
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Root",
+    type: "root",
+  });
+  doc.nodesById.child = createNode({
+    id: "child",
+    parentId: "root",
+    label: "Child",
+  });
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+  doc.childrenByParentId.root = ["child"];
+  doc.childrenByParentId.child = [];
+  return doc;
+}
 
 function promptPayload(
   targetId: string,

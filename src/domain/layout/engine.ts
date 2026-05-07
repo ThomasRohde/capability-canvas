@@ -14,7 +14,13 @@ import {
 } from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 import { info, warning } from "../validation/diagnostics";
-import { gridSizeFor, snapLengthUpToGrid, snapToGrid } from "./grid";
+import {
+  snapLayoutCoordinate,
+  snapLayoutDelta,
+  snapLayoutSize,
+  snapLayoutSpacing,
+  snapLayoutStartAfter,
+} from "./grid";
 import {
   type LayoutPatch,
   type LayoutRequest,
@@ -878,42 +884,6 @@ function finishLayoutResult(
     ),
   );
   return { patches: stable, diagnostics };
-}
-
-function snapLayoutCoordinate(
-  doc: CapabilityDocument,
-  value: number,
-): number {
-  const rounded = Math.round(value);
-  if (!doc.settings.gridEnabled) return rounded;
-  return snapToGrid(rounded, gridSizeFor(doc));
-}
-
-function snapLayoutDelta(doc: CapabilityDocument, value: number): number {
-  const rounded = Math.round(value);
-  if (!doc.settings.gridEnabled) return rounded;
-  return snapToGrid(rounded, gridSizeFor(doc));
-}
-
-function snapLayoutSize(doc: CapabilityDocument, value: number): number {
-  const rounded = Math.round(value);
-  if (!doc.settings.gridEnabled) return Math.max(1, rounded);
-  return Math.max(1, snapLengthUpToGrid(rounded, gridSizeFor(doc)));
-}
-
-function snapLayoutSpacing(doc: CapabilityDocument, value: number): number {
-  const rounded = Math.round(value);
-  if (!doc.settings.gridEnabled) return Math.max(0, rounded);
-  return snapLengthUpToGrid(rounded, gridSizeFor(doc));
-}
-
-function snapLayoutStartAfter(
-  doc: CapabilityDocument,
-  value: number,
-): number {
-  const rounded = Math.round(value);
-  if (!doc.settings.gridEnabled) return rounded;
-  return snapLengthUpToGrid(rounded, gridSizeFor(doc));
 }
 
 function layoutOutcomeMessage(

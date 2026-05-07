@@ -18,7 +18,7 @@ import {
 } from "../document/types";
 import { ensureParentContainment } from "../layout/containment";
 import { computeDocumentBounds } from "../layout/engine";
-import { snapCoordinate } from "../layout/grid";
+import { snapCoordinate, snapLayoutSpacing } from "../layout/grid";
 import type {
   PromptMergeCapability,
   PromptMergePayload,
@@ -1235,19 +1235,26 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
       const bounds = boundsForNodes(doc, canvasChildrenOf(doc, nodeId));
       if (!bounds) return ok(doc);
       const margin = {
-        top:
+        top: snapLayoutSpacing(
+          doc,
           (node.layoutPreferences?.marginTop ??
             doc.settings.containerPaddingTop) +
-          doc.settings.containerTitleHeight,
-        right:
+            doc.settings.containerTitleHeight,
+        ),
+        right: snapLayoutSpacing(
+          doc,
           node.layoutPreferences?.marginRight ??
-          doc.settings.containerPaddingRight,
-        bottom:
+            doc.settings.containerPaddingRight,
+        ),
+        bottom: snapLayoutSpacing(
+          doc,
           node.layoutPreferences?.marginBottom ??
-          doc.settings.containerPaddingBottom,
-        left:
-          node.layoutPreferences?.marginLeft ??
-          doc.settings.containerPaddingLeft,
+            doc.settings.containerPaddingBottom,
+        ),
+        left: snapLayoutSpacing(
+          doc,
+          node.layoutPreferences?.marginLeft ?? doc.settings.containerPaddingLeft,
+        ),
       };
       const x = bounds.x - margin.left;
       const y = bounds.y - margin.top;
