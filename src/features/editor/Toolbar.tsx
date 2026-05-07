@@ -1,22 +1,34 @@
 import {
+  ChevronDown,
+  Copy,
   Download,
   EyeOff,
   FileJson,
   Grid3X3,
   LayoutTemplate,
   Minus,
+  MoreHorizontal,
   Plus,
-  Copy,
   Redo2,
   Settings,
+  SlidersHorizontal,
   Trash2,
   Upload,
   Undo2,
   WandSparkles,
   X,
   ZoomIn,
+  type LucideProps,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentType,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import {
   addChild,
   addRoot,
@@ -34,13 +46,15 @@ import {
 } from "../../domain/promptMerge/payload";
 import { error, warning } from "../../domain/validation/diagnostics";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
-import { applyImportedDocument } from "../../app/importDocument";
-import { useUiStore } from "../../app/stores/uiStore";
-import { useDocumentStore } from "../../app/stores/documentStore";
 import { openDocumentFile } from "../../app/fileSystem";
+import { applyImportedDocument } from "../../app/importDocument";
+import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
 import { IconButton } from "../shared/IconButton";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { ViewSwitcher } from "../views/ViewSwitcher";
+
+type ToolbarMenuFocusTarget = "first" | "last";
 
 export function Toolbar() {
   const doc = useDocumentStore((state) => state.doc);
@@ -75,11 +89,6 @@ export function Toolbar() {
   );
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
-  const importDocument = () => {
-    void openDocumentFile().then((parsed) =>
-      applyImportedDocument(parsed, "Import file"),
-    );
-  };
 
   useEffect(() => {
     return () => {
@@ -98,6 +107,12 @@ export function Toolbar() {
       setPromptCopyNoticeVisible(false);
       promptCopyNoticeTimeout.current = null;
     }, 2400);
+  };
+
+  const importDocument = () => {
+    void openDocumentFile().then((parsed) =>
+      applyImportedDocument(parsed, "Import file"),
+    );
   };
 
   const importPastedJson = () => {
@@ -164,222 +179,498 @@ export function Toolbar() {
     }
   };
 
+  const addRootCapability = () => execute(addRoot());
+
+  const addSelectedChild = () => {
+    if (selectedNode) execute(addChild(selectedNode.id));
+  };
+
+  const duplicateSelection = () => execute(duplicateNodes(selected));
+
+  const removeSelectionFromActiveView = () =>
+    execute(removeNodesFromCanvas(selectedCanvasNodeIds));
+
+  const deleteSelectionFromModel = () => requestDeleteFromModel(selected);
+
+  const fitViewport = () => {
+    const bounds = viewDoc.layout.boundingBox;
+    if (bounds.w <= 0) return;
+    const nextViewport = {
+      zoom: 1,
+      x: 280 - bounds.x,
+      y: 60 - bounds.y,
+    };
+    setViewport(nextViewport);
+    setActiveViewViewport(nextViewport);
+  };
+
+  const zoomOut = () =>
+    setViewport({
+      ...viewport,
+      zoom: Math.max(0.25, viewport.zoom - 0.1),
+    });
+
+  const zoomIn = () =>
+    setViewport({ ...viewport, zoom: Math.min(2.5, viewport.zoom + 0.1) });
+
+  const runAutoLayout = () => {
+    void autoLayout(true);
+  };
+
+  const toggleHeatmap = () =>
+    execute(
+      updateActiveViewHeatmapSettings({
+        enabled: !viewDoc.heatmap.enabled,
+      }),
+    );
+
+  const openSettings = () => setActiveDrawer("settings");
+  const openExport = () => setActiveDrawer("export");
+  const openPastedJsonImport = () => setPasteOpen(true);
+
   return (
     <>
-    <header className="cc-toolbar">
-      <div className="cc-brand">
-        <img
-          className="cc-brand-mark"
-          src={`${import.meta.env.BASE_URL}favicon.svg`}
-          alt=""
-        />
-        <span className="cc-brand-name">Capability Canvas</span>
-      </div>
-      <button
-        className="cc-doc-picker"
-        type="button"
-        aria-label="Edit document title"
-        title="Edit document title"
-        onClick={() => setActiveDrawer("settings")}
-      >
-        {doc.title}
-      </button>
-      <ViewSwitcher />
-      <span className="cc-divider" />
-      <button
-        className="cc-btn"
-        type="button"
-        onClick={importDocument}
-      >
-        <Upload /> Import
-      </button>
-      <button
-        className="cc-btn"
-        type="button"
-        onClick={() => setActiveDrawer("export")}
-      >
-        <Download /> Export
-      </button>
-      <span className="cc-divider" />
-      <button
-        className="cc-btn"
-        type="button"
-        onClick={() => execute(addRoot())}
-      >
-        <Plus /> Add root
-      </button>
-      <button
-        className="cc-btn cc-btn-primary"
-        type="button"
-        disabled={!selectedNode || selectedNode.isTextLabel}
-        onClick={() => selectedNode && execute(addChild(selectedNode.id))}
-      >
-        <Plus /> Add child
-      </button>
-      <IconButton
-        icon={Copy}
-        label="Duplicate"
-        disabled={selected.length === 0}
-        onClick={() => execute(duplicateNodes(selected))}
-      />
-      <IconButton
-        icon={EyeOff}
-        label="Remove from active view"
-        disabled={selectedCanvasNodeIds.length === 0}
-        onClick={() => execute(removeNodesFromCanvas(selectedCanvasNodeIds))}
-      />
-      <IconButton
-        icon={Trash2}
-        label="Delete from model"
-        disabled={selected.length === 0}
-        onClick={() => requestDeleteFromModel(selected)}
-      />
-      <span className="cc-divider" />
-      <IconButton icon={Undo2} label="Undo" onClick={undo} />
-      <IconButton icon={Redo2} label="Redo" onClick={redo} />
-      <span className="cc-divider" />
-      <button
-        className="cc-btn"
-        type="button"
-        onClick={() => {
-          const bounds = viewDoc.layout.boundingBox;
-          if (bounds.w > 0) {
-            const nextViewport = {
-              zoom: 1,
-              x: 280 - bounds.x,
-              y: 60 - bounds.y,
-            };
-            setViewport(nextViewport);
-            setActiveViewViewport(nextViewport);
-          }
-        }}
-      >
-        <ZoomIn /> Fit
-      </button>
-      <IconButton
-        icon={Minus}
-        label="Zoom out"
-        onClick={() =>
-          setViewport({
-            ...viewport,
-            zoom: Math.max(0.25, viewport.zoom - 0.1),
-          })
-        }
-      />
-      <span style={{ minWidth: 54, textAlign: "center", fontSize: 13 }}>
-        {Math.round(viewport.zoom * 100)}%
-      </span>
-      <IconButton
-        icon={Plus}
-        label="Zoom in"
-        onClick={() =>
-          setViewport({ ...viewport, zoom: Math.min(2.5, viewport.zoom + 0.1) })
-        }
-      />
-      <span className="cc-divider" />
-      <button
-        className="cc-btn cc-btn-primary"
-        type="button"
-        disabled={isAutoLayoutRunning}
-        onClick={() => void autoLayout(true)}
-      >
-        <LayoutTemplate /> Auto layout
-      </button>
-      <button
-        className="cc-btn"
-        type="button"
-        onClick={() =>
-          execute(
-            updateActiveViewHeatmapSettings({
-              enabled: !viewDoc.heatmap.enabled,
-            }),
-          )
-        }
-      >
-        <Grid3X3 /> Heatmap
-        <span className={`cc-toggle ${viewDoc.heatmap.enabled ? "on" : ""}`} />
-      </button>
-      <span className="cc-spacer" />
-      <IconButton
-        icon={WandSparkles}
-        label="Prompt"
-        disabled={!canCopyPrompt}
-        tooltip="Copy BCM prompt"
-        onClick={copyPrompt}
-      />
-      <IconButton
-        icon={FileJson}
-        label="Import pasted JSON"
-        onClick={() => setPasteOpen(true)}
-      />
-      <IconButton
-        icon={Settings}
-        label="Settings"
-        onClick={() => setActiveDrawer("settings")}
-      />
-    </header>
-    {pasteOpen && (
-      <div
-        className="cc-modal-backdrop"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setPasteOpen(false);
-        }}
-      >
-        <section className="cc-modal" role="dialog" aria-label="Import pasted JSON">
-          <div className="cc-modal-head">
-            <div className="cc-panel-title">Import pasted JSON</div>
-            <IconButton
-              icon={X}
-              label="Close pasted JSON import"
-              onClick={() => setPasteOpen(false)}
-            />
-          </div>
-          <textarea
-            className="cc-textarea cc-paste-json"
-            value={pasteDraft}
-            autoFocus
-            onChange={(event) => setPasteDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setPasteOpen(false);
-              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                event.preventDefault();
-                importPastedJson();
-              }
-            }}
+      <header className="cc-toolbar cc-editor-toolbar">
+        <div className="cc-brand">
+          <img
+            className="cc-brand-mark"
+            src={`${import.meta.env.BASE_URL}favicon.svg`}
+            alt=""
           />
-          <div className="cc-modal-actions">
-            <button
-              className="cc-btn"
-              type="button"
-              onClick={() => setPasteOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="cc-btn cc-btn-primary"
-              type="button"
-              onClick={importPastedJson}
-            >
-              <Upload /> Import
-            </button>
-          </div>
-        </section>
-      </div>
-    )}
-    {promptCopyNoticeVisible && (
-      <div
-        className="cc-toast"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        Prompt copied
-      </div>
-    )}
-    {deleteFromModelDialog}
+          <span className="cc-brand-name">Capability Canvas</span>
+        </div>
+        <button
+          className="cc-doc-picker"
+          type="button"
+          aria-label="Edit document title"
+          title="Edit document title"
+          onClick={openSettings}
+        >
+          {doc.title}
+        </button>
+        <ViewSwitcher />
+        <ToolbarMenu label="View options" icon={SlidersHorizontal} compact>
+          {({ closeMenu }) => (
+            <>
+              <ToolbarMenuItem
+                icon={Grid3X3}
+                label="Heatmap"
+                role="menuitemcheckbox"
+                checked={viewDoc.heatmap.enabled}
+                closeMenu={closeMenu}
+                onSelect={toggleHeatmap}
+              />
+              <ToolbarMenuItem
+                icon={Settings}
+                label="Settings"
+                closeMenu={closeMenu}
+                onSelect={openSettings}
+              />
+            </>
+          )}
+        </ToolbarMenu>
+        <span className="cc-divider" />
+        <div className="cc-toolbar-group" aria-label="Model commands">
+          <button
+            className="cc-btn"
+            type="button"
+            aria-label="Add root"
+            onClick={addRootCapability}
+          >
+            <Plus />
+            <span className="cc-btn-label">Add root</span>
+          </button>
+          <button
+            className="cc-btn cc-btn-primary"
+            type="button"
+            aria-label="Add child"
+            disabled={!selectedNode || selectedNode.isTextLabel}
+            onClick={addSelectedChild}
+          >
+            <Plus />
+            <span className="cc-btn-label">Add child</span>
+          </button>
+          <ToolbarMenu label="Model actions" icon={MoreHorizontal}>
+            {({ closeMenu }) => (
+              <>
+                <ToolbarMenuItem
+                  icon={Copy}
+                  label="Duplicate"
+                  disabled={selected.length === 0}
+                  closeMenu={closeMenu}
+                  onSelect={duplicateSelection}
+                />
+                <ToolbarMenuItem
+                  icon={EyeOff}
+                  label="Remove from active view"
+                  disabled={selectedCanvasNodeIds.length === 0}
+                  closeMenu={closeMenu}
+                  onSelect={removeSelectionFromActiveView}
+                />
+                <ToolbarMenuItem
+                  icon={Trash2}
+                  label="Delete from model"
+                  disabled={selected.length === 0}
+                  tone="danger"
+                  closeMenu={closeMenu}
+                  onSelect={deleteSelectionFromModel}
+                />
+                <div className="cc-menu-separator" role="separator" />
+                <ToolbarMenuItem
+                  icon={WandSparkles}
+                  label="Copy BCM prompt"
+                  disabled={!canCopyPrompt}
+                  closeMenu={closeMenu}
+                  onSelect={copyPrompt}
+                />
+              </>
+            )}
+          </ToolbarMenu>
+        </div>
+        <span className="cc-divider" />
+        <div className="cc-toolbar-group" aria-label="History commands">
+          <IconButton icon={Undo2} label="Undo" onClick={undo} />
+          <IconButton icon={Redo2} label="Redo" onClick={redo} />
+        </div>
+        <span className="cc-divider" />
+        <div className="cc-toolbar-group" aria-label="Layout commands">
+          <button
+            className="cc-btn"
+            type="button"
+            aria-label="Fit"
+            onClick={fitViewport}
+          >
+            <ZoomIn />
+            <span className="cc-btn-label">Fit</span>
+          </button>
+          <IconButton icon={Minus} label="Zoom out" onClick={zoomOut} />
+          <span className="cc-zoom-value" aria-label="Zoom level">
+            {Math.round(viewport.zoom * 100)}%
+          </span>
+          <IconButton icon={Plus} label="Zoom in" onClick={zoomIn} />
+          <button
+            className="cc-btn cc-btn-primary"
+            type="button"
+            aria-label="Auto layout"
+            disabled={isAutoLayoutRunning}
+            onClick={runAutoLayout}
+          >
+            <LayoutTemplate />
+            <span className="cc-btn-label">Auto layout</span>
+          </button>
+        </div>
+        <span className="cc-spacer" />
+        <div className="cc-toolbar-group" aria-label="File commands">
+          <ToolbarMenu label="Import" icon={Upload} align="right">
+            {({ closeMenu }) => (
+              <>
+                <ToolbarMenuItem
+                  icon={Upload}
+                  label="Import JSON file"
+                  closeMenu={closeMenu}
+                  onSelect={importDocument}
+                />
+                <ToolbarMenuItem
+                  icon={FileJson}
+                  label="Import pasted JSON"
+                  closeMenu={closeMenu}
+                  onSelect={openPastedJsonImport}
+                />
+              </>
+            )}
+          </ToolbarMenu>
+          <button
+            className="cc-btn"
+            type="button"
+            aria-label="Export"
+            onClick={openExport}
+          >
+            <Download />
+            <span className="cc-btn-label">Export</span>
+          </button>
+        </div>
+      </header>
+      {pasteOpen && (
+        <div
+          className="cc-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPasteOpen(false);
+          }}
+        >
+          <section
+            className="cc-modal"
+            role="dialog"
+            aria-label="Import pasted JSON"
+          >
+            <div className="cc-modal-head">
+              <div className="cc-panel-title">Import pasted JSON</div>
+              <IconButton
+                icon={X}
+                label="Close pasted JSON import"
+                onClick={() => setPasteOpen(false)}
+              />
+            </div>
+            <textarea
+              className="cc-textarea cc-paste-json"
+              value={pasteDraft}
+              autoFocus
+              onChange={(event) => setPasteDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setPasteOpen(false);
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  importPastedJson();
+                }
+              }}
+            />
+            <div className="cc-modal-actions">
+              <button
+                className="cc-btn"
+                type="button"
+                onClick={() => setPasteOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="cc-btn cc-btn-primary"
+                type="button"
+                onClick={importPastedJson}
+              >
+                <Upload /> Import
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {promptCopyNoticeVisible && (
+        <div
+          className="cc-toast"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Prompt copied
+        </div>
+      )}
+      {deleteFromModelDialog}
     </>
   );
+}
+
+interface ToolbarMenuProps {
+  label: string;
+  icon: ComponentType<LucideProps>;
+  children: (controls: { closeMenu: () => void }) => ReactNode;
+  compact?: boolean;
+  align?: "left" | "right";
+}
+
+function ToolbarMenu({
+  label,
+  icon: Icon,
+  children,
+  compact = false,
+  align = "left",
+}: ToolbarMenuProps) {
+  const menuId = useId();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const focusTargetRef = useRef<ToolbarMenuFocusTarget>("first");
+
+  const closeMenu = () => {
+    setOpen(false);
+  };
+
+  const openMenu = (focusTarget: ToolbarMenuFocusTarget = "first") => {
+    focusTargetRef.current = focusTarget;
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        rootRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      closeMenu();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      const items = getEnabledMenuItems(menuRef.current);
+      const target =
+        focusTargetRef.current === "last" ? items.at(-1) : items[0];
+      target?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
+
+  const focusRelativeItem = (direction: 1 | -1) => {
+    const items = getEnabledMenuItems(menuRef.current);
+    if (items.length === 0) return;
+    const currentIndex = items.findIndex((item) => item === document.activeElement);
+    const nextIndex =
+      currentIndex === -1
+        ? direction === 1
+          ? 0
+          : items.length - 1
+        : (currentIndex + direction + items.length) % items.length;
+    items[nextIndex]?.focus();
+  };
+
+  const focusEdgeItem = (edge: ToolbarMenuFocusTarget) => {
+    const items = getEnabledMenuItems(menuRef.current);
+    const target = edge === "first" ? items[0] : items.at(-1);
+    target?.focus();
+  };
+
+  const handleTriggerKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+  ) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      openMenu("first");
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      openMenu("last");
+    }
+  };
+
+  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMenu();
+      triggerRef.current?.focus();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusRelativeItem(1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusRelativeItem(-1);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusEdgeItem("first");
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      focusEdgeItem("last");
+    }
+  };
+
+  return (
+    <div ref={rootRef} className="cc-toolbar-menu">
+      <button
+        ref={triggerRef}
+        className={`cc-btn cc-toolbar-menu-trigger ${compact ? "compact" : ""} ${open ? "active" : ""}`}
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        title={label}
+        onClick={() => {
+          if (open) closeMenu();
+          else openMenu("first");
+        }}
+        onKeyDown={handleTriggerKeyDown}
+      >
+        <Icon />
+        {!compact && <span className="cc-btn-label">{label}</span>}
+        <ChevronDown className="cc-toolbar-menu-chevron" />
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          id={menuId}
+          className={`cc-toolbar-menu-popover ${align === "right" ? "align-right" : ""}`}
+          role="menu"
+          aria-label={label}
+          onKeyDown={handleMenuKeyDown}
+        >
+          {children({ closeMenu })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ToolbarMenuItemProps {
+  label: string;
+  icon: ComponentType<LucideProps>;
+  closeMenu: () => void;
+  onSelect: () => void;
+  disabled?: boolean;
+  checked?: boolean;
+  role?: "menuitem" | "menuitemcheckbox";
+  tone?: "danger";
+}
+
+function ToolbarMenuItem({
+  label,
+  icon: Icon,
+  closeMenu,
+  onSelect,
+  disabled = false,
+  checked,
+  role = "menuitem",
+  tone,
+}: ToolbarMenuItemProps) {
+  const handleSelect = () => {
+    if (disabled) return;
+    onSelect();
+    closeMenu();
+  };
+
+  return (
+    <button
+      className={`cc-toolbar-menu-item ${tone === "danger" ? "danger" : ""}`}
+      type="button"
+      role={role}
+      aria-checked={role === "menuitemcheckbox" ? checked : undefined}
+      disabled={disabled}
+      onClick={handleSelect}
+    >
+      <Icon aria-hidden="true" />
+      <span>{label}</span>
+      {role === "menuitemcheckbox" && (
+        <span className={`cc-toggle ${checked ? "on" : ""}`} aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
+function getEnabledMenuItems(menu: HTMLDivElement | null) {
+  if (!menu) return [];
+  return [
+    ...menu.querySelectorAll<HTMLButtonElement>(
+      'button[role="menuitem"], button[role="menuitemcheckbox"]',
+    ),
+  ].filter((item) => !item.disabled);
 }
 
 async function copyTextToClipboard(text: string): Promise<void> {

@@ -157,6 +157,12 @@ button:disabled {
   border-bottom: 1px solid var(--cc-slate-200);
 }
 
+.cc-editor-toolbar {
+  position: relative;
+  z-index: 70;
+  overflow: visible;
+}
+
 .cc-brand {
   display: flex;
   align-items: center;
@@ -275,12 +281,132 @@ button:disabled {
   stroke-width: 1.5;
 }
 
+.cc-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.cc-toolbar-menu {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.cc-toolbar-menu-trigger.active {
+  border-color: var(--cc-brand-100);
+  background: var(--cc-brand-50);
+  color: var(--cc-brand-700);
+}
+
+.cc-toolbar-menu-trigger.compact {
+  justify-content: center;
+  width: 32px;
+  padding: 0;
+  gap: 0;
+}
+
+.cc-toolbar-menu-trigger.compact .cc-toolbar-menu-chevron {
+  display: none;
+}
+
+.cc-toolbar-menu-chevron {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.cc-toolbar-menu-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 85;
+  display: grid;
+  min-width: 224px;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-toolbar-menu-popover.align-right {
+  right: 0;
+  left: auto;
+}
+
+.cc-toolbar-menu-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 32px;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cc-slate-700);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.cc-toolbar-menu-item:hover,
+.cc-toolbar-menu-item:focus-visible {
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-900);
+}
+
+.cc-toolbar-menu-item:focus-visible {
+  outline: none;
+  box-shadow: var(--cc-ring-focus);
+}
+
+.cc-toolbar-menu-item.danger {
+  color: var(--cc-danger);
+}
+
+.cc-toolbar-menu-item svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.6;
+}
+
+.cc-toolbar-menu-item .cc-toggle {
+  width: 30px;
+  height: 18px;
+}
+
+.cc-toolbar-menu-item .cc-toggle::after {
+  width: 14px;
+  height: 14px;
+}
+
+.cc-toolbar-menu-item .cc-toggle.on::after {
+  transform: translateX(12px);
+}
+
+.cc-zoom-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 32px;
+  color: var(--cc-slate-600);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .cc-toast {
   position: fixed;
   top: calc(var(--cc-toolbar-height) + 12px);
-  right: 16px;
-  z-index: 80;
+  left: 50%;
+  z-index: 95;
   padding: 8px 12px;
+  transform: translateX(-50%);
   border: 1px solid var(--cc-slate-200);
   border-radius: 8px;
   background: var(--cc-slate-900);
@@ -288,6 +414,7 @@ button:disabled {
   box-shadow: var(--cc-shadow-md);
   font-size: 13px;
   font-weight: 500;
+  pointer-events: none;
 }
 
 .cc-divider {
@@ -1751,6 +1878,77 @@ button:focus-visible {
   color: var(--cc-brand-700);
   font-size: 11px;
   font-weight: 500;
+}
+
+@media (max-width: 1400px) {
+  .cc-editor-toolbar {
+    gap: 4px;
+    padding: 0 8px;
+  }
+
+  .cc-editor-toolbar .cc-brand {
+    min-width: 0;
+    gap: 7px;
+  }
+
+  .cc-editor-toolbar .cc-brand-name {
+    display: none;
+  }
+
+  .cc-editor-toolbar .cc-doc-picker {
+    max-width: 144px;
+  }
+
+  .cc-editor-toolbar .cc-view-trigger {
+    max-width: 156px;
+  }
+}
+
+@media (max-width: 1120px) {
+  .cc-editor-toolbar .cc-btn {
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+    gap: 0;
+  }
+
+  .cc-editor-toolbar .cc-btn-label,
+  .cc-editor-toolbar .cc-toolbar-menu-chevron {
+    display: none;
+  }
+
+  .cc-editor-toolbar .cc-doc-picker {
+    max-width: 116px;
+    padding: 0 8px;
+  }
+
+  .cc-editor-toolbar .cc-view-trigger {
+    max-width: 132px;
+    padding: 0 8px;
+  }
+
+  .cc-editor-toolbar .cc-divider {
+    margin: 0 2px;
+  }
+
+  .cc-zoom-value {
+    min-width: 48px;
+  }
+}
+
+@media (max-width: 860px) {
+  .cc-editor-toolbar .cc-doc-picker {
+    display: none;
+  }
+
+  .cc-editor-toolbar .cc-view-trigger {
+    max-width: 112px;
+  }
+
+  .cc-editor-toolbar .cc-zoom-value {
+    min-width: 42px;
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 960px) {

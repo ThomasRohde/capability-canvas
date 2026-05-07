@@ -71,12 +71,16 @@ describe("editor shell", () => {
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add root" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add child" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Remove from active view" }),
+      screen.getByRole("button", { name: "Model actions" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Delete from model" }),
+      screen.getByRole("button", { name: "View options" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
   });
 
   it("imports a JSON document from the Import button", async () => {
@@ -89,6 +93,9 @@ describe("editor shell", () => {
 
     render(<EditorRoute />);
     await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import JSON file" }),
+    );
     const input = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement;
@@ -112,11 +119,80 @@ describe("editor shell", () => {
     const canvas = screen.getByTestId("canvas");
     expect(within(canvas).queryByText("0.72")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Heatmap" }));
+    await userEvent.click(screen.getByRole("button", { name: "View options" }));
+    const heatmapItem = screen.getByRole("menuitemcheckbox", {
+      name: "Heatmap",
+    });
+    expect(heatmapItem).toHaveAttribute("aria-checked", "false");
+    await userEvent.click(heatmapItem);
     expect(within(canvas).getByText("0.72")).toHaveClass("leaf-score");
     expect(
       canvas.querySelector(".cc-node-score.container-score"),
     ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "View options" }));
+    expect(
+      screen.getByRole("menuitemcheckbox", { name: "Heatmap" }),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("keeps secondary model commands in a keyboard-accessible menu", async () => {
+    render(<EditorRoute />);
+    const trigger = screen.getByRole("button", { name: "Model actions" });
+
+    trigger.focus();
+    await userEvent.keyboard("{Enter}");
+    const menu = screen.getByRole("menu", { name: "Model actions" });
+    expect(
+      within(menu).getByRole("menuitem", { name: "Duplicate" }),
+    ).toBeEnabled();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Remove from active view" }),
+    ).toBeEnabled();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Delete from model" }),
+    ).toBeEnabled();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
+    ).toBeEnabled();
+
+    await waitFor(() =>
+      expect(
+        within(menu).getByRole("menuitem", { name: "Duplicate" }),
+      ).toHaveFocus(),
+    );
+    await userEvent.keyboard("{ArrowDown}");
+    expect(
+      within(menu).getByRole("menuitem", { name: "Remove from active view" }),
+    ).toHaveFocus();
+    await userEvent.keyboard("{End}");
+    expect(
+      within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
+    ).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      screen.queryByRole("menu", { name: "Model actions" }),
+    ).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("keeps selection-sensitive model menu items disabled without selection", async () => {
+    useUiStore.setState({ selectedNodeIds: [] });
+    render(<EditorRoute />);
+
+    expect(screen.getByRole("button", { name: "Add child" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Model actions" }));
+    const menu = screen.getByRole("menu", { name: "Model actions" });
+
+    for (const label of [
+      "Duplicate",
+      "Remove from active view",
+      "Delete from model",
+      "Copy BCM prompt",
+    ]) {
+      expect(within(menu).getByRole("menuitem", { name: label })).toBeDisabled();
+    }
   });
 
   it("clears selection when the empty canvas background is clicked", () => {
@@ -485,7 +561,8 @@ describe("editor shell", () => {
       container.querySelector(".cc-canvas .cc-node-title .cc-tree-swatch"),
     ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    await userEvent.click(screen.getByRole("button", { name: "View options" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Settings" }));
     expect(
       screen.getByRole("complementary", { name: "Settings" }),
     ).toBeInTheDocument();
@@ -1619,8 +1696,9 @@ describe("editor shell", () => {
 
   it("imports pasted JSON from a textarea dialog", async () => {
     render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
     await userEvent.click(
-      screen.getByRole("button", { name: "Import pasted JSON" }),
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
     );
     const dialog = screen.getByRole("dialog", {
       name: "Import pasted JSON",
@@ -1646,9 +1724,10 @@ describe("editor shell", () => {
     const writeText = stubClipboard();
     render(<EditorRoute />);
 
-    const promptButton = screen.getByRole("button", { name: "Prompt" });
-    expect(screen.queryByText("Prompt")).not.toBeInTheDocument();
-    await userEvent.click(promptButton);
+    await userEvent.click(screen.getByRole("button", { name: "Model actions" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Copy BCM prompt" }),
+    );
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("status")).toHaveTextContent(
@@ -1667,7 +1746,10 @@ describe("editor shell", () => {
     const writeText = stubClipboard();
     render(<EditorRoute />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Prompt" }));
+    await userEvent.click(screen.getByRole("button", { name: "Model actions" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Copy BCM prompt" }),
+    );
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     const prompt = writeText.mock.calls[0]?.[0] ?? "";
@@ -1678,8 +1760,9 @@ describe("editor shell", () => {
 
   it("imports prompt merge JSON without replacing the document", async () => {
     render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
     await userEvent.click(
-      screen.getByRole("button", { name: "Import pasted JSON" }),
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
     );
     const dialog = screen.getByRole("dialog", {
       name: "Import pasted JSON",
