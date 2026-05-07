@@ -38,6 +38,15 @@ describe("BCM prompt merge contract", () => {
     expect(prompt).toContain("The code block content must be a JSON object");
   });
 
+  it("discourages repetitive ability-based descriptions", () => {
+    const prompt = buildBcmPrompt(createSampleDocument(), "risk");
+
+    expect(prompt).toContain(
+      'Capabilities already imply ability; do not begin descriptions with "The ability to", "Ability to", or similarly repetitive boilerplate.',
+    );
+    expect(prompt).toContain("Vary description phrasing across siblings");
+  });
+
   it("reports invalid prompt merge payloads", () => {
     const parsed = parsePromptMergePayload({
       schema: PROMPT_MERGE_SCHEMA,

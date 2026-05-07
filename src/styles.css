@@ -275,6 +275,21 @@ button:disabled {
   stroke-width: 1.5;
 }
 
+.cc-toast {
+  position: fixed;
+  top: calc(var(--cc-toolbar-height) + 12px);
+  right: 16px;
+  z-index: 80;
+  padding: 8px 12px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-slate-900);
+  color: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .cc-divider {
   width: 1px;
   height: 22px;

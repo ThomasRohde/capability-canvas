@@ -15,7 +15,7 @@ import {
   X,
   ZoomIn,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   addChild,
   addRoot,
@@ -61,6 +61,9 @@ export function Toolbar() {
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteDraft, setPasteDraft] = useState("");
+  const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] =
+    useState(false);
+  const promptCopyNoticeTimeout = useRef<number | null>(null);
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
   const promptNode =
     selected.length === 1 && selected[0] ? doc.nodesById[selected[0]] : null;
@@ -73,6 +76,25 @@ export function Toolbar() {
     void openDocumentFile().then((parsed) =>
       applyImportedDocument(parsed, "Import file"),
     );
+  };
+
+  useEffect(() => {
+    return () => {
+      if (promptCopyNoticeTimeout.current !== null) {
+        window.clearTimeout(promptCopyNoticeTimeout.current);
+      }
+    };
+  }, []);
+
+  const showPromptCopyNotice = () => {
+    setPromptCopyNoticeVisible(true);
+    if (promptCopyNoticeTimeout.current !== null) {
+      window.clearTimeout(promptCopyNoticeTimeout.current);
+    }
+    promptCopyNoticeTimeout.current = window.setTimeout(() => {
+      setPromptCopyNoticeVisible(false);
+      promptCopyNoticeTimeout.current = null;
+    }, 2400);
   };
 
   const importPastedJson = () => {
@@ -113,18 +135,20 @@ export function Toolbar() {
     if (!canCopyPrompt || !promptNode) return;
     try {
       const prompt = buildBcmPrompt(doc, promptNode.id);
-      void copyTextToClipboard(prompt).catch((copyError: unknown) => {
-        setDiagnostics([
-          warning(
-            "prompt-copy-failed",
-            `Prompt could not be copied. ${
-              copyError instanceof Error
-                ? copyError.message
-                : String(copyError)
-            }`,
-          ),
-        ]);
-      });
+      void copyTextToClipboard(prompt)
+        .then(showPromptCopyNotice)
+        .catch((copyError: unknown) => {
+          setDiagnostics([
+            warning(
+              "prompt-copy-failed",
+              `Prompt could not be copied. ${
+                copyError instanceof Error
+                  ? copyError.message
+                  : String(copyError)
+              }`,
+            ),
+          ]);
+        });
     } catch (promptError) {
       setDiagnostics([
         warning(
@@ -275,15 +299,13 @@ export function Toolbar() {
         <span className={`cc-toggle ${viewDoc.heatmap.enabled ? "on" : ""}`} />
       </button>
       <span className="cc-spacer" />
-      <button
-        className="cc-btn"
-        type="button"
+      <IconButton
+        icon={WandSparkles}
+        label="Prompt"
         disabled={!canCopyPrompt}
-        title="Copy BCM prompt"
+        tooltip="Copy BCM prompt"
         onClick={copyPrompt}
-      >
-        <WandSparkles /> Prompt
-      </button>
+      />
       <IconButton
         icon={FileJson}
         label="Import pasted JSON"
@@ -342,6 +364,16 @@ export function Toolbar() {
             </button>
           </div>
         </section>
+      </div>
+    )}
+    {promptCopyNoticeVisible && (
+      <div
+        className="cc-toast"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        Prompt copied
       </div>
     )}
     </>

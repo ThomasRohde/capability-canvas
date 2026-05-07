@@ -1348,9 +1348,14 @@ describe("editor shell", () => {
     const writeText = stubClipboard();
     render(<EditorRoute />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Prompt" }));
+    const promptButton = screen.getByRole("button", { name: "Prompt" });
+    expect(screen.queryByText("Prompt")).not.toBeInTheDocument();
+    await userEvent.click(promptButton);
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Prompt copied",
+    );
     const prompt = writeText.mock.calls[0]?.[0] ?? "";
     expect(prompt).toContain(
       "create child capabilities under the selected leaf capability",
