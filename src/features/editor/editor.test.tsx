@@ -365,15 +365,15 @@ describe("editor shell", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Layout mode")).toBeInTheDocument();
     expect(screen.getByLabelText("Show grid")).toBeChecked();
-    expect(screen.getByLabelText("Grid size")).toHaveValue(16);
+    expect(screen.getByLabelText("Grid size")).toHaveValue(8);
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
     expect(screen.getByLabelText("Leaf width")).toHaveValue(175);
-    expect(screen.getByLabelText("Leaf height")).toHaveValue(50);
-    expect(
-      screen.getByRole("button", { name: "Set default leaf color mint" }),
-    ).toHaveClass("on");
+    expect(screen.getByLabelText("Leaf height")).toHaveValue(40);
     expect(
       screen.getByRole("button", { name: "Set default leaf color slate" }),
+    ).toHaveClass("on");
+    expect(
+      screen.getByRole("button", { name: "Set default leaf color mint" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Set default leaf color stone" }),
@@ -448,7 +448,7 @@ describe("editor shell", () => {
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");
     expect(canvas).not.toHaveClass("no-grid");
-    expect(canvas.style.getPropertyValue("--cc-grid-size")).toBe("16px");
+    expect(canvas.style.getPropertyValue("--cc-grid-size")).toBe("8px");
 
     await userEvent.click(
       screen.getByRole("button", { name: "Open settings" }),
@@ -979,8 +979,8 @@ describe("editor shell", () => {
       useDocumentStore.getState().doc.settings.containerLabelOffsetTop,
     ).toBe(16);
     expect(screen.getByText("New parent defaults")).toBeInTheDocument();
-    expect(screen.getByLabelText("Width")).toHaveValue(360);
-    expect(screen.getByLabelText("Height")).toHaveValue(140);
+    expect(screen.getByLabelText("Width")).toHaveValue(400);
+    expect(screen.getByLabelText("Height")).toHaveValue(144);
     expect(screen.getByLabelText("Horizontal")).toBeInTheDocument();
     await waitFor(() =>
       expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),
