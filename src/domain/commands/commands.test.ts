@@ -3,6 +3,7 @@ import {
   addChild,
   addSubtreeToCanvas,
   alignNodes,
+  deleteNodes,
   fitParentToChildren,
   lockSubtree,
   mergePromptCapabilities,
@@ -287,7 +288,20 @@ describe("commands", () => {
     ).toBe(true);
   });
 
-  it("can add and remove a subtree from the canvas without changing hierarchy", () => {
+  it("uses source-model and active-view transaction labels", () => {
+    expect(addSubtreeToCanvas("digital", { x: 0, y: 0 }).label).toBe(
+      "Add subtree to active view",
+    );
+    expect(removeSubtreeFromCanvas("digital").label).toBe(
+      "Remove subtree from active view",
+    );
+    expect(removeNodesFromCanvas(["digital"]).label).toBe(
+      "Remove from active view",
+    );
+    expect(deleteNodes(["digital"]).label).toBe("Delete from model");
+  });
+
+  it("can add and remove a subtree from the active view without changing hierarchy", () => {
     const doc = createSampleDocument();
     const hidden = runTransaction(
       doc,
@@ -314,7 +328,7 @@ describe("commands", () => {
     expect(visible.nodesById.digital!.y).toBeGreaterThan(200);
   });
 
-  it("can remove multiple selected subtrees from the canvas without deleting them", () => {
+  it("can remove multiple selected subtrees from the active view without deleting them", () => {
     const doc = createSampleDocument();
     const hidden = runTransaction(
       doc,

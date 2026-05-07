@@ -286,7 +286,7 @@ export function addSubtreeToCanvas(
   targetCenter: DocumentPoint,
 ): Transaction {
   return transaction(
-    "Add subtree to canvas",
+    "Add subtree to active view",
     [
       command("add-subtree-to-canvas", { nodeId, targetCenter }, (doc) => {
         const node = doc.nodesById[nodeId];
@@ -346,7 +346,7 @@ export function addSubtreeToCanvas(
 
 export function removeSubtreeFromCanvas(nodeId: NodeId): Transaction {
   return transaction(
-    "Remove subtree from canvas",
+    "Remove subtree from active view",
     [
       command("remove-subtree-from-canvas", { nodeId }, (doc) => {
         if (!doc.nodesById[nodeId])
@@ -385,7 +385,7 @@ export function removeSubtreeFromCanvas(nodeId: NodeId): Transaction {
 
 export function removeNodesFromCanvas(nodeIds: NodeId[]): Transaction {
   return transaction(
-    "Remove from canvas",
+    "Remove from active view",
     [
       command("remove-nodes-from-canvas", { nodeIds }, (doc) => {
         const next = cloneDocument(doc);
@@ -925,7 +925,7 @@ export function updateActiveViewLayoutSettings(
 
 export function deleteNodes(nodeIds: NodeId[]): Transaction {
   return transaction(
-    "Delete capability",
+    "Delete from model",
     [
       command("delete-nodes", { nodeIds }, (doc) => {
         const next = cloneDocument(doc);

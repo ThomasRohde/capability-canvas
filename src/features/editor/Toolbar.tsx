@@ -1,5 +1,6 @@
 import {
   Download,
+  EyeOff,
   FileJson,
   Grid3X3,
   LayoutTemplate,
@@ -19,7 +20,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   addChild,
   addRoot,
-  deleteNodes,
   duplicateNodes,
   mergePromptCapabilities,
   removeNodesFromCanvas,
@@ -39,6 +39,7 @@ import { useUiStore } from "../../app/stores/uiStore";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { openDocumentFile } from "../../app/fileSystem";
 import { IconButton } from "../shared/IconButton";
+import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { ViewSwitcher } from "../views/ViewSwitcher";
 
 export function Toolbar() {
@@ -72,6 +73,8 @@ export function Toolbar() {
   const selectedCanvasNodeIds = selected.filter((nodeId) =>
     isNodeOnCanvas(viewDoc.nodesById[nodeId]),
   );
+  const { requestDeleteFromModel, deleteFromModelDialog } =
+    useModelDeleteConfirmation(doc);
   const importDocument = () => {
     void openDocumentFile().then((parsed) =>
       applyImportedDocument(parsed, "Import file"),
@@ -220,18 +223,16 @@ export function Toolbar() {
         onClick={() => execute(duplicateNodes(selected))}
       />
       <IconButton
+        icon={EyeOff}
+        label="Remove from active view"
+        disabled={selectedCanvasNodeIds.length === 0}
+        onClick={() => execute(removeNodesFromCanvas(selectedCanvasNodeIds))}
+      />
+      <IconButton
         icon={Trash2}
-        label={
-          selectedCanvasNodeIds.length > 0 ? "Remove from canvas" : "Delete"
-        }
+        label="Delete from model"
         disabled={selected.length === 0}
-        onClick={() => {
-          if (selectedCanvasNodeIds.length > 0) {
-            execute(removeNodesFromCanvas(selectedCanvasNodeIds));
-            return;
-          }
-          execute(deleteNodes(selected));
-        }}
+        onClick={() => requestDeleteFromModel(selected)}
       />
       <span className="cc-divider" />
       <IconButton icon={Undo2} label="Undo" onClick={undo} />
@@ -376,6 +377,7 @@ export function Toolbar() {
         Prompt copied
       </div>
     )}
+    {deleteFromModelDialog}
     </>
   );
 }

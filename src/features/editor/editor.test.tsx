@@ -65,6 +65,12 @@ describe("editor shell", () => {
     expect(screen.getByText("Outline")).toBeInTheDocument();
     expect(screen.getAllByText("Inspector").length).toBeGreaterThan(0);
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove from active view" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete from model" }),
+    ).toBeInTheDocument();
   });
 
   it("imports a JSON document from the Import button", async () => {
@@ -322,7 +328,7 @@ describe("editor shell", () => {
 
     expect(
       screen.getAllByText(
-        "Current working canvas with no level filter or export framing.",
+        "Current active view with no level filter or export framing.",
       ).length,
     ).toBeGreaterThan(0);
 
@@ -767,7 +773,7 @@ describe("editor shell", () => {
     expect(screen.getByLabelText("Label")).toHaveValue("Data Management");
   });
 
-  it("removes a node from the canvas context menu without deleting it from the model", async () => {
+  it("removes a node from the active view context menu without deleting it from the model", async () => {
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");
     const dataManagement = within(canvas).getByText("Data Management");
@@ -775,8 +781,11 @@ describe("editor shell", () => {
 
     fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
     const menu = screen.getByRole("menu", { name: "Capability context menu" });
+    expect(
+      within(menu).getByRole("menuitem", { name: "Delete from model" }),
+    ).toBeInTheDocument();
     await userEvent.click(
-      within(menu).getByRole("menuitem", { name: "Remove from canvas" }),
+      within(menu).getByRole("menuitem", { name: "Remove from active view" }),
     );
 
     const doc = useDocumentStore.getState().doc;
@@ -1095,11 +1104,34 @@ describe("editor shell", () => {
     await userEvent.click(screen.getByRole("button", { name: "Export" }));
 
     expect(container.querySelector(".cc-format-card")?.tagName).toBe("DIV");
+    expect(
+      screen.getByText(
+        "Includes source model nodes, hidden active-view nodes, and all views.",
+      ),
+    ).toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: "Run validation" }),
     );
 
     expect(screen.getByText("Validation passed")).toBeInTheDocument();
+  });
+
+  it("shows source model and active-view status in the inspector", () => {
+    const { container } = render(<EditorRoute />);
+    const inspector = container.querySelector(".cc-inspector") as HTMLElement;
+
+    expect(
+      within(inspector).getByText("Source model and active view"),
+    ).toBeInTheDocument();
+    expect(within(inspector).getByText("Model path")).toBeInTheDocument();
+    expect(within(inspector).getByText("Visibility")).toBeInTheDocument();
+    expect(
+      within(inspector).getByText("Visible in active view"),
+    ).toBeInTheDocument();
+    expect(
+      within(inspector).getByText("Expanded in active view"),
+    ).toBeInTheDocument();
+    expect(within(inspector).getByText("Auto layout")).toBeInTheDocument();
   });
 
   it("renders canvas padding controls and applies layout changes", async () => {
@@ -1238,6 +1270,35 @@ describe("editor shell", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("confirms and deletes the selected source node on Shift+Delete", async () => {
+    render(<EditorRoute />);
+
+    await userEvent.keyboard("{Shift>}{Delete}{/Shift}");
+
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toBeInTheDocument();
+    expect(
+      screen.getByText(/Delete "Digital Onboarding" from the source model/),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Delete from model" }),
+    );
+
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"],
+    ).toBeUndefined();
+    expect(
+      within(screen.getByTestId("canvas")).queryByText("Digital Onboarding"),
+    ).not.toBeInTheDocument();
+
+    act(() => {
+      useDocumentStore.getState().undo();
+    });
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"],
+    ).toBeDefined();
+  });
+
   it("does not nudge the selected node when arrow keys are pressed inside an inspector field", () => {
     render(<EditorRoute />);
     const description = screen.getByLabelText("Description");
@@ -1298,7 +1359,8 @@ describe("editor shell", () => {
       "Match size to first selected",
       "Change selected color",
       "Duplicate",
-      "Remove from canvas",
+      "Remove from active view",
+      "Delete from model",
     ]) {
       expect(
         within(bulkToolbar).getByRole("button", { name: label }),
@@ -1361,7 +1423,7 @@ describe("editor shell", () => {
       within(menu).getByRole("menuitem", { name: "Fit parent" }),
     ).toBeInTheDocument();
     expect(
-      within(menu).getByRole("menuitem", { name: "Delete" }),
+      within(menu).getByRole("menuitem", { name: "Delete from model" }),
     ).toBeInTheDocument();
 
     const outlineTree = container.querySelector(
@@ -1402,7 +1464,7 @@ describe("editor shell", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("menuitem", { name: "Add subtree to canvas" }),
+      screen.getByRole("menuitem", { name: "Add subtree to active view" }),
     );
 
     await waitFor(() =>
@@ -1412,7 +1474,7 @@ describe("editor shell", () => {
     );
   });
 
-  it("removes a visible outline subtree from the canvas without deleting it", async () => {
+  it("removes a visible outline subtree from the active view without deleting it", async () => {
     render(<EditorRoute />);
     const canvas = screen.getByTestId("canvas");
     expect(within(canvas).getByText("Customer")).toBeInTheDocument();
@@ -1421,7 +1483,7 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Actions for Customer" }),
     );
     await userEvent.click(
-      screen.getByRole("menuitem", { name: "Remove subtree from canvas" }),
+      screen.getByRole("menuitem", { name: "Remove subtree from active view" }),
     );
 
     expect(screen.getByText("Customer")).toBeInTheDocument();

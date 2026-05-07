@@ -8,6 +8,7 @@ import {
   AlignVerticalJustifyStart,
   AlignVerticalSpaceBetween,
   Copy,
+  EyeOff,
   Maximize,
   Minus,
   Palette,
@@ -71,6 +72,7 @@ import {
   resolveNodeFill,
 } from "../heatmap/resolveNodeFill";
 import { IconButton } from "../shared/IconButton";
+import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import {
   createNodeViewModels,
   descendantIds,
@@ -145,6 +147,8 @@ export function Canvas({
   const contextHasSourceChildren = contextMenu
     ? (doc.childrenByParentId[contextMenu.nodeId]?.length ?? 0) > 0
     : false;
+  const { requestDeleteFromModel, deleteFromModelDialog } =
+    useModelDeleteConfirmation(doc);
 
   const commitViewport = useCallback(
     (nextViewport: ViewportState) => {
@@ -271,9 +275,15 @@ export function Canvas({
         if (event.key === "Escape") (event.target as HTMLElement).blur();
         return;
       }
+      if (event.key === "Delete" && event.shiftKey && selected.length > 0) {
+        event.preventDefault();
+        requestDeleteFromModel(selected);
+        return;
+      }
       if (event.key === "Delete" && canvasSelected.length > 0) {
         event.preventDefault();
         execute(removeNodesFromCanvas(canvasSelected));
+        return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
@@ -335,7 +345,15 @@ export function Canvas({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [canvasSelected, execute, fitView, readonly, selected, viewDoc]);
+  }, [
+    canvasSelected,
+    execute,
+    fitView,
+    readonly,
+    requestDeleteFromModel,
+    selected,
+    viewDoc,
+  ]);
 
   const zoomAround = useCallback(
     (delta: number, anchorX: number, anchorY: number) => {
@@ -859,13 +877,23 @@ export function Canvas({
           <button
             type="button"
             role="menuitem"
-            className="danger"
             onClick={() => {
               execute(removeNodesFromCanvas([contextMenu.nodeId]));
               setContextMenu(null);
             }}
           >
-            Remove from canvas
+            Remove from active view
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="danger"
+            onClick={() => {
+              requestDeleteFromModel([contextMenu.nodeId]);
+              setContextMenu(null);
+            }}
+          >
+            Delete from model
           </button>
         </div>
       )}
@@ -898,6 +926,7 @@ export function Canvas({
         onZoomOut={() => zoomBy(-0.1)}
         onCenter={centerOnDocumentPoint}
       />
+      {deleteFromModelDialog}
     </main>
   );
 }
@@ -968,6 +997,8 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const doc = useDocumentStore((state) => state.doc);
   const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
+  const { requestDeleteFromModel, deleteFromModelDialog } =
+    useModelDeleteConfirmation(doc);
   const alignAllowed = canAlign(viewDoc, selected);
   const distributeAllowed = canDistribute(viewDoc, selected);
   const sameSizeAllowed = canMultiSelect(viewDoc, selected);
@@ -1081,10 +1112,16 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onClick={() => fitTargetId && execute(fitParentToChildren(fitTargetId))}
       />
       <IconButton
-        icon={Trash2}
-        label="Remove from canvas"
+        icon={EyeOff}
+        label="Remove from active view"
         onClick={() => execute(removeNodesFromCanvas(selected))}
       />
+      <IconButton
+        icon={Trash2}
+        label="Delete from model"
+        onClick={() => requestDeleteFromModel(selected)}
+      />
+      {deleteFromModelDialog}
     </div>
   );
 }

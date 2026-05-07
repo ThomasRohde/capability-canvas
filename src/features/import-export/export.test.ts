@@ -99,7 +99,7 @@ describe('exports', () => {
     expect(xml).toContain(`y="${child.y - parent.y}"`);
   });
 
-  it('keeps JSON full-fidelity while visual exports omit hidden canvas nodes', () => {
+  it('keeps JSON full-fidelity while active-view exports omit hidden nodes', () => {
     const doc = createSampleDocument();
     doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById['digital-onboarding'] = {
       ...doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById['digital-onboarding'],
@@ -108,6 +108,7 @@ describe('exports', () => {
 
     expect(jsonExport(doc).data).toContain('digital-onboarding');
     expect(svgExport(doc).data).not.toContain('digital-onboarding');
+    expect(htmlExport(doc).data).not.toContain('digital-onboarding');
     expect(drawioExport(doc).data).not.toContain('digital-onboarding');
     expect(archimateExport(doc).data).toContain('digital-onboarding');
   });

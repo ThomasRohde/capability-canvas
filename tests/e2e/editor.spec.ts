@@ -64,3 +64,37 @@ test('viewer presentation controls do not mutate the serialized document', async
   await page.getByRole('button', { name: 'Heatmap' }).click();
   expect(await serialize()).toBe(before);
 });
+
+test('separates active-view remove from source-model delete', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const serializedContains = (nodeId: string) =>
+    page.evaluate((id) => {
+      const doc = (
+        window as Window & {
+          __ccTestSerializeDocument?: () => { nodes?: Array<{ id?: string }> };
+        }
+      ).__ccTestSerializeDocument?.();
+      return doc?.nodes?.some((node) => node.id === id) ?? false;
+    }, nodeId);
+
+  const canvas = page.getByTestId('canvas');
+  await canvas.getByText('Digital Onboarding').click();
+  await page.keyboard.press('Delete');
+
+  await expect(canvas.getByText('Digital Onboarding')).toHaveCount(0);
+  await expect(page.locator('.cc-outline').getByText('Digital Onboarding')).toBeVisible();
+  expect(await serializedContains('digital-onboarding')).toBe(true);
+
+  await page.keyboard.press('Shift+Delete');
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toContainText('Delete "Digital Onboarding" from the source model');
+  await dialog.getByRole('button', { name: 'Delete from model' }).click();
+
+  await expect(page.locator('.cc-outline').getByText('Digital Onboarding')).toHaveCount(0);
+  expect(await serializedContains('digital-onboarding')).toBe(false);
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.locator('.cc-outline').getByText('Digital Onboarding')).toBeVisible();
+  expect(await serializedContains('digital-onboarding')).toBe(true);
+});

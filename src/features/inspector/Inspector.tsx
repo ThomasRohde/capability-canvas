@@ -7,9 +7,10 @@ import {
   setManualPositioning,
   updateNode,
 } from "../../domain/commands/operations";
-import type {
-  CapabilityDocument,
-  CapabilityNode,
+import {
+  isNodeOnCanvas,
+  type CapabilityDocument,
+  type CapabilityNode,
 } from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
@@ -99,6 +100,7 @@ function Properties({
   return (
     <>
       <Breadcrumb node={node} />
+      <SourceViewStatus node={node} viewNode={viewNode} />
       <div className="cc-field">
         <label htmlFor="node-label">Label</label>
         <CommitTextInput
@@ -469,6 +471,58 @@ function Breadcrumb({ node }: { node: CapabilityNode }) {
   return (
     <div style={{ color: "var(--cc-brand-700)", fontSize: 12 }}>
       {labels.join(" > ")}
+    </div>
+  );
+}
+
+function SourceViewStatus({
+  node,
+  viewNode,
+}: {
+  node: CapabilityNode;
+  viewNode: CapabilityNode;
+}) {
+  const doc = useDocumentStore((state) => state.doc);
+  const activeView =
+    doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[node.id];
+  const sourceId =
+    typeof node.metadata.id === "string" ||
+    typeof node.metadata.id === "number"
+      ? String(node.metadata.id)
+      : null;
+  const layoutState = viewNode.isLockedAsIs
+    ? "Preserved from auto layout"
+    : viewNode.isManualPositioningEnabled
+      ? "Manual active-view layout"
+      : "Auto layout";
+
+  return (
+    <div className="cc-field">
+      <span className="cc-section-title">Source model and active view</span>
+      <dl className="cc-meta-list">
+        <FragmentRow
+          label="Model path"
+          value={capabilityPathLabels(doc, node).join(" > ")}
+        />
+        <FragmentRow
+          label="Visibility"
+          value={
+            isNodeOnCanvas(viewNode)
+              ? "Visible in active view"
+              : "Hidden in active view"
+          }
+        />
+        <FragmentRow
+          label="Collapse"
+          value={
+            activeView?.isCollapsed
+              ? "Collapsed in active view"
+              : "Expanded in active view"
+          }
+        />
+        <FragmentRow label="Layout" value={layoutState} />
+        {sourceId && <FragmentRow label="Source ID" value={sourceId} />}
+      </dl>
     </div>
   );
 }

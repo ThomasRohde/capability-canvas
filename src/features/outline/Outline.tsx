@@ -24,7 +24,6 @@ import {
   addChild,
   addRoot,
   addSubtreeToCanvas,
-  deleteNodes,
   duplicateNodes,
   fitParentToChildren,
   removeSubtreeFromCanvas,
@@ -49,6 +48,7 @@ import {
   useUiStore,
 } from "../../app/stores/uiStore";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 
 export function Outline({
   readonly = false,
@@ -72,6 +72,8 @@ export function Outline({
   const setSearchQuery = useUiStore((state) => state.setSearchQuery);
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
   const [filterToSelection, setFilterToSelection] = useState(false);
+  const { requestDeleteFromModel, deleteFromModelDialog } =
+    useModelDeleteConfirmation(doc);
 
   const rootItemId = "outline-root";
   const canvasTargetCenter = useMemo(
@@ -373,6 +375,7 @@ export function Outline({
                       canvasChildrenOf(viewDoc, node.id).length > 0
                     }
                     canvasTargetCenter={canvasTargetCenter}
+                    requestDeleteFromModel={requestDeleteFromModel}
                     onClose={() => setMenuNodeId(null)}
                   />
                 )}
@@ -405,6 +408,7 @@ export function Outline({
         onPointerDown={startOutlineResize}
         onKeyDown={resizeOutlineFromKeyboard}
       />
+      {deleteFromModelDialog}
     </aside>
   );
 }
@@ -466,6 +470,7 @@ function OutlineActionsMenu({
   isCollapsed,
   canFitParent,
   canvasTargetCenter,
+  requestDeleteFromModel,
   onClose,
 }: {
   nodeId: NodeId;
@@ -476,6 +481,7 @@ function OutlineActionsMenu({
   isCollapsed: boolean;
   canFitParent: boolean;
   canvasTargetCenter: { x: number; y: number };
+  requestDeleteFromModel: (nodeIds: NodeId[]) => void;
   onClose: () => void;
 }) {
   const execute = useDocumentStore((state) => state.execute);
@@ -514,7 +520,7 @@ function OutlineActionsMenu({
             run(() => execute(addSubtreeToCanvas(nodeId, canvasTargetCenter)))
           }
         >
-          Add subtree to canvas
+          Add subtree to active view
         </button>
       )}
       {canRemoveFromCanvas && (
@@ -523,7 +529,7 @@ function OutlineActionsMenu({
           role="menuitem"
           onClick={() => run(() => execute(removeSubtreeFromCanvas(nodeId)))}
         >
-          Remove subtree from canvas
+          Remove subtree from active view
         </button>
       )}
       <button
@@ -561,9 +567,9 @@ function OutlineActionsMenu({
         type="button"
         role="menuitem"
         className="danger"
-        onClick={() => run(() => execute(deleteNodes([nodeId])))}
+        onClick={() => run(() => requestDeleteFromModel([nodeId]))}
       >
-        Delete
+        Delete from model
       </button>
     </div>
   );

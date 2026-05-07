@@ -13,36 +13,47 @@ import { adapterFor, saveExportResult } from "../import-export";
 import type { ExportFormat } from "../import-export/types";
 import { IconButton } from "../shared/IconButton";
 
-const FORMATS: Array<{ format: ExportFormat; tab: string; desc: string }> = [
+const FORMATS: Array<{
+  format: ExportFormat;
+  tab: string;
+  desc: string;
+  scope: string;
+}> = [
   {
     format: "json",
     tab: "JSON",
-    desc: "Full fidelity model with manual layout and styling.",
+    desc: "Full-fidelity source model with all visual views.",
+    scope: "Includes source model nodes, hidden active-view nodes, and all views.",
   },
   {
     format: "svg",
     tab: "SVG",
-    desc: "Vector visual export for documents and diagrams.",
+    desc: "Vector export of the active visual view.",
+    scope: "Uses active-view visibility, layout, colors, and heatmap display.",
   },
   {
     format: "html",
     tab: "HTML",
-    desc: "Standalone browser-readable visual export.",
+    desc: "Standalone browser-readable active-view export.",
+    scope: "Uses active-view visibility, layout, colors, and heatmap display.",
   },
   {
     format: "pptx",
     tab: "PowerPoint",
-    desc: "Native PowerPoint shapes for slide decks.",
+    desc: "Native PowerPoint shapes for the active view.",
+    scope: "Uses active-view visibility, layout, colors, and heatmap display.",
   },
   {
     format: "drawio",
     tab: "Draw.io",
-    desc: "diagrams.net XML with nested containment cells.",
+    desc: "diagrams.net XML for the active view.",
+    scope: "Uses active-view visibility, layout, colors, and heatmap display.",
   },
   {
     format: "archimate",
     tab: "ArchiMate",
-    desc: "ArchiMate Open Exchange XML export.",
+    desc: "ArchiMate Open Exchange source hierarchy export.",
+    scope: "Exports the source hierarchy, including nodes hidden from the active view.",
   },
 ];
 
@@ -93,6 +104,10 @@ export function ExportDrawer() {
               <br />
               <span style={{ color: "var(--cc-slate-600)", fontSize: 11 }}>
                 {selected.desc}
+              </span>
+              <br />
+              <span style={{ color: "var(--cc-slate-500)", fontSize: 11 }}>
+                {selected.scope}
               </span>
             </span>
           </div>

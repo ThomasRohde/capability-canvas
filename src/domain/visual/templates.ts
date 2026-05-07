@@ -25,7 +25,8 @@ export const BUILT_IN_VIEW_TEMPLATES: VisualTemplateDefinition[] = [
   {
     id: "full-model-default@1",
     name: "Full model default",
-    description: "Current working canvas with no level filter or export framing.",
+    description:
+      "Current active view with no level filter or export framing.",
   },
   {
     id: "level-1-map@1",
@@ -64,7 +65,7 @@ export const BUILT_IN_VIEW_TEMPLATES: VisualTemplateDefinition[] = [
     id: "presentation-slide@1",
     name: "Presentation slide",
     description:
-      "Current working canvas with 16:9 slide export settings.",
+      "Current active view with 16:9 slide export settings.",
   },
 ];
 
