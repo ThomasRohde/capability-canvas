@@ -1,5 +1,6 @@
 import {
   fireEvent,
+  act,
   render,
   screen,
   waitFor,
@@ -12,10 +13,14 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { DEFAULT_OUTLINE_WIDTH, useUiStore } from "../../app/stores/uiStore";
 import {
   lockSubtree,
+  createVisualView,
   reparentNode,
   runTransaction,
 } from "../../domain/commands/operations";
-import { stringifyDocument } from "../../domain/document/serialize";
+import {
+  serializeDocument,
+  stringifyDocument,
+} from "../../domain/document/serialize";
 import { childrenOf } from "../../domain/document/types";
 import {
   PROMPT_MERGE_SCHEMA,
@@ -1430,6 +1435,62 @@ describe("editor shell", () => {
     expect(
       screen.queryByRole("button", { name: "Actions for Customer" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps viewer fit and heatmap controls non-mutating", async () => {
+    render(<ViewerRoute />);
+    const before = stringifyDocument(useDocumentStore.getState().doc);
+
+    await userEvent.click(screen.getByRole("button", { name: "Fit" }));
+    expect(stringifyDocument(useDocumentStore.getState().doc)).toBe(before);
+
+    await userEvent.click(screen.getByRole("button", { name: "Heatmap" }));
+    expect(stringifyDocument(useDocumentStore.getState().doc)).toBe(before);
+    expect(within(screen.getByTestId("canvas")).getByText("0.72")).toHaveClass(
+      "leaf-score",
+    );
+  });
+
+  it("switches viewer visual views without mutating the stored document", async () => {
+    useDocumentStore
+      .getState()
+      .execute(createVisualView({ name: "Second view" }));
+    const before = JSON.stringify(
+      serializeDocument(useDocumentStore.getState().doc),
+    );
+
+    render(<ViewerRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Switch visual view" }),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: /Default view/ }));
+
+    expect(
+      JSON.stringify(serializeDocument(useDocumentStore.getState().doc)),
+    ).toBe(before);
+  });
+
+  it("shows save status from the document store", () => {
+    render(<EditorRoute />);
+    expect(screen.getByText("No local changes")).toBeInTheDocument();
+
+    act(() => {
+      useDocumentStore
+        .getState()
+        .setActiveViewViewport({ x: 8, y: 16, zoom: 1.1 });
+    });
+    expect(screen.getByText("Unsaved local changes")).toBeInTheDocument();
+
+    const revision = useDocumentStore.getState().revision;
+    act(() => {
+      useDocumentStore.getState().markSaveStarted(revision);
+    });
+    expect(screen.getByText("Saving locally...")).toBeInTheDocument();
+
+    act(() => {
+      useDocumentStore.getState().markSaveSucceeded(revision);
+    });
+    expect(screen.getByText("Saved locally just now")).toBeInTheDocument();
   });
 
   it("collapses and restores viewer side panels", async () => {

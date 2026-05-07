@@ -5,10 +5,21 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
+import type { VisualViewId } from "../../domain/document/types";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 
-export function ViewSwitcher({ readonly = false }: { readonly?: boolean }) {
+interface ViewSwitcherProps {
+  readonly?: boolean;
+  activeViewId?: VisualViewId;
+  onReadonlyViewChange?: (viewId: VisualViewId) => void;
+}
+
+export function ViewSwitcher({
+  readonly = false,
+  activeViewId,
+  onReadonlyViewChange,
+}: ViewSwitcherProps) {
   const doc = useDocumentStore((state) => state.doc);
   const setActiveVisualView = useDocumentStore(
     (state) => state.setActiveVisualView,
@@ -21,7 +32,8 @@ export function ViewSwitcher({ readonly = false }: { readonly?: boolean }) {
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const activeView = doc.visual.viewsById[doc.visual.activeViewId];
+  const effectiveActiveViewId = activeViewId ?? doc.visual.activeViewId;
+  const activeView = doc.visual.viewsById[effectiveActiveViewId];
   const orderedViews = doc.visual.viewOrder
     .map((viewId) => doc.visual.viewsById[viewId])
     .filter(Boolean);
@@ -48,6 +60,15 @@ export function ViewSwitcher({ readonly = false }: { readonly?: boolean }) {
   }, [open]);
 
   const switchToView = (viewId: string) => {
+    if (readonly && onReadonlyViewChange) {
+      onReadonlyViewChange(viewId);
+      setOpen(false);
+      return;
+    }
+    if (readonly) {
+      setOpen(false);
+      return;
+    }
     setActiveVisualView(viewId, { previousViewport: viewport });
     const nextDoc = useDocumentStore.getState().doc;
     const nextView = nextDoc.visual.viewsById[viewId];
@@ -86,9 +107,9 @@ export function ViewSwitcher({ readonly = false }: { readonly?: boolean }) {
               type="button"
               role="menuitem"
               aria-current={
-                view.id === doc.visual.activeViewId ? "true" : undefined
+                view.id === effectiveActiveViewId ? "true" : undefined
               }
-              className={view.id === doc.visual.activeViewId ? "on" : ""}
+              className={view.id === effectiveActiveViewId ? "on" : ""}
               onClick={() => switchToView(view.id)}
             >
               <span>{view.name}</span>

@@ -50,8 +50,15 @@ import {
 } from "../../app/stores/uiStore";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
-export function Outline({ readonly = false }: { readonly?: boolean }) {
-  const doc = useDocumentStore((state) => state.doc);
+export function Outline({
+  readonly = false,
+  displayDoc,
+}: {
+  readonly?: boolean;
+  displayDoc?: CapabilityDocument;
+}) {
+  const storeDoc = useDocumentStore((state) => state.doc);
+  const doc = displayDoc ?? storeDoc;
   const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
   const selected = useUiStore((state) => state.selectedNodeIds);

@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { parseDocumentJson } from "../domain/document/parse";
+import { serializeDocument } from "../domain/document/serialize";
+import type { WireDocument } from "../domain/document/types";
 import { findParentContainmentViolations } from "../domain/layout/containment";
 import { resolveVisualDocument } from "../domain/visual/workspace";
 import { EditorRoute } from "../features/editor/EditorRoute";
@@ -11,6 +13,14 @@ import { useDocumentStore } from "./stores/documentStore";
 export function App() {
   const isViewer = useMemo(() => currentRoutePath().startsWith("/viewer"), []);
   useAutosave(!isViewer);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    window.__ccTestSerializeDocument = () =>
+      serializeDocument(useDocumentStore.getState().doc);
+    return () => {
+      delete window.__ccTestSerializeDocument;
+    };
+  }, []);
   useEffect(() => {
     if (isViewer) return;
     useDocumentStore.getState().repairContainment();
@@ -36,6 +46,12 @@ export function App() {
     applyImportedDocument(parsed, "Import from viewer");
   }, [isViewer]);
   return isViewer ? <ViewerRoute /> : <EditorRoute />;
+}
+
+declare global {
+  interface Window {
+    __ccTestSerializeDocument?: () => WireDocument;
+  }
 }
 
 function currentRoutePath() {

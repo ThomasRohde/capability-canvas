@@ -44,3 +44,23 @@ test('loads viewer route read-only', async ({ page }) => {
   await expect(page.getByText('Read-only').first()).toBeVisible();
   await expect(page.getByTestId('canvas')).toBeVisible();
 });
+
+test('viewer presentation controls do not mutate the serialized document', async ({ page }) => {
+  await page.goto('/viewer', { waitUntil: 'domcontentloaded' });
+  const serialize = () =>
+    page.evaluate(() =>
+      JSON.stringify(
+        (
+          window as Window & {
+            __ccTestSerializeDocument?: () => unknown;
+          }
+        ).__ccTestSerializeDocument?.(),
+      ),
+    );
+
+  const before = await serialize();
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  expect(await serialize()).toBe(before);
+  await page.getByRole('button', { name: 'Heatmap' }).click();
+  expect(await serialize()).toBe(before);
+});

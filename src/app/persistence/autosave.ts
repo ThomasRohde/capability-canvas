@@ -10,7 +10,7 @@ export function useAutosave(enabled = true): void {
     void loadActiveDocument().then((doc) => {
       const store = useDocumentStore.getState();
       if (!disposed && doc && !store.dirty) {
-        store.setDocument(doc, 'Restore saved document');
+        store.hydrateDocument(doc);
       }
     });
     return () => {
@@ -22,12 +22,24 @@ export function useAutosave(enabled = true): void {
     if (!enabled) return undefined;
     let timer: number | undefined;
     const scheduleSave = () => {
-      if (!useDocumentStore.getState().dirty) return;
+      const scheduledState = useDocumentStore.getState();
+      if (!scheduledState.dirty || scheduledState.saveStatus === "saving")
+        return;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        if (!useDocumentStore.getState().dirty) return;
+        const state = useDocumentStore.getState();
+        if (!state.dirty || state.saveStatus === "saving") return;
         if (!useTransientStore.getState().isIdle) return;
-        void saveActiveDocument(useDocumentStore.getState().doc);
+        const revision = state.revision;
+        const doc = state.doc;
+        state.markSaveStarted(revision);
+        void saveActiveDocument(doc)
+          .then(() =>
+            useDocumentStore.getState().markSaveSucceeded(revision),
+          )
+          .catch((error: unknown) =>
+            useDocumentStore.getState().markSaveFailed(revision, error),
+          );
       }, 500);
     };
     const unsubscribeDocument = useDocumentStore.subscribe(scheduleSave);

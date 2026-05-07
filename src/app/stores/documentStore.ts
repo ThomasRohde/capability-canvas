@@ -30,7 +30,13 @@ import {
   computeDocumentBounds,
   layoutDocument,
 } from "../../domain/layout/engine";
-import { warning, type Diagnostic } from "../../domain/validation/diagnostics";
+import {
+  error as diagnosticError,
+  warning,
+  type Diagnostic,
+} from "../../domain/validation/diagnostics";
+
+export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
 interface DocumentState {
   doc: CapabilityDocument;
@@ -38,6 +44,12 @@ interface DocumentState {
   future: HistoryEntry[];
   lastDiagnostics: Diagnostic[];
   dirty: boolean;
+  saveStatus: SaveStatus;
+  lastSavedAt?: number;
+  lastSaveError?: string;
+  dirtySince?: number;
+  lastRestoredAt?: number;
+  revision: number;
   isAutoLayoutRunning: boolean;
   execute: (txn: Transaction) => Diagnostic[];
   setActiveVisualView: (
@@ -52,6 +64,13 @@ interface DocumentState {
     label?: string,
     diagnostics?: Diagnostic[],
   ) => void;
+  hydrateDocument: (
+    doc: CapabilityDocument,
+    diagnostics?: Diagnostic[],
+  ) => void;
+  markSaveStarted: (revision: number) => void;
+  markSaveSucceeded: (revision: number) => void;
+  markSaveFailed: (revision: number, error: unknown) => void;
   setDiagnostics: (diagnostics: Diagnostic[]) => void;
   reset: () => void;
   autoLayout: (force?: boolean) => Promise<Diagnostic[]>;
@@ -69,18 +88,25 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   future: [],
   lastDiagnostics: [],
   dirty: false,
+  saveStatus: "idle",
+  lastSavedAt: undefined,
+  lastSaveError: undefined,
+  dirtySince: undefined,
+  lastRestoredAt: undefined,
+  revision: 0,
   isAutoLayoutRunning: false,
   execute: (txn) => {
     const before = get().doc;
     const result = runStoreTransaction(before, txn);
     const committed = result.doc !== before;
+    const state = get();
     set({
       doc: result.doc,
       lastDiagnostics: result.diagnostics,
-      dirty: committed || get().dirty,
+      ...(committed ? markDirty(state) : {}),
       past: committed
         ? [
-            ...get().past,
+            ...state.past,
             {
               label: txn.label,
               before: cloneDocument(before),
@@ -94,8 +120,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
                 : undefined,
             },
           ]
-        : get().past,
-      future: committed ? [] : get().future,
+        : state.past,
+      future: committed ? [] : state.future,
     });
     if (committed && txn.meta?.relayout) {
       void runRelayout({
@@ -161,9 +187,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       visual,
       timestamp: Date.now(),
     });
+    const state = get();
     set({
       doc: next,
-      dirty: true,
+      ...markDirty(state),
       lastDiagnostics: [],
     });
     return [];
@@ -172,7 +199,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const before = get().doc;
     const next = updateActiveViewViewport(before, viewport);
     if (next === before) return;
-    set({ doc: next, dirty: true });
+    set({ doc: next, ...markDirty(get()) });
   },
   undo: () => {
     const past = get().past;
@@ -182,7 +209,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       doc: cloneDocument(entry.before),
       past: past.slice(0, -1),
       future: [entry, ...get().future],
-      dirty: true,
+      ...markDirty(get()),
       lastDiagnostics: [],
     });
   },
@@ -194,7 +221,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       doc: after,
       past: [...get().past, entry],
       future: get().future.slice(1),
-      dirty: true,
+      ...markDirty(get()),
       lastDiagnostics: [],
     });
     if (entry.relayout) {
@@ -215,10 +242,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const repaired = ensureLayoutBounds(
       materializeActiveViewMetadata(ensureParentContainment(doc).doc),
     );
+    const state = get();
     set({
       doc: repaired,
       past: [
-        ...get().past,
+        ...state.past,
         {
           label,
           before: cloneDocument(before),
@@ -226,8 +254,61 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         },
       ],
       future: [],
-      dirty: true,
+      ...markDirty(state),
       lastDiagnostics: diagnostics,
+    });
+  },
+  hydrateDocument: (doc, diagnostics = []) => {
+    const hydrated = ensureLayoutBounds(
+      materializeActiveViewMetadata(ensureParentContainment(doc).doc),
+    );
+    set({
+      doc: hydrated,
+      past: [],
+      future: [],
+      dirty: false,
+      saveStatus: "idle",
+      lastSaveError: undefined,
+      dirtySince: undefined,
+      lastRestoredAt: Date.now(),
+      revision: get().revision + 1,
+      lastDiagnostics: diagnostics,
+      isAutoLayoutRunning: false,
+    });
+  },
+  markSaveStarted: (revision) => {
+    const state = get();
+    if (!state.dirty || state.revision !== revision) return;
+    set({
+      saveStatus: "saving",
+      lastSaveError: undefined,
+    });
+  },
+  markSaveSucceeded: (revision) => {
+    const state = get();
+    if (state.revision !== revision) return;
+    set({
+      dirty: false,
+      saveStatus: "saved",
+      lastSavedAt: Date.now(),
+      lastSaveError: undefined,
+      dirtySince: undefined,
+    });
+  },
+  markSaveFailed: (revision, error) => {
+    const state = get();
+    if (state.revision !== revision) return;
+    const message = error instanceof Error ? error.message : String(error);
+    set({
+      dirty: true,
+      saveStatus: "error",
+      lastSaveError: message,
+      lastDiagnostics: mergeDiagnostics(state.lastDiagnostics, [
+        diagnosticError(
+          "save-failed",
+          `Local save failed. ${message}`,
+        ),
+      ]),
     });
   },
   setDiagnostics: (diagnostics) => set({ lastDiagnostics: diagnostics }),
@@ -237,6 +318,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       past: [],
       future: [],
       dirty: false,
+      saveStatus: "idle",
+      lastSavedAt: undefined,
+      lastSaveError: undefined,
+      dirtySince: undefined,
+      lastRestoredAt: undefined,
+      revision: get().revision + 1,
       lastDiagnostics: [],
       isAutoLayoutRunning: false,
     }),
@@ -271,7 +358,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
                 },
               ],
         future: result.doc === before ? get().future : [],
-        dirty: result.doc === before ? get().dirty : true,
+        ...(result.doc === before ? {} : markDirty(get())),
         lastDiagnostics: result.diagnostics,
         isAutoLayoutRunning: false,
       });
@@ -297,7 +384,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({
         doc: settingsResult.doc,
         lastDiagnostics: settingsResult.diagnostics,
-        dirty: settingsResult.doc !== before || get().dirty,
+        ...(settingsResult.doc === before ? {} : markDirty(get())),
         past:
           settingsResult.doc === before
             ? get().past
@@ -317,7 +404,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const withSettings = settingsResult.doc;
     set({
       doc: withSettings,
-      dirty: true,
+      ...markDirty(get()),
       lastDiagnostics: settingsResult.diagnostics,
       isAutoLayoutRunning: true,
     });
@@ -351,7 +438,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           },
         ],
         future: [],
-        dirty: true,
+        ...markDirty(get()),
         lastDiagnostics: diagnostics,
         isAutoLayoutRunning: false,
       });
@@ -397,7 +484,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         },
       ],
       future: [],
-      dirty: true,
+      ...markDirty(get()),
       lastDiagnostics: [
         ...get().lastDiagnostics,
         warning(
@@ -409,6 +496,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
   clearDiagnostics: () => set({ lastDiagnostics: [] }),
 }));
+
+function markDirty(state: DocumentState): Pick<
+  DocumentState,
+  "dirty" | "saveStatus" | "dirtySince" | "lastSaveError" | "revision"
+> {
+  return {
+    dirty: true,
+    saveStatus: "dirty",
+    dirtySince: state.dirtySince ?? Date.now(),
+    lastSaveError: undefined,
+    revision: state.revision + 1,
+  };
+}
 
 const VISUAL_COMMAND_TYPES = new Set([
   "add-subtree-to-canvas",
@@ -505,13 +605,14 @@ async function runRelayout(args: {
           relayout: { scope, force, viewId },
         };
 
+    const state = get();
     set({
       doc: result.doc,
       past: last ? [...past.slice(0, -1), replacement] : [...past, replacement],
       future: [],
-      dirty: true,
+      ...markDirty(state),
       lastDiagnostics: mergeDiagnostics(
-        get().lastDiagnostics,
+        state.lastDiagnostics,
         result.diagnostics,
       ),
     });

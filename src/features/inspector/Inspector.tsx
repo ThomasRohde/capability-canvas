@@ -17,8 +17,15 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 
-export function Inspector({ readonly = false }: { readonly?: boolean }) {
-  const doc = useDocumentStore((state) => state.doc);
+export function Inspector({
+  readonly = false,
+  displayDoc,
+}: {
+  readonly?: boolean;
+  displayDoc?: CapabilityDocument;
+}) {
+  const storeDoc = useDocumentStore((state) => state.doc);
+  const doc = displayDoc ?? storeDoc;
   const viewDoc = resolveVisualDocument(doc);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);

@@ -63,7 +63,7 @@ import {
 } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
-import { useUiStore } from "../../app/stores/uiStore";
+import { type ViewportState, useUiStore } from "../../app/stores/uiStore";
 import {
   CAPABILITY_COLORS,
   CATEGORY_STYLES,
@@ -82,8 +82,19 @@ const MAX_ZOOM = 2.5;
 const MIN_NODE_WIDTH = 40;
 const MIN_NODE_HEIGHT = 32;
 
-export function Canvas({ readonly = false }: { readonly?: boolean }) {
-  const doc = useDocumentStore((state) => state.doc);
+interface CanvasProps {
+  readonly?: boolean;
+  displayDoc?: CapabilityDocument;
+  onViewportChange?: (viewport: ViewportState) => void;
+}
+
+export function Canvas({
+  readonly = false,
+  displayDoc,
+  onViewportChange,
+}: CanvasProps) {
+  const storeDoc = useDocumentStore((state) => state.doc);
+  const doc = displayDoc ?? storeDoc;
   const execute = useDocumentStore((state) => state.execute);
   const setActiveViewViewport = useDocumentStore(
     (state) => state.setActiveViewViewport,
@@ -134,6 +145,17 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
   const contextHasSourceChildren = contextMenu
     ? (doc.childrenByParentId[contextMenu.nodeId]?.length ?? 0) > 0
     : false;
+
+  const commitViewport = useCallback(
+    (nextViewport: ViewportState) => {
+      if (onViewportChange) {
+        onViewportChange(nextViewport);
+        return;
+      }
+      if (!readonly) setActiveViewViewport(nextViewport);
+    },
+    [onViewportChange, readonly, setActiveViewViewport],
+  );
 
   useEffect(() => {
     const element = canvasRef.current;
@@ -239,8 +261,8 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
     );
     const nextViewport = { zoom, x: 40 - bounds.x * zoom, y: 40 - bounds.y * zoom };
     setViewport(nextViewport);
-    setActiveViewViewport(nextViewport);
-  }, [setActiveViewViewport, setViewport, size.h, size.w, viewDoc.layout.boundingBox]);
+    commitViewport(nextViewport);
+  }, [commitViewport, setViewport, size.h, size.w, viewDoc.layout.boundingBox]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -330,9 +352,9 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         y: anchorY - docAnchorY * nextZoom,
       };
       setViewport(nextViewport);
-      setActiveViewViewport(nextViewport);
+      commitViewport(nextViewport);
     },
-    [setActiveViewViewport, setViewport, viewport],
+    [commitViewport, setViewport, viewport],
   );
 
   const zoomBy = (delta: number) => {
@@ -360,7 +382,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
       y: size.h / 2 - y * viewport.zoom,
     };
     setViewport(nextViewport);
-    setActiveViewViewport(nextViewport);
+    commitViewport(nextViewport);
   };
 
   const startMarquee = (event: ReactPointerEvent<HTMLElement>) => {
@@ -434,14 +456,10 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         setContextMenu(null);
         if (!isCanvasBackgroundTarget(event.target, event.currentTarget))
           return;
-        if (readonly) {
-          clearSelection();
-          return;
-        }
         const isMiddleMouse = event.button === 1;
         const wantsMarquee =
           !isMiddleMouse && (event.shiftKey || event.ctrlKey || event.metaKey);
-        if (wantsMarquee) {
+        if (!readonly && wantsMarquee) {
           startMarquee(event);
           return;
         }
@@ -464,9 +482,7 @@ export function Canvas({ readonly = false }: { readonly?: boolean }) {
         };
         const onUp = () => {
           if (!didMove && event.button === 0) clearSelection();
-          else {
-            setActiveViewViewport(useUiStore.getState().viewport);
-          }
+          else commitViewport(useUiStore.getState().viewport);
           window.removeEventListener("pointermove", onMove);
           window.removeEventListener("pointerup", onUp);
           window.removeEventListener("pointercancel", onUp);

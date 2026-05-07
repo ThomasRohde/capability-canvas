@@ -17,6 +17,9 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   const doc = useDocumentStore((state) => state.doc);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const diagnostics = useDocumentStore((state) => state.lastDiagnostics);
+  const saveStatus = useDocumentStore((state) => state.saveStatus);
+  const lastSaveError = useDocumentStore((state) => state.lastSaveError);
+  const lastRestoredAt = useDocumentStore((state) => state.lastRestoredAt);
   const clearDiagnostics = useDocumentStore((state) => state.clearDiagnostics);
   const outlineOpen = useUiStore((state) => state.outlineOpen);
   const inspectorOpen = useUiStore((state) => state.inspectorOpen);
@@ -38,15 +41,18 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
     : inspectorOpen
       ? "Hide inspector"
       : "Show inspector";
+  const saveText = readonly
+    ? { primary: "Read-only view", secondary: "Read-only" }
+    : statusText(saveStatus, lastSaveError, lastRestoredAt);
 
   return (
     <footer className="cc-status">
       <span className="cc-dot" />
       <span className="cc-version">v{APP_VERSION}</span>
       <span className="cc-divider" style={{ height: 14 }} />
-      <span>{readonly ? "Read-only view" : "Local autosaved"}</span>
+      <span>{saveText.primary}</span>
       <span className="cc-divider" style={{ height: 14 }} />
-      <span>{readonly ? "Read-only" : "All changes saved locally"}</span>
+      <span>{saveText.secondary}</span>
       {diagnostics.length > 0 && (
         <>
           <span className="cc-divider" style={{ height: 14 }} />
@@ -141,4 +147,45 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       )}
     </footer>
   );
+}
+
+function statusText(
+  saveStatus: ReturnType<typeof useDocumentStore.getState>["saveStatus"],
+  lastSaveError: string | undefined,
+  lastRestoredAt: number | undefined,
+) {
+  if (saveStatus === "dirty") {
+    return {
+      primary: "Unsaved local changes",
+      secondary: "Waiting to save locally",
+    };
+  }
+  if (saveStatus === "saving") {
+    return {
+      primary: "Saving locally...",
+      secondary: "Local draft pending",
+    };
+  }
+  if (saveStatus === "saved") {
+    return {
+      primary: "Saved locally just now",
+      secondary: "Local draft saved",
+    };
+  }
+  if (saveStatus === "error") {
+    return {
+      primary: "Save failed",
+      secondary: lastSaveError ?? "Local save failed",
+    };
+  }
+  if (lastRestoredAt) {
+    return {
+      primary: "Restored local draft",
+      secondary: "No local changes",
+    };
+  }
+  return {
+    primary: "No local changes",
+    secondary: "Local draft idle",
+  };
 }
