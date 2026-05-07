@@ -89,55 +89,149 @@ export function parseDocument(input: unknown): ParseResult {
   return finalizeDocument(doc, diagnostics);
 }
 
+const EXTERNAL_ID_KEYS = [
+  'id',
+  'nodeid',
+  'capabilityid',
+  'capabilitykey',
+  'uuid',
+  'uid',
+  'key',
+  'identifier',
+  'code',
+  'slug',
+];
+const EXTERNAL_NAME_KEYS = [
+  'name',
+  'label',
+  'title',
+  'displayname',
+  'displaylabel',
+  'capabilityname',
+  'text',
+];
+const EXTERNAL_DESCRIPTION_KEYS = [
+  'description',
+  'desc',
+  'summary',
+  'details',
+  'documentation',
+  'notes',
+  'comment',
+];
+const EXTERNAL_PARENT_KEYS = [
+  'parentid',
+  'parent',
+  'parentkey',
+  'parentslug',
+  'parentcode',
+  'parentuuid',
+  'parentidentifier',
+  'parentcapabilityid',
+];
+const EXTERNAL_CHILD_KEYS = [
+  'children',
+  'childre',
+  'childnodes',
+  'childcapabilities',
+  'subcapabilities',
+  'items',
+  'nodes',
+];
+const EXTERNAL_COLLECTION_KEYS = [
+  'nodes',
+  'items',
+  'capabilities',
+  'records',
+  'data',
+];
+const EXTERNAL_ROOT_KEYS = ['root', 'model'];
+const EXTERNAL_SEMANTIC_KEYS = new Set([
+  ...EXTERNAL_ID_KEYS,
+  ...EXTERNAL_NAME_KEYS,
+  ...EXTERNAL_DESCRIPTION_KEYS,
+  ...EXTERNAL_PARENT_KEYS,
+  ...EXTERNAL_CHILD_KEYS,
+]);
+
+interface ExternalHierarchySource {
+  nodes: ExternalNodeInput[];
+  title?: string;
+  importFormat: 'capability-list' | 'external-json-hierarchy';
+  diagnosticCode: string;
+  diagnosticMessage: string;
+}
+
+interface ExternalNodeInput {
+  record: Record<string, unknown>;
+  rawId: string | null;
+  aliases: string[];
+  label: string | null;
+  description: string | null;
+  parentRefs: string[];
+  hasParentField: boolean;
+  hasChildren: boolean;
+  inferredParentIndex: number | null;
+}
+
 function parseCapabilityList(input: unknown): ParseResult | null {
-  if (!Array.isArray(input)) return null;
-  if (input.length === 0) return null;
-  const items = input.filter(isCapabilityListItem);
-  if (items.length !== input.length) return null;
-  if (!items.some((item) => 'parent' in item || 'parentId' in item)) {
-    return null;
-  }
+  const source = collectExternalHierarchy(input);
+  if (!source) return null;
 
   const diagnostics: Diagnostic[] = [
-    warning(
-      'external-capability-list-imported',
-      'Imported a capability list JSON array and converted it to a Capability Canvas document.',
-    ),
+    warning(source.diagnosticCode, source.diagnosticMessage),
   ];
-  const firstRoot = items.find((item) => parentReference(item) === null);
-  const doc = createEmptyDocument(
-    stringValue(firstRoot?.name) ?? stringValue(items[0]?.name) ?? 'Imported capability model',
-  );
+  const doc = createEmptyDocument(externalDocumentTitle(source));
   doc.layout = {
     ...doc.layout,
     isUserArranged: false,
     preservePositions: false,
   };
 
-  const idByOriginal = new Map<string, NodeId>();
+  const idByAlias = new Map<string, NodeId>();
   const idsByIndex: NodeId[] = [];
   const usedIds = new Set<NodeId>();
-  for (const [index, item] of items.entries()) {
-    const rawId = stringValue(item.id) ?? `imported-${index + 1}`;
-    const id = uniqueId(rawId, usedIds);
+  for (const [index, item] of source.nodes.entries()) {
+    const fallbackId =
+      item.rawId ??
+      slugFromLabel(item.label) ??
+      `imported-${index + 1}`;
+    const id = uniqueId(fallbackId, usedIds);
     idsByIndex[index] = id;
     usedIds.add(id);
-    if (!idByOriginal.has(rawId)) idByOriginal.set(rawId, id);
-    if (id !== rawId) {
+
+    for (const alias of uniqueStrings([
+      fallbackId,
+      ...item.aliases,
+      item.label,
+    ])) {
+      if (!idByAlias.has(alias)) idByAlias.set(alias, id);
+    }
+    if (id !== fallbackId) {
       diagnostics.push(
         warning(
           'duplicate-id-repaired',
-          `Duplicate id ${rawId} was renamed to ${id}.`,
+          `Duplicate id ${fallbackId} was renamed to ${id}.`,
           id,
         ),
       );
     }
   }
 
-  for (const [index, item] of items.entries()) {
+  for (const [index, item] of source.nodes.entries()) {
     const id = idsByIndex[index] ?? `imported-${index + 1}`;
-    const rawParent = parentReference(item);
-    let parentId = rawParent ? idByOriginal.get(rawParent) ?? null : null;
+    const rawParent =
+      item.inferredParentIndex !== null
+        ? null
+        : item.parentRefs.find((ref) => idByAlias.has(ref)) ??
+          item.parentRefs[0] ??
+          null;
+    let parentId =
+      item.inferredParentIndex !== null
+        ? idsByIndex[item.inferredParentIndex] ?? null
+        : rawParent
+          ? idByAlias.get(rawParent) ?? null
+          : null;
     if (rawParent && !parentId) {
       diagnostics.push(
         warning(
@@ -160,12 +254,12 @@ function parseCapabilityList(input: unknown): ParseResult | null {
 
     doc.nodesById[id] = createNode({
       id,
-      label: stringValue(item.name) ?? stringValue(item.label) ?? id,
+      label: item.label ?? id,
       parentId,
       type: parentId ? 'leaf' : 'root',
-      description: stringValue(item.description) ?? undefined,
+      description: item.description ?? undefined,
       color: nextColor(0),
-      metadata: externalMetadata(item),
+      metadata: externalMetadata(item.record, source.importFormat),
       isOnCanvas: false,
       x: DEFAULT_SETTINGS.containerPaddingLeft,
       y:
@@ -298,39 +392,307 @@ function colorForImportedNode(
   return color ?? nextColor(0);
 }
 
+function collectExternalHierarchy(input: unknown): ExternalHierarchySource | null {
+  if (Array.isArray(input)) {
+    const nodes = collectExternalNodeArray(input, null);
+    if (!isExternalSourceUseful(nodes, 'array')) return null;
+    return {
+      nodes,
+      importFormat: hasLegacyCapabilityListShape(nodes)
+        ? 'capability-list'
+        : 'external-json-hierarchy',
+      diagnosticCode: hasLegacyCapabilityListShape(nodes)
+        ? 'external-capability-list-imported'
+        : 'external-json-hierarchy-imported',
+      diagnosticMessage: hasLegacyCapabilityListShape(nodes)
+        ? 'Imported a capability list JSON array and converted it to a Capability Canvas document.'
+        : 'Imported a schema-less JSON hierarchy and converted it to a Capability Canvas document.',
+    };
+  }
+
+  if (!isRecord(input)) return null;
+  if (typeof input.schema === 'string') return null;
+
+  const wrapperTitle = valueForKeyCandidates(input, EXTERNAL_NAME_KEYS);
+  const root = valueForKeyCandidates(input, EXTERNAL_ROOT_KEYS);
+  if (isRecord(root)) {
+    const nodes = collectExternalNodeRecord(root, null);
+    if (nodes.length > 0) {
+      return externalHierarchySource(
+        nodes,
+        scalarString(wrapperTitle) ?? undefined,
+      );
+    }
+  }
+
+  if (looksLikeExternalNode(input)) {
+    const nodes = collectExternalNodeRecord(input, null);
+    if (isExternalSourceUseful(nodes, 'self')) {
+      return externalHierarchySource(
+        nodes,
+        scalarString(wrapperTitle) ?? undefined,
+      );
+    }
+  }
+
+  const collection = valueForKeyCandidates(input, EXTERNAL_COLLECTION_KEYS);
+  if (Array.isArray(collection)) {
+    const nodes = collectExternalNodeArray(collection, null);
+    if (nodes.length > 0) {
+      return externalHierarchySource(
+        nodes,
+        scalarString(wrapperTitle) ?? undefined,
+      );
+    }
+  }
+
+  return null;
+}
+
+function externalHierarchySource(
+  nodes: ExternalNodeInput[],
+  title?: string,
+): ExternalHierarchySource {
+  return {
+    nodes,
+    title,
+    importFormat: 'external-json-hierarchy',
+    diagnosticCode: 'external-json-hierarchy-imported',
+    diagnosticMessage:
+      'Imported a schema-less JSON hierarchy and converted it to a Capability Canvas document.',
+  };
+}
+
+function collectExternalNodeArray(
+  values: unknown[],
+  parentIndex: number | null,
+): ExternalNodeInput[] {
+  const nodes: ExternalNodeInput[] = [];
+  for (const value of values) {
+    if (!isRecord(value)) continue;
+    collectExternalNodeRecordInto(value, parentIndex, nodes);
+  }
+  return nodes;
+}
+
+function collectExternalNodeRecord(
+  record: Record<string, unknown>,
+  parentIndex: number | null,
+): ExternalNodeInput[] {
+  const nodes: ExternalNodeInput[] = [];
+  collectExternalNodeRecordInto(record, parentIndex, nodes);
+  return nodes;
+}
+
+function collectExternalNodeRecordInto(
+  record: Record<string, unknown>,
+  parentIndex: number | null,
+  nodes: ExternalNodeInput[],
+): void {
+  const childValues = childRecordValues(record);
+  let nextParentIndex = parentIndex;
+  if (looksLikeExternalNode(record)) {
+    nextParentIndex = nodes.length;
+    nodes.push({
+      record,
+      rawId: valueForKeyCandidatesAsString(record, EXTERNAL_ID_KEYS),
+      aliases: externalAliases(record),
+      label: valueForKeyCandidatesAsString(record, EXTERNAL_NAME_KEYS),
+      description: valueForKeyCandidatesAsString(
+        record,
+        EXTERNAL_DESCRIPTION_KEYS,
+      ),
+      parentRefs: parentReferences(record),
+      hasParentField: hasKeyCandidate(record, EXTERNAL_PARENT_KEYS),
+      hasChildren: childValues.length > 0,
+      inferredParentIndex: parentIndex,
+    });
+  }
+
+  for (const value of childValues) {
+    collectExternalNodeRecordInto(value, nextParentIndex, nodes);
+  }
+}
+
+function childRecordValues(record: Record<string, unknown>): Record<string, unknown>[] {
+  const children: Record<string, unknown>[] = [];
+  for (const [key, value] of Object.entries(record)) {
+    if (!EXTERNAL_CHILD_KEYS.includes(normalizeExternalKey(key))) continue;
+    if (!Array.isArray(value)) continue;
+    for (const child of value) {
+      if (isRecord(child)) children.push(child);
+    }
+  }
+  return children;
+}
+
+function isExternalSourceUseful(
+  nodes: ExternalNodeInput[],
+  sourceKind: 'array' | 'self',
+): boolean {
+  if (nodes.length === 0) return false;
+  if (nodes.some((node) => node.hasChildren || node.hasParentField)) {
+    return true;
+  }
+  if (sourceKind === 'array') return nodes.length > 1;
+  return false;
+}
+
+function hasLegacyCapabilityListShape(nodes: ExternalNodeInput[]): boolean {
+  return (
+    nodes.length > 0 &&
+    nodes.every((node) => hasKeyCandidate(node.record, ['id'])) &&
+    nodes.every((node) => hasKeyCandidate(node.record, ['name'])) &&
+    nodes.some((node) => hasKeyCandidate(node.record, ['parent', 'parentid']))
+  );
+}
+
+function looksLikeExternalNode(record: Record<string, unknown>): boolean {
+  return (
+    valueForKeyCandidatesAsString(record, EXTERNAL_ID_KEYS) !== null ||
+    valueForKeyCandidatesAsString(record, EXTERNAL_NAME_KEYS) !== null
+  );
+}
+
+function externalDocumentTitle(source: ExternalHierarchySource): string {
+  if (source.title) return source.title;
+  const root =
+    source.nodes.find(
+      (node) =>
+        node.inferredParentIndex === null &&
+        node.parentRefs.length === 0,
+    ) ?? source.nodes[0];
+  return root?.label ?? root?.rawId ?? 'Imported capability model';
+}
+
 function uniqueId(rawId: string, usedIds: Set<NodeId>): NodeId {
-  let id = rawId.trim();
-  if (!id) id = 'imported-node';
+  const base = rawId.trim() || 'imported-node';
+  let id = base;
   let suffix = 2;
   while (usedIds.has(id)) {
-    id = `${rawId}-${suffix}`;
+    id = `${base}-${suffix}`;
     suffix += 1;
   }
   return id;
 }
 
-function isCapabilityListItem(value: unknown): value is Record<string, unknown> {
-  if (!isRecord(value)) return false;
-  return stringValue(value.id) !== null && stringValue(value.name) !== null;
-}
-
-function externalMetadata(item: Record<string, unknown>): Record<string, unknown> {
-  const metadata: Record<string, unknown> = { importFormat: 'capability-list' };
+function externalMetadata(
+  item: Record<string, unknown>,
+  importFormat: ExternalHierarchySource['importFormat'],
+): Record<string, unknown> {
+  const metadata: Record<string, unknown> = { importFormat };
   for (const [key, value] of Object.entries(item)) {
-    if (['id', 'name', 'label', 'description', 'parent', 'parentId'].includes(key)) continue;
+    const normalizedKey = normalizeExternalKey(key);
+    if (normalizedKey !== 'slug' && EXTERNAL_SEMANTIC_KEYS.has(normalizedKey)) {
+      continue;
+    }
     metadata[key] = value;
   }
   return metadata;
 }
 
-function parentReference(item: Record<string, unknown>): string | null {
-  return stringValue(item.parent) ?? stringValue(item.parentId);
+function parentReferences(item: Record<string, unknown>): string[] {
+  const refs: string[] = [];
+  for (const [key, value] of Object.entries(item)) {
+    if (!EXTERNAL_PARENT_KEYS.includes(normalizeExternalKey(key))) continue;
+    refs.push(...referenceStrings(value));
+  }
+  return uniqueStrings(refs);
 }
 
-function stringValue(value: unknown): string | null {
+function externalAliases(item: Record<string, unknown>): string[] {
+  return uniqueStrings([
+    ...valuesForKeyCandidatesAsStrings(item, EXTERNAL_ID_KEYS),
+    ...valuesForKeyCandidatesAsStrings(item, EXTERNAL_NAME_KEYS),
+  ]);
+}
+
+function referenceStrings(value: unknown): string[] {
+  const scalar = scalarString(value);
+  if (scalar) return [scalar];
+  if (!isRecord(value)) return [];
+  return uniqueStrings([
+    ...valuesForKeyCandidatesAsStrings(value, EXTERNAL_ID_KEYS),
+    ...valuesForKeyCandidatesAsStrings(value, EXTERNAL_NAME_KEYS),
+  ]);
+}
+
+function valueForKeyCandidatesAsString(
+  record: Record<string, unknown>,
+  candidates: string[],
+): string | null {
+  return scalarString(valueForKeyCandidates(record, candidates));
+}
+
+function valuesForKeyCandidatesAsStrings(
+  record: Record<string, unknown>,
+  candidates: string[],
+): string[] {
+  const values: string[] = [];
+  for (const candidate of candidates) {
+    for (const [key, value] of Object.entries(record)) {
+      if (normalizeExternalKey(key) !== candidate) continue;
+      const scalar = scalarString(value);
+      if (scalar) values.push(scalar);
+    }
+  }
+  return uniqueStrings(values);
+}
+
+function valueForKeyCandidates(
+  record: Record<string, unknown>,
+  candidates: string[],
+): unknown {
+  for (const candidate of candidates) {
+    for (const [key, value] of Object.entries(record)) {
+      if (normalizeExternalKey(key) === candidate) return value;
+    }
+  }
+  return undefined;
+}
+
+function hasKeyCandidate(
+  record: Record<string, unknown>,
+  candidates: string[],
+): boolean {
+  return Object.keys(record).some((key) =>
+    candidates.includes(normalizeExternalKey(key)),
+  );
+}
+
+function scalarString(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function slugFromLabel(label: string | null): string | null {
+  if (!label) return null;
+  const slug = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug.length > 0 ? slug : null;
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const normalized = scalarString(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
+
+function normalizeExternalKey(key: string): string {
+  return key.toLowerCase().replace(/[\s_-]+/g, '');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -74,6 +74,96 @@ describe("document JSON adapter", () => {
     ).toBe(true);
   });
 
+  it("imports tree-style schema-less JSON hierarchies without canvas layout", () => {
+    const parsed = parseDocument({
+      root: {
+        capability_id: "root-capability",
+        children: [
+          {
+            capability_id: "business-control",
+            children: [
+              {
+                capability_id: "aml-kyc",
+                children: [],
+                description: "Management of AML obligations",
+                name: "AML KYC",
+                parent_slug: "business-control",
+                slug: "aml-kyc",
+                target_architecture: null,
+              },
+            ],
+            description: "Management of business controls",
+            name: "Business Control",
+            parent_slug: "enterprise-model",
+            slug: "business-control",
+          },
+        ],
+        description: "Synthetic repository root",
+        name: "Enterprise Capability Model",
+        parent_slug: null,
+        slug: "enterprise-model",
+      },
+      tree: "published",
+    });
+
+    expect(parsed.doc).not.toBeNull();
+    expect(parsed.doc!.title).toBe("Enterprise Capability Model");
+    expect(parsed.doc!.layout.preservePositions).toBe(false);
+    expect(parsed.doc!.nodesById["root-capability"]!.type).toBe("root");
+    expect(parsed.doc!.nodesById["business-control"]!.type).toBe("parent");
+    expect(parsed.doc!.nodesById["aml-kyc"]!).toMatchObject({
+      parentId: "business-control",
+      type: "leaf",
+      label: "AML KYC",
+      description: "Management of AML obligations",
+      isOnCanvas: false,
+    });
+    expect(parsed.doc!.nodesById["aml-kyc"]!.metadata).toMatchObject({
+      importFormat: "external-json-hierarchy",
+      slug: "aml-kyc",
+      target_architecture: null,
+    });
+    expect(
+      parsed.diagnostics.some(
+        (diag) => diag.code === "external-json-hierarchy-imported",
+      ),
+    ).toBe(true);
+  });
+
+  it("resolves flat schema-less parent references across naming variants", () => {
+    const parsed = parseDocument({
+      nodes: [
+        {
+          slug: "enterprise-model",
+          title: "Enterprise Model",
+          parent_slug: null,
+        },
+        {
+          slug: "customer-domain",
+          display_name: "Customer Domain",
+          parent_slug: "enterprise-model",
+        },
+        {
+          node_id: "customer-insight",
+          label: "Customer Insight",
+          parent: { slug: "customer-domain" },
+          summary: "Understanding customer needs",
+        },
+      ],
+    });
+
+    expect(parsed.doc).not.toBeNull();
+    expect(parsed.doc!.nodesById["customer-domain"]!.parentId).toBe(
+      "enterprise-model",
+    );
+    expect(parsed.doc!.nodesById["customer-insight"]).toMatchObject({
+      parentId: "customer-domain",
+      label: "Customer Insight",
+      description: "Understanding customer needs",
+      isOnCanvas: false,
+    });
+  });
+
   it("repairs missing parents without leaving orphans", () => {
     const wire = serializeDocument(createSampleDocument());
     wire.nodes[1]!.parentId = "missing";
