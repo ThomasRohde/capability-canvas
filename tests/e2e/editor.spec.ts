@@ -67,6 +67,95 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
   }
 });
 
+test('cancels pasted import review without replacing the document', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const before = await page.evaluate(() => {
+    const testWindow = window as unknown as {
+      __ccTestSerializeDocument?: () => { title?: string; nodes: unknown[] };
+    };
+    const doc = testWindow.__ccTestSerializeDocument?.();
+    if (!doc) throw new Error('Missing test document serializer.');
+    return { title: doc.title, nodeCount: doc.nodes.length };
+  });
+  const payload = await page.evaluate(() => {
+    const testWindow = window as unknown as {
+      __ccTestSerializeDocument?: () => { title?: string; nodes: unknown[] };
+    };
+    const doc = testWindow.__ccTestSerializeDocument?.();
+    if (!doc) throw new Error('Missing test document serializer.');
+    doc.title = 'Canceled e2e import';
+    return JSON.stringify(doc);
+  });
+
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Import pasted JSON' }).click();
+  const pasteDialog = page.getByRole('dialog', { name: 'Import pasted JSON' });
+  await pasteDialog.getByRole('textbox').fill(payload);
+  await pasteDialog.getByRole('button', { name: 'Import', exact: true }).click();
+
+  const review = page.getByRole('dialog', { name: 'Review import' });
+  await expect(review).toBeVisible();
+  await review.getByRole('button', { name: 'Cancel' }).click();
+
+  const after = await page.evaluate(() => {
+    const testWindow = window as unknown as {
+      __ccTestSerializeDocument?: () => { title?: string; nodes: unknown[] };
+    };
+    const doc = testWindow.__ccTestSerializeDocument?.();
+    if (!doc) throw new Error('Missing test document serializer.');
+    return { title: doc.title, nodeCount: doc.nodes.length };
+  });
+  expect(after).toEqual(before);
+});
+
+test('applies repairable pasted import and surfaces diagnostics', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const payload = await page.evaluate(() => {
+    const testWindow = window as unknown as {
+      __ccTestSerializeDocument?: () => {
+        title?: string;
+        nodes: Array<Record<string, unknown>>;
+      };
+    };
+    const doc = testWindow.__ccTestSerializeDocument?.();
+    if (!doc) throw new Error('Missing test document serializer.');
+    const duplicateSource = doc.nodes.find((node) => node.id === 'digital-servicing');
+    if (!duplicateSource) throw new Error('Missing duplicate source node.');
+    doc.title = 'Repairable e2e import';
+    doc.nodes.push({
+      ...duplicateSource,
+      id: 'digital-onboarding',
+      label: 'Duplicate onboarding',
+    });
+    return JSON.stringify(doc);
+  });
+
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Import pasted JSON' }).click();
+  const pasteDialog = page.getByRole('dialog', { name: 'Import pasted JSON' });
+  await pasteDialog.getByRole('textbox').fill(payload);
+  await pasteDialog.getByRole('button', { name: 'Import', exact: true }).click();
+
+  const review = page.getByRole('dialog', { name: 'Review import' });
+  await expect(review.getByText('duplicate-id-repaired')).toBeVisible();
+  await review.getByRole('button', { name: 'Apply import' }).click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as {
+          __ccTestSerializeDocument?: () => { title?: string };
+        };
+        return testWindow.__ccTestSerializeDocument?.().title;
+      }),
+    )
+    .toBe('Repairable e2e import');
+
+  await page.getByRole('button', { name: 'Diagnostics' }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Diagnostics' }).getByText('duplicate-id-repaired'),
+  ).toBeVisible();
+});
+
 test('renames a canvas label inline and undoes the rename', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const canvas = page.getByTestId('canvas');

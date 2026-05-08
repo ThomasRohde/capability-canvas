@@ -3,8 +3,17 @@ import { parseDocumentJson, type ParseResult } from '../domain/document/parse';
 import type { CapabilityDocument } from '../domain/document/types';
 import { stringifyDocument } from '../domain/document/serialize';
 
-export async function openDocumentFile(): Promise<ParseResult> {
-  return new Promise((resolve) => {
+export interface OpenDocumentFileResult {
+  parsed: ParseResult;
+  file: {
+    name: string;
+    size: number;
+    type: string;
+  };
+}
+
+export async function openDocumentFile(): Promise<OpenDocumentFileResult | null> {
+  return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,application/json';
@@ -14,10 +23,27 @@ export async function openDocumentFile(): Promise<ParseResult> {
     input.style.width = '1px';
     input.style.height = '1px';
     input.style.opacity = '0';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      input.remove();
-      resolve(file ? parseDocumentJson(await readFileText(file)) : { doc: null, diagnostics: [] });
+    input.onchange = () => {
+      void (async () => {
+        const file = input.files?.[0];
+        input.remove();
+        if (!file) {
+          resolve(null);
+          return;
+        }
+        try {
+          resolve({
+            parsed: parseDocumentJson(await readFileText(file)),
+            file: {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+            },
+          });
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+      })();
     };
     document.body.append(input);
     input.click();

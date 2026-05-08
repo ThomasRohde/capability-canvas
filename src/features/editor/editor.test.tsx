@@ -29,6 +29,7 @@ import {
   PROMPT_MERGE_SCHEMA,
   PROMPT_MERGE_VERSION,
 } from "../../domain/promptMerge/payload";
+import { warning } from "../../domain/validation/diagnostics";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { ExportDrawer } from "../export/ExportDrawer";
 import type {
@@ -109,6 +110,14 @@ describe("editor shell", () => {
       text: async () => stringifyDocument(importedDoc),
     } as File;
     fireEvent.change(input, { target: { files: [file] } });
+
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    expect(within(review).getByText("Imported capability model")).toBeInTheDocument();
+    await userEvent.click(
+      within(review).getByRole("button", { name: "Apply import" }),
+    );
 
     await waitFor(() =>
       expect(useDocumentStore.getState().doc.title).toBe(
@@ -1222,6 +1231,28 @@ describe("editor shell", () => {
     expect(screen.getByText("No diagnostics")).toBeInTheDocument();
   });
 
+  it("selects diagnostic nodes from the status diagnostics popover", async () => {
+    useUiStore.setState({ selectedNodeIds: [], inspectorOpen: false });
+    useDocumentStore.setState({
+      lastDiagnostics: [
+        warning(
+          "duplicate-id-repaired",
+          "Duplicate id was renamed.",
+          "data-management",
+        ),
+      ],
+    });
+    render(<EditorRoute />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Diagnostics" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /duplicate-id-repaired/i }),
+    );
+
+    expect(useUiStore.getState().selectedNodeIds).toEqual(["data-management"]);
+    expect(useUiStore.getState().inspectorOpen).toBe(true);
+  });
+
   it("opens the app inspector instead of the browser menu on node right-click", async () => {
     useUiStore.setState({ inspectorOpen: false });
     const { container } = render(<EditorRoute />);
@@ -2316,9 +2347,203 @@ describe("editor shell", () => {
       within(dialog).getByRole("button", { name: "Import" }),
     );
 
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    await userEvent.click(
+      within(review).getByRole("button", { name: "Apply import" }),
+    );
+
     expect(useDocumentStore.getState().doc.title).toBe(
       "Pasted capability model",
     );
+  });
+
+  it("shows repair diagnostics before applying pasted document JSON", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const wire = serializeDocument(useDocumentStore.getState().doc);
+    const duplicateSource = wire.nodes.find(
+      (node) => node.id === "digital-servicing",
+    )!;
+    wire.nodes.push({
+      ...duplicateSource,
+      id: "digital-onboarding",
+      label: "Duplicate onboarding",
+    });
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: JSON.stringify(wire) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    expect(within(review).getByText("Duplicate ID repairs")).toBeInTheDocument();
+    expect(within(review).getByText("duplicate-id-repaired")).toBeInTheDocument();
+    expect(useDocumentStore.getState().doc.title).toBe(
+      "Retail Bank Capability Model",
+    );
+  });
+
+  it("reviews invalid pasted JSON without allowing apply", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: "{" },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    expect(within(review).getByText("json-invalid")).toBeInTheDocument();
+    expect(
+      within(review).getByRole("button", { name: "Apply import" }),
+    ).toBeDisabled();
+  });
+
+  it("cancels import review without changing the current document", async () => {
+    const before = useDocumentStore.getState();
+    const beforeNodeCount = Object.keys(before.doc.nodesById).length;
+    const beforeSelected = [...useUiStore.getState().selectedNodeIds];
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const importedDoc = {
+      ...useDocumentStore.getState().doc,
+      title: "Canceled capability model",
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: stringifyDocument(importedDoc) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    await userEvent.click(within(review).getByRole("button", { name: "Cancel" }));
+
+    const after = useDocumentStore.getState();
+    expect(after.doc.title).toBe("Retail Bank Capability Model");
+    expect(Object.keys(after.doc.nodesById)).toHaveLength(beforeNodeCount);
+    expect(after.past).toHaveLength(before.past.length);
+    expect(after.dirty).toBe(before.dirty);
+    expect(useUiStore.getState().selectedNodeIds).toEqual(beforeSelected);
+  });
+
+  it("requires confirmation before replacing a dirty document", async () => {
+    useDocumentStore
+      .getState()
+      .setActiveViewViewport({ x: 12, y: 18, zoom: 1.1 });
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const importedDoc = {
+      ...useDocumentStore.getState().doc,
+      title: "Dirty replacement model",
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: stringifyDocument(importedDoc) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    await userEvent.click(
+      within(review).getByRole("button", { name: "Apply import" }),
+    );
+
+    expect(
+      screen.getByRole("alertdialog", { name: "Replace unsaved document?" }),
+    ).toBeInTheDocument();
+    expect(useDocumentStore.getState().doc.title).toBe(
+      "Retail Bank Capability Model",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Replace document" }),
+    );
+
+    await waitFor(() =>
+      expect(useDocumentStore.getState().doc.title).toBe(
+        "Dirty replacement model",
+      ),
+    );
+  });
+
+  it("downloads the current document as a backup from import review", async () => {
+    const write = vi.fn<(text: string) => Promise<void>>().mockResolvedValue();
+    const close = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const showSaveFilePicker = vi.fn().mockResolvedValue({
+      createWritable: async () => ({ write, close }),
+    });
+    vi.stubGlobal("showSaveFilePicker", showSaveFilePicker);
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const importedDoc = {
+      ...useDocumentStore.getState().doc,
+      title: "Backup target model",
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: stringifyDocument(importedDoc) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+    const review = await screen.findByRole("dialog", {
+      name: "Review import",
+    });
+    await userEvent.click(
+      within(review).getByRole("button", {
+        name: "Download current backup",
+      }),
+    );
+
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    expect(showSaveFilePicker).toHaveBeenCalledTimes(1);
+    expect(write.mock.calls[0]?.[0]).toContain("Retail Bank Capability Model");
+    expect(write.mock.calls[0]?.[0]).not.toContain("Backup target model");
+    expect(close).toHaveBeenCalledTimes(1);
   });
 
   it("copies a leaf expansion BCM prompt from the toolbar", async () => {
@@ -2394,6 +2619,9 @@ describe("editor shell", () => {
     expect(doc.nodesById["digital-onboarding"]).toMatchObject({
       type: "parent",
     });
+    expect(
+      screen.queryByRole("dialog", { name: "Review import" }),
+    ).not.toBeInTheDocument();
     expect(childrenOf(doc, "digital-onboarding")).toContain(
       "identity-verification",
     );

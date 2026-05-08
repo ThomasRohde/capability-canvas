@@ -37,7 +37,7 @@ import {
   removeNodesFromCanvas,
   updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
-import { parseDocument } from "../../domain/document/parse";
+import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
 import { isNodeOnCanvas } from "../../domain/document/types";
 import { buildBcmPrompt } from "../../domain/promptMerge/bcmPrompt";
 import {
@@ -46,10 +46,12 @@ import {
 } from "../../domain/promptMerge/payload";
 import { error, warning } from "../../domain/validation/diagnostics";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
-import { openDocumentFile } from "../../app/fileSystem";
+import { openDocumentFile, saveDocumentFile } from "../../app/fileSystem";
 import { applyImportedDocument } from "../../app/importDocument";
+import { createImportReview, type ImportReview } from "../../app/importReview";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { ImportReviewDialog } from "../import/ImportReviewDialog";
 import { IconButton } from "../shared/IconButton";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { ViewSwitcher } from "../views/ViewSwitcher";
@@ -67,6 +69,7 @@ export function Toolbar() {
   const setActiveViewViewport = useDocumentStore(
     (state) => state.setActiveViewViewport,
   );
+  const dirty = useDocumentStore((state) => state.dirty);
   const isAutoLayoutRunning = useDocumentStore(
     (state) => state.isAutoLayoutRunning,
   );
@@ -76,6 +79,8 @@ export function Toolbar() {
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteDraft, setPasteDraft] = useState("");
+  const [importReview, setImportReview] = useState<ImportReview | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
   const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] =
     useState(false);
   const promptCopyNoticeTimeout = useRef<number | null>(null);
@@ -98,6 +103,18 @@ export function Toolbar() {
     };
   }, []);
 
+  useEffect(() => {
+    const pending = localStorage.getItem("capability-canvas.import");
+    if (!pending) return;
+    localStorage.removeItem("capability-canvas.import");
+    setImportReview(
+      createImportReview({
+        sourceLabel: "Import from viewer",
+        parsed: parseDocumentJson(pending),
+      }),
+    );
+  }, []);
+
   const showPromptCopyNotice = () => {
     setPromptCopyNoticeVisible(true);
     if (promptCopyNoticeTimeout.current !== null) {
@@ -110,9 +127,31 @@ export function Toolbar() {
   };
 
   const importDocument = () => {
-    void openDocumentFile().then((parsed) =>
-      applyImportedDocument(parsed, "Import file"),
-    );
+    setImportBusy(true);
+    void openDocumentFile()
+      .then((result) => {
+        if (!result) return;
+        setImportReview(
+          createImportReview({
+            sourceLabel: "Import file",
+            parsed: result.parsed,
+            file: result.file,
+          }),
+        );
+      })
+      .catch((importError: unknown) => {
+        setDiagnostics([
+          warning(
+            "import-read-failed",
+            `Import file could not be read. ${
+              importError instanceof Error
+                ? importError.message
+                : String(importError)
+            }`,
+          ),
+        ]);
+      })
+      .finally(() => setImportBusy(false));
   };
 
   const importPastedJson = () => {
@@ -121,9 +160,19 @@ export function Toolbar() {
     try {
       input = JSON.parse(pasteDraft) as unknown;
     } catch {
-      setDiagnostics([
-        error("json-invalid", "The pasted content is not valid JSON."),
-      ]);
+      setImportReview(
+        createImportReview({
+          sourceLabel: "Import pasted JSON",
+          parsed: {
+            doc: null,
+            diagnostics: [
+              error("json-invalid", "The pasted content is not valid JSON."),
+            ],
+          },
+        }),
+      );
+      setPasteOpen(false);
+      setPasteDraft("");
       return;
     }
 
@@ -142,12 +191,23 @@ export function Toolbar() {
     }
 
     const parsed = parseDocument(input);
-    applyImportedDocument(parsed, "Import pasted JSON");
-    if (parsed.doc) {
-      setPasteOpen(false);
-      setPasteDraft("");
-    }
+    setImportReview(
+      createImportReview({
+        sourceLabel: "Import pasted JSON",
+        parsed,
+      }),
+    );
+    setPasteOpen(false);
+    setPasteDraft("");
   };
+
+  const applyReviewedImport = async (review: ImportReview) => {
+    await applyImportedDocument(review.parsed, review.sourceLabel);
+    setImportReview(null);
+  };
+
+  const downloadCurrentBackup = () =>
+    saveDocumentFile(useDocumentStore.getState().doc);
 
   const copyPrompt = () => {
     if (!canCopyPrompt || !promptNode) return;
@@ -358,12 +418,14 @@ export function Toolbar() {
                 <ToolbarMenuItem
                   icon={Upload}
                   label="Import JSON file"
+                  disabled={importBusy}
                   closeMenu={closeMenu}
                   onSelect={importDocument}
                 />
                 <ToolbarMenuItem
                   icon={FileJson}
                   label="Import pasted JSON"
+                  disabled={importBusy}
                   closeMenu={closeMenu}
                   onSelect={openPastedJsonImport}
                 />
@@ -426,13 +488,23 @@ export function Toolbar() {
               <button
                 className="cc-btn cc-btn-primary"
                 type="button"
+                disabled={importBusy}
                 onClick={importPastedJson}
               >
-                <Upload /> Import
+                <Upload /> {importBusy ? "Importing..." : "Import"}
               </button>
             </div>
           </section>
         </div>
+      )}
+      {importReview && (
+        <ImportReviewDialog
+          review={importReview}
+          dirty={dirty}
+          onCancel={() => setImportReview(null)}
+          onApply={() => applyReviewedImport(importReview)}
+          onDownloadBackup={downloadCurrentBackup}
+        />
       )}
       {promptCopyNoticeVisible && (
         <div

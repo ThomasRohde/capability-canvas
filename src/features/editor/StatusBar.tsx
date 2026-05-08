@@ -29,6 +29,8 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   const clearSelectionNotice = useUiStore(
     (state) => state.clearSelectionNotice,
   );
+  const setSelection = useUiStore((state) => state.setSelection);
+  const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const diagnosticCount = diagnostics.length;
   const outlineLabel = readonly
@@ -54,6 +56,12 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
     const timeout = window.setTimeout(clearSelectionNotice, 3200);
     return () => window.clearTimeout(timeout);
   }, [clearSelectionNotice, selectionNotice]);
+
+  const selectDiagnosticNode = (nodeId: string) => {
+    if (!doc.nodesById[nodeId]) return;
+    setSelection([nodeId]);
+    setInspectorOpen(true);
+  };
 
   return (
     <footer className="cc-status">
@@ -148,21 +156,44 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
             </div>
           ) : (
             <ul className="cc-diagnostic-list">
-              {diagnostics.map((diagnostic, index) => (
-                <li
-                  key={`${diagnostic.code}-${diagnostic.nodeId ?? "document"}-${index}`}
-                >
-                  {diagnostic.severity === "info" ? (
-                    <Info size={15} />
-                  ) : (
-                    <TriangleAlert size={15} />
-                  )}
-                  <span>
-                    <strong>{diagnostic.code}</strong>
-                    <span>{diagnostic.message}</span>
-                  </span>
-                </li>
-              ))}
+              {diagnostics.map((diagnostic, index) => {
+                const actionable =
+                  !!diagnostic.nodeId && !!doc.nodesById[diagnostic.nodeId];
+                return (
+                  <li
+                    key={`${diagnostic.code}-${diagnostic.nodeId ?? "document"}-${index}`}
+                    className={actionable ? "actionable" : undefined}
+                    role={actionable ? "button" : undefined}
+                    tabIndex={actionable ? 0 : undefined}
+                    onClick={
+                      actionable && diagnostic.nodeId
+                        ? () => selectDiagnosticNode(diagnostic.nodeId!)
+                        : undefined
+                    }
+                    onKeyDown={
+                      actionable && diagnostic.nodeId
+                        ? (event) => {
+                            if (event.key !== "Enter" && event.key !== " ") {
+                              return;
+                            }
+                            event.preventDefault();
+                            selectDiagnosticNode(diagnostic.nodeId!);
+                          }
+                        : undefined
+                    }
+                  >
+                    {diagnostic.severity === "info" ? (
+                      <Info size={15} />
+                    ) : (
+                      <TriangleAlert size={15} />
+                    )}
+                    <span>
+                      <strong>{diagnostic.code}</strong>
+                      <span>{diagnostic.message}</span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

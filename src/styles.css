@@ -913,6 +913,88 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+.cc-import-review-dialog {
+  width: min(760px, calc(100vw - 40px));
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.cc-import-review-source {
+  margin-top: 3px;
+  color: var(--cc-slate-500);
+  font-size: 12px;
+}
+
+.cc-import-review-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.cc-import-summary-item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-slate-50);
+}
+
+.cc-import-summary-item span {
+  color: var(--cc-slate-500);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cc-import-summary-item strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cc-slate-900);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-import-review-note {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--cc-brand-50);
+  color: var(--cc-brand-700);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cc-import-review-note.invalid {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.cc-import-review-diagnostics {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+}
+
+.cc-import-diagnostic-section {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--cc-slate-200);
+}
+
+.cc-import-diagnostic-section:last-child {
+  border-bottom: 0;
+}
+
+.cc-import-diagnostic-list {
+  padding: 0;
+}
+
 .cc-modal-head,
 .cc-modal-actions {
   display: flex;
@@ -1948,6 +2030,15 @@ button:focus-visible {
   background: var(--cc-slate-50);
 }
 
+.cc-diagnostic-list li.actionable {
+  cursor: pointer;
+}
+
+.cc-diagnostic-list li.actionable:focus-visible {
+  outline: 2px solid var(--cc-brand-600);
+  outline-offset: -2px;
+}
+
 .cc-diagnostic-list svg {
   margin-top: 1px;
   color: var(--cc-warning);
@@ -2331,6 +2422,24 @@ button:focus-visible {
 }
 
 @media (max-width: 520px) {
+  .cc-import-review-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cc-import-summary-item.wide {
+    grid-column: 1 / -1;
+  }
+
+  .cc-import-review-dialog .cc-modal-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .cc-import-review-dialog .cc-modal-actions .cc-btn {
+    justify-content: center;
+    width: 100%;
+  }
+
   .cc-views-drawer {
     width: calc(100vw - 16px);
   }

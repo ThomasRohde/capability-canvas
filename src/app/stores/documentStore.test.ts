@@ -25,7 +25,8 @@ import {
   createNode,
 } from "../../domain/document/defaults";
 import { createSampleDocument } from "../../domain/fixtures/sample";
-import { parseDocument } from "../../domain/document/parse";
+import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
+import { serializeDocument } from "../../domain/document/serialize";
 import {
   childrenOf,
   ROOT_PARENT_ID,
@@ -268,7 +269,7 @@ describe("document store layout settings", () => {
     ]);
     expect(parsed.doc?.layout.preservePositions).toBe(false);
 
-    applyImportedDocument(parsed, "Import capability list");
+    await applyImportedDocument(parsed, "Import capability list");
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     const doc = useDocumentStore.getState().doc;
@@ -282,6 +283,45 @@ describe("document store layout settings", () => {
     );
     expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false);
     expect(findParentContainmentViolations(doc)).toEqual([]);
+  });
+
+  it("applies a reviewed import as exactly one undo history entry", async () => {
+    const imported = createSampleDocument();
+    imported.title = "Reviewed import";
+    imported.layout = {
+      ...imported.layout,
+      isUserArranged: false,
+      preservePositions: false,
+    };
+    const parsed = parseDocument(serializeDocument(imported));
+
+    const diagnostics = await applyImportedDocument(parsed, "Import file");
+
+    const state = useDocumentStore.getState();
+    expect(state.doc.title).toBe("Reviewed import");
+    expect(state.past).toHaveLength(1);
+    expect(state.past[0]?.label).toBe("Import file");
+    expect(state.future).toHaveLength(0);
+    expect(state.isAutoLayoutRunning).toBe(false);
+    expect(state.lastDiagnostics).toBe(diagnostics);
+    expect(state.past.map((entry) => entry.label)).not.toContain("Auto layout");
+  });
+
+  it("keeps the current document when an import parse has no document", async () => {
+    const before = useDocumentStore.getState().doc;
+    const parsed = parseDocumentJson("{");
+
+    const diagnostics = await applyImportedDocument(parsed, "Import file");
+
+    const state = useDocumentStore.getState();
+    expect(state.doc).toBe(before);
+    expect(state.past).toHaveLength(0);
+    expect(state.lastDiagnostics).toBe(diagnostics);
+    expect(
+      state.lastDiagnostics.some(
+        (diagnostic) => diagnostic.code === "json-invalid",
+      ),
+    ).toBe(true);
   });
 
   it("records containment repair in undo history", () => {

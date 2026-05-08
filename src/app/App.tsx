@@ -1,12 +1,10 @@
 import { useEffect, useMemo } from "react";
-import { parseDocumentJson } from "../domain/document/parse";
 import { serializeDocument } from "../domain/document/serialize";
 import type { WireDocument } from "../domain/document/types";
 import { findParentContainmentViolations } from "../domain/layout/containment";
 import { resolveVisualDocument } from "../domain/visual/workspace";
 import { EditorRoute } from "../features/editor/EditorRoute";
 import { ViewerRoute } from "../features/viewer/ViewerRoute";
-import { applyImportedDocument } from "./importDocument";
 import { useAutosave } from "./persistence/autosave";
 import { useDocumentStore } from "./stores/documentStore";
 
@@ -36,14 +34,6 @@ export function App() {
         console.warn("Capability Canvas containment violations", violations);
       }
     });
-  }, [isViewer]);
-  useEffect(() => {
-    if (isViewer) return;
-    const pending = localStorage.getItem("capability-canvas.import");
-    if (!pending) return;
-    localStorage.removeItem("capability-canvas.import");
-    const parsed = parseDocumentJson(pending);
-    applyImportedDocument(parsed, "Import from viewer");
   }, [isViewer]);
   return isViewer ? <ViewerRoute /> : <EditorRoute />;
 }
