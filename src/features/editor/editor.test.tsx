@@ -57,6 +57,7 @@ describe("editor shell", () => {
       exportFormat: "json",
       inspectorTab: "inspector",
       searchQuery: "",
+      selectionNotice: null,
       viewport: { x: 0, y: 0, zoom: 1 },
       canvasSize: { w: 1200, h: 800 },
     });
@@ -1704,18 +1705,35 @@ describe("editor shell", () => {
     ).toBe(beforeX);
   });
 
-  it("selects all non-text capabilities with Ctrl+A on the canvas", () => {
+  it("reduces Ctrl+A to the largest sibling group and explains the reduction", () => {
     useUiStore.setState({ selectedNodeIds: [] });
     render(<EditorRoute />);
     fireEvent.keyDown(window, { key: "a", ctrlKey: true });
 
-    const doc = useDocumentStore.getState().doc;
-    const expected = Object.values(doc.nodesById)
-      .filter((node) => !node.isTextLabel && node.type !== "text")
-      .map((node) => node.id);
     expect(useUiStore.getState().selectedNodeIds.sort()).toEqual(
-      expected.sort(),
+      [
+        "data-management",
+        "process-management",
+        "technology-operations",
+        "vendor-management",
+      ].sort(),
     );
+    expect(
+      screen.getByText("Bulk operations require sibling capabilities."),
+    ).toBeInTheDocument();
+  });
+
+  it("expands Ctrl+A from a selected child to its sibling group", () => {
+    useUiStore.setState({ selectedNodeIds: ["credit-risk"] });
+    render(<EditorRoute />);
+    fireEvent.keyDown(window, { key: "a", ctrlKey: true });
+
+    expect(useUiStore.getState().selectedNodeIds.sort()).toEqual(
+      ["credit-risk", "fraud-risk", "operational-risk"].sort(),
+    );
+    expect(
+      screen.queryByText("Bulk operations require sibling capabilities."),
+    ).not.toBeInTheDocument();
   });
 
   it("disables align controls when fewer than two siblings are selected", () => {
@@ -1749,14 +1767,25 @@ describe("editor shell", () => {
       "Match height to first selected",
       "Match size to first selected",
       "Change selected color",
-      "Duplicate",
       "Remove from active view",
-      "Delete from model",
+      "More bulk actions",
     ]) {
       expect(
         within(bulkToolbar).getByRole("button", { name: label }),
       ).toBeInTheDocument();
     }
+    expect(
+      within(bulkToolbar).getByText("Reference: Credit Risk"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(bulkToolbar).getByRole("button", { name: "More bulk actions" }),
+    );
+    expect(
+      within(bulkToolbar).getByRole("menuitem", { name: "Duplicate" }),
+    ).toBeInTheDocument();
+    expect(
+      within(bulkToolbar).getByRole("menuitem", { name: "Delete from model" }),
+    ).toBeInTheDocument();
   });
 
   it("updates selected colors from the floating toolbar", async () => {
@@ -1784,6 +1813,73 @@ describe("editor shell", () => {
       expect(doc.nodesById[nodeId]!.color).toBe("coral");
       expect(doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
     }
+  });
+
+  it("shows bulk inspector property controls and commits edits once", async () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
+      inspectorTab: "inspector",
+    });
+    render(<EditorRoute />);
+
+    expect(
+      screen.getByText(
+        "3 sibling capabilities selected. Bulk edits commit as one undo step.",
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set selected color lavender" }),
+    );
+    const heatmap = screen.getByLabelText("Heatmap value");
+    fireEvent.change(heatmap, { target: { value: "0.33" } });
+    fireEvent.blur(heatmap);
+
+    const doc = useDocumentStore.getState().doc;
+    for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
+      expect(doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
+      expect(doc.nodesById[nodeId]!.heatmapValue).toBe(0.33);
+    }
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Update selected heatmap values",
+    );
+  });
+
+  it("shows bulk layout controls for size, manual, and preserve edits", async () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
+      inspectorTab: "layout",
+    });
+    render(<EditorRoute />);
+
+    const width = screen.getByLabelText("W");
+    fireEvent.change(width, { target: { value: "132" } });
+    fireEvent.blur(width);
+    await userEvent.click(screen.getByRole("button", { name: "Manual" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Preserve selected from auto layout",
+      }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
+      expect(doc.nodesById[nodeId]!.w).toBe(132);
+      expect(doc.nodesById[nodeId]!.isManualPositioningEnabled).toBe(true);
+      expect(doc.nodesById[nodeId]!.isLockedAsIs).toBe(true);
+    }
+  });
+
+  it("does not expose unsafe bulk inspector controls for invalid mixed selections", () => {
+    useUiStore.setState({
+      selectedNodeIds: ["credit-risk", "process-management"],
+      inspectorTab: "inspector",
+    });
+    render(<EditorRoute />);
+
+    expect(
+      screen.getByText("Bulk operations require sibling capabilities."),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Heatmap value")).not.toBeInTheDocument();
   });
 
   it("disables distribute controls when only two siblings are selected", () => {

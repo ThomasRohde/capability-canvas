@@ -11,6 +11,7 @@ import {
   EyeOff,
   Maximize,
   Minus,
+  MoreHorizontal,
   Palette,
   Plus,
   Scaling,
@@ -47,7 +48,6 @@ import {
 import {
   hasCanvasChildren,
   isNodeOnCanvas,
-  ROOT_PARENT_ID,
   type Bounds,
   type CapabilityColor,
   type CapabilityDocument,
@@ -64,6 +64,9 @@ import {
   canAlign,
   canDistribute,
   canMultiSelect,
+  resolveSelectAllSelection,
+  resolveSiblingSelection,
+  resolveToggleSelection,
 } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
@@ -114,6 +117,9 @@ export function Canvas({
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const setInspectorTab = useUiStore((state) => state.setInspectorTab);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const showSelectionNotice = useUiStore(
+    (state) => state.showSelectionNotice,
+  );
   const drag = useTransientStore((state) => state.drag);
   const resize = useTransientStore((state) => state.resize);
   const reparentTargetId = useTransientStore((state) => state.reparentTargetId);
@@ -145,6 +151,19 @@ export function Canvas({
     () => selected.filter((id) => isNodeOnCanvas(viewDoc.nodesById[id])),
     [selected, viewDoc.nodesById],
   );
+  const marqueePreviewCount = useMemo(() => {
+    if (!selectionRect) return 0;
+    const ids = Object.values(viewDoc.nodesById)
+      .filter(
+        (node) =>
+          isNodeOnCanvas(node) &&
+          !node.isTextLabel &&
+          node.type !== "text" &&
+          intersects(node, selectionRect),
+      )
+      .map((node) => node.id);
+    return resolveSiblingSelection(viewDoc, ids).nodeIds.length;
+  }, [selectionRect, viewDoc]);
   const contextNode = contextMenu ? viewDoc.nodesById[contextMenu.nodeId] : null;
   const contextViewState = contextMenu
     ? doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
@@ -386,7 +405,9 @@ export function Canvas({
               node.type !== "text",
           )
           .map((node) => node.id);
-        useUiStore.getState().setSelection(ids);
+        const resolution = resolveSelectAllSelection(viewDoc, ids, selected);
+        useUiStore.getState().setSelection(resolution.nodeIds);
+        if (resolution.reason) showSelectionNotice(resolution.reason);
       }
       if (
         (event.ctrlKey || event.metaKey) &&
@@ -432,6 +453,7 @@ export function Canvas({
     readonly,
     requestDeleteFromModel,
     selected,
+    showSelectionNotice,
     startLabelEdit,
     viewDoc,
   ]);
@@ -525,11 +547,9 @@ export function Canvas({
         if (!additive) useUiStore.getState().clearSelection();
         return;
       }
-      if (!canMultiSelect(viewDoc, ids).valid) {
-        useUiStore.getState().setSelection(filterToSiblingGroup(viewDoc, ids));
-        return;
-      }
-      useUiStore.getState().setSelection(ids);
+      const resolution = resolveSiblingSelection(viewDoc, ids);
+      useUiStore.getState().setSelection(resolution.nodeIds);
+      if (resolution.reason) showSelectionNotice(resolution.reason);
     };
 
     window.addEventListener("pointermove", onMove);
@@ -540,7 +560,13 @@ export function Canvas({
   return (
     <main
       ref={canvasRef}
-      className={`cc-canvas ${viewDoc.settings.gridEnabled ? "" : "no-grid"}`}
+      className={`cc-canvas ${viewDoc.settings.gridEnabled ? "" : "no-grid"} ${
+        canvasSelected.length === 0
+          ? "selection-empty"
+          : canvasSelected.length === 1
+            ? "selection-single"
+            : "selection-multi"
+      }`}
       data-testid="canvas"
       style={
         {
@@ -606,6 +632,11 @@ export function Canvas({
             const isContainer = vm.node.type !== "leaf" && !vm.node.isTextLabel;
             const selectedNodeClass =
               selectedState && !isContainer ? "selected" : "";
+            const selectionModeClass = selectedState
+              ? selected.length > 1
+                ? "multi-selected"
+                : "single-selected"
+              : "";
             const isEditing = editingNodeId === vm.node.id;
             const dragDelta = drag?.nodeIds.includes(vm.node.id)
               ? { x: drag.dx / viewport.zoom, y: drag.dy / viewport.zoom }
@@ -617,7 +648,7 @@ export function Canvas({
             return (
               <div
                 key={vm.node.id}
-                className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${selectionModeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
                 style={
                   {
                     left: vm.node.x + dragDelta.x,
@@ -872,6 +903,11 @@ export function Canvas({
           .filter((vm) => vm.node.type !== "leaf" && !vm.node.isTextLabel)
           .map((vm) => {
             const selectedState = selected.includes(vm.node.id);
+            const selectionModeClass = selectedState
+              ? selected.length > 1
+                ? "multi-selected"
+                : "single-selected"
+              : "";
             const fill = resolveNodeFill(vm.node, viewDoc.heatmap);
             const dragDelta = drag?.nodeIds.includes(vm.node.id)
               ? { x: drag.dx / viewport.zoom, y: drag.dy / viewport.zoom }
@@ -883,7 +919,7 @@ export function Canvas({
             return (
               <div
                 key={`${vm.node.id}-frame`}
-                className={`cc-container-frame ${selectedState ? "selected" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                className={`cc-container-frame ${selectedState ? "selected" : ""} ${selectionModeClass} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
                 aria-hidden="true"
                 style={
                   {
@@ -1001,15 +1037,31 @@ export function Canvas({
         </div>
       )}
       {selectionRect && (
-        <div
-          className="cc-marquee"
-          style={{
-            left: selectionRect.x * viewport.zoom + viewport.x,
-            top: selectionRect.y * viewport.zoom + viewport.y,
-            width: selectionRect.w * viewport.zoom,
-            height: selectionRect.h * viewport.zoom,
-          }}
-        />
+        <>
+          <div
+            className="cc-marquee"
+            style={{
+              left: selectionRect.x * viewport.zoom + viewport.x,
+              top: selectionRect.y * viewport.zoom + viewport.y,
+              width: selectionRect.w * viewport.zoom,
+              height: selectionRect.h * viewport.zoom,
+            }}
+          />
+          <div
+            className="cc-marquee-count"
+            role="status"
+            aria-live="polite"
+            style={{
+              left: selectionRect.x * viewport.zoom + viewport.x,
+              top:
+                (selectionRect.y + selectionRect.h) * viewport.zoom +
+                viewport.y +
+                6,
+            }}
+          >
+            {marqueePreviewCount} selected
+          </div>
+        </>
       )}
       {canvasSelected.length > 1 && !readonly && (
         <BulkToolbar selected={canvasSelected} />
@@ -1112,15 +1164,9 @@ function NodeLabel({
 
 function toggleSelectionWithRules(doc: CapabilityDocument, nodeId: NodeId) {
   const ui = useUiStore.getState();
-  const current = ui.selectedNodeIds;
-  const candidate = current.includes(nodeId)
-    ? current.filter((id) => id !== nodeId)
-    : [...current, nodeId];
-  if (candidate.length <= 1 || canMultiSelect(doc, candidate).valid) {
-    ui.setSelection(candidate);
-    return;
-  }
-  ui.setSelection([nodeId]);
+  const resolution = resolveToggleSelection(doc, ui.selectedNodeIds, nodeId);
+  ui.setSelection(resolution.nodeIds);
+  if (resolution.reason) ui.showSelectionNotice(resolution.reason);
 }
 
 function intersects(
@@ -1130,28 +1176,6 @@ function intersects(
   return (
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
   );
-}
-
-function filterToSiblingGroup(
-  doc: CapabilityDocument,
-  ids: NodeId[],
-): NodeId[] {
-  const buckets = new Map<string, NodeId[]>();
-  for (const id of ids) {
-    const node = doc.nodesById[id];
-    if (!node) continue;
-    if (!isNodeOnCanvas(node)) continue;
-    if (node.isTextLabel || node.type === "text") continue;
-    const key = String(node.parentId ?? ROOT_PARENT_ID);
-    const list = buckets.get(key) ?? [];
-    list.push(id);
-    buckets.set(key, list);
-  }
-  let best: NodeId[] = [];
-  for (const list of buckets.values()) {
-    if (list.length > best.length) best = list;
-  }
-  return best;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -1175,19 +1199,43 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const execute = useDocumentStore((state) => state.execute);
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const bulkAllowed = canMultiSelect(viewDoc, selected);
   const alignAllowed = canAlign(viewDoc, selected);
   const distributeAllowed = canDistribute(viewDoc, selected);
-  const sameSizeAllowed = canMultiSelect(viewDoc, selected);
+  const sameSizeAllowed = bulkAllowed;
   const anchor = selected[0];
   const anchorNode = anchor ? viewDoc.nodesById[anchor] : undefined;
-  const fitTargetId = selected.length === 1 && anchor ? anchor : undefined;
-  const fitAllowed =
-    fitTargetId &&
-    !anchorNode?.isLockedAsIs &&
-    hasCanvasChildren(viewDoc, fitTargetId);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        moreRef.current?.contains(event.target)
+      )
+        return;
+      setMoreOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [moreOpen]);
+
   return (
     <div className="cc-bulk-toolbar">
       <span className="count">{selected.length} selected</span>
+      <span className="reference">
+        Reference: {anchorNode?.label ?? "first selected"}
+      </span>
+      <span className="cc-toolbar-separator" />
       <IconButton
         icon={AlignHorizontalJustifyStart}
         label="Align left"
@@ -1269,40 +1317,74 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onClick={() => anchor && execute(sameSize(selected, anchor))}
       />
       <span className="cc-toolbar-separator" />
-      <BulkColorPicker selected={selected} />
+      <BulkColorPicker
+        selected={selected}
+        disabled={!bulkAllowed.valid}
+        reason={bulkAllowed.reason}
+      />
       <span className="cc-toolbar-separator" />
-      <IconButton
-        icon={Copy}
-        label="Duplicate"
-        onClick={() => execute(duplicateNodes(selected))}
-      />
-      <IconButton
-        icon={Maximize}
-        label="Fit parent to children"
-        tooltip={
-          fitAllowed
-            ? undefined
-            : "Select a single parent capability to fit it to its children."
-        }
-        disabled={!fitAllowed}
-        onClick={() => fitTargetId && execute(fitParentToChildren(fitTargetId))}
-      />
       <IconButton
         icon={EyeOff}
         label="Remove from active view"
         onClick={() => execute(removeNodesFromCanvas(selected))}
       />
-      <IconButton
-        icon={Trash2}
-        label="Delete from model"
-        onClick={() => requestDeleteFromModel(selected)}
-      />
+      <div
+        ref={moreRef}
+        className="cc-bulk-more"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <IconButton
+          icon={MoreHorizontal}
+          label="More bulk actions"
+          active={moreOpen}
+          onClick={() => setMoreOpen((open) => !open)}
+        />
+        {moreOpen && (
+          <div
+            className="cc-bulk-more-menu"
+            role="menu"
+            aria-label="Bulk actions"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                execute(duplicateNodes(selected));
+                setMoreOpen(false);
+              }}
+            >
+              <Copy aria-hidden="true" />
+              <span>Duplicate</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="danger"
+              onClick={() => {
+                requestDeleteFromModel(selected);
+                setMoreOpen(false);
+              }}
+            >
+              <Trash2 aria-hidden="true" />
+              <span>Delete from model</span>
+            </button>
+          </div>
+        )}
+      </div>
       {deleteFromModelDialog}
     </div>
   );
 }
 
-function BulkColorPicker({ selected }: { selected: NodeId[] }) {
+function BulkColorPicker({
+  selected,
+  disabled = false,
+  reason,
+}: {
+  selected: NodeId[];
+  disabled?: boolean;
+  reason?: string;
+}) {
   const doc = useDocumentStore((state) => state.doc);
   const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
@@ -1348,6 +1430,7 @@ function BulkColorPicker({ selected }: { selected: NodeId[] }) {
   }, [open]);
 
   const applyColor = (color: CapabilityColor) => {
+    if (disabled) return;
     execute(updateNodeColors(selected, color));
     setOpen(false);
   };
@@ -1363,8 +1446,9 @@ function BulkColorPicker({ selected }: { selected: NodeId[] }) {
         className={`cc-icon-btn ${open ? "active" : ""}`}
         aria-label="Change selected color"
         aria-expanded={open}
-        title="Change selected color"
-        onClick={() => setOpen((current) => !current)}
+        title={reason ?? "Change selected color"}
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((current) => !current)}
       >
         <Palette aria-hidden="true" />
         <span className="cc-bulk-color-preview" style={previewStyle} />

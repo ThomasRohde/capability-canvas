@@ -28,6 +28,9 @@ export function ViewSwitcher({
   const setViewport = useUiStore((state) => state.setViewport);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
+  const showSelectionNotice = useUiStore(
+    (state) => state.showSelectionNotice,
+  );
   const activeDrawer = useUiStore((state) => state.activeDrawer);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const [open, setOpen] = useState(false);
@@ -77,7 +80,12 @@ export function ViewSwitcher({
     const nextSelection = selected.filter(
       (nodeId) => resolved.nodesById[nodeId]?.isOnCanvas,
     );
-    if (nextSelection.length !== selected.length) setSelection(nextSelection);
+    if (nextSelection.length !== selected.length) {
+      setSelection(nextSelection);
+      showSelectionNotice(
+        "Selection adjusted because selected capabilities are hidden in this view.",
+      );
+    }
     setOpen(false);
   };
 

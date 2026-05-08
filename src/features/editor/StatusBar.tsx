@@ -7,7 +7,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { APP_VERSION } from "../../app/version";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -25,6 +25,10 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   const inspectorOpen = useUiStore((state) => state.inspectorOpen);
   const toggleOutline = useUiStore((state) => state.toggleOutline);
   const toggleInspector = useUiStore((state) => state.toggleInspector);
+  const selectionNotice = useUiStore((state) => state.selectionNotice);
+  const clearSelectionNotice = useUiStore(
+    (state) => state.clearSelectionNotice,
+  );
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const diagnosticCount = diagnostics.length;
   const outlineLabel = readonly
@@ -45,6 +49,12 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
     ? { primary: "Read-only view", secondary: "Read-only" }
     : statusText(saveStatus, lastSaveError, lastRestoredAt);
 
+  useEffect(() => {
+    if (!selectionNotice) return;
+    const timeout = window.setTimeout(clearSelectionNotice, 3200);
+    return () => window.clearTimeout(timeout);
+  }, [clearSelectionNotice, selectionNotice]);
+
   return (
     <footer className="cc-status">
       <span className="cc-dot" />
@@ -57,6 +67,18 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
         <>
           <span className="cc-divider" style={{ height: 14 }} />
           <span>{diagnostics.length} diagnostics</span>
+        </>
+      )}
+      {selectionNotice && (
+        <>
+          <span className="cc-divider" style={{ height: 14 }} />
+          <span
+            className="cc-selection-notice"
+            role="status"
+            aria-live="polite"
+          >
+            {selectionNotice.message}
+          </span>
         </>
       )}
       <span className="cc-spacer" />

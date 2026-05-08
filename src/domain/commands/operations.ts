@@ -24,7 +24,7 @@ import type {
   PromptMergeCapability,
   PromptMergePayload,
 } from "../promptMerge/payload";
-import { canAlign, canDistribute } from "../selection/rules";
+import { canAlign, canDistribute, canMultiSelect } from "../selection/rules";
 import {
   descendantsOf,
   isDescendantOf,
@@ -502,6 +502,13 @@ export function updateNodeColors(
     [
       command("update-node-colors", { nodeIds, color }, (doc) => {
         if (nodeIds.length === 0) return ok(doc);
+        const allowed = canBulkEditNodes(doc, nodeIds);
+        if (!allowed.valid)
+          return fail(
+            doc,
+            "invalid-selection",
+            allowed.reason ?? "Invalid selection.",
+          );
         const next = cloneDocument(doc);
         let changed = false;
         for (const nodeId of nodeIds) {
@@ -522,6 +529,154 @@ export function updateNodeColors(
         }
         return ok(changed ? next : doc);
       }),
+    ],
+    { source: "bulk" },
+  );
+}
+
+export function updateNodeSizes(
+  nodeIds: NodeId[],
+  patch: { w?: number; h?: number },
+): Transaction {
+  return transaction(
+    "Update selected sizes",
+    [
+      command("update-node-sizes", { nodeIds, patch }, (doc) => {
+        if (nodeIds.length === 0) return ok(doc);
+        const allowed = canBulkEditNodes(doc, nodeIds);
+        if (!allowed.valid)
+          return fail(
+            doc,
+            "invalid-selection",
+            allowed.reason ?? "Invalid selection.",
+          );
+        if (!Object.hasOwn(patch, "w") && !Object.hasOwn(patch, "h"))
+          return ok(doc);
+        if (
+          (patch.w !== undefined &&
+            (!Number.isFinite(patch.w) || patch.w <= 0)) ||
+          (patch.h !== undefined &&
+            (!Number.isFinite(patch.h) || patch.h <= 0))
+        ) {
+          return fail(
+            doc,
+            "invalid-size",
+            "Size values must be positive numbers.",
+          );
+        }
+
+        const next = cloneDocument(doc);
+        let changed = false;
+        for (const nodeId of nodeIds) {
+          const node = next.nodesById[nodeId];
+          if (!node)
+            return fail(
+              doc,
+              "missing-node",
+              "The selected capability no longer exists.",
+            );
+          if (node.isLockedAsIs)
+            return fail(
+              doc,
+              "locked-node",
+              "Preserved capabilities cannot be resized.",
+            );
+          const childBounds = node.isManualPositioningEnabled
+            ? null
+            : boundsForNodes(next, canvasChildrenOf(next, nodeId));
+          const minW = childBounds
+            ? childBounds.x +
+              childBounds.w -
+              node.x +
+              (node.layoutPreferences?.marginRight ??
+                next.settings.containerPaddingRight)
+            : 80;
+          const minH = childBounds
+            ? childBounds.y +
+              childBounds.h -
+              node.y +
+              (node.layoutPreferences?.marginBottom ??
+                next.settings.containerPaddingBottom)
+            : 44;
+          const w = Math.max(minW, patch.w ?? node.w);
+          const h = Math.max(minH, patch.h ?? node.h);
+          if (w === node.w && h === node.h) continue;
+          next.nodesById[nodeId] = {
+            ...node,
+            w,
+            h,
+            updatedAt: now(),
+          };
+          changed = true;
+        }
+        return ok(
+          changed
+            ? {
+                ...next,
+                layout: { ...next.layout, isUserArranged: true },
+              }
+            : doc,
+        );
+      }),
+    ],
+    { source: "bulk" },
+  );
+}
+
+export function updateNodeHeatmapValues(
+  nodeIds: NodeId[],
+  heatmapValue: number | undefined,
+): Transaction {
+  return transaction(
+    heatmapValue === undefined
+      ? "Clear selected heatmap values"
+      : "Update selected heatmap values",
+    [
+      command(
+        "update-node-heatmap-values",
+        { nodeIds, heatmapValue },
+        (doc) => {
+          if (nodeIds.length === 0) return ok(doc);
+          const allowed = canBulkEditNodes(doc, nodeIds);
+          if (!allowed.valid)
+            return fail(
+              doc,
+              "invalid-selection",
+              allowed.reason ?? "Invalid selection.",
+            );
+          if (
+            heatmapValue !== undefined &&
+            (!Number.isFinite(heatmapValue) ||
+              heatmapValue < 0 ||
+              heatmapValue > 1)
+          ) {
+            return fail(
+              doc,
+              "invalid-heatmap-value",
+              "Heatmap value must be between 0 and 1.",
+            );
+          }
+          const next = cloneDocument(doc);
+          let changed = false;
+          for (const nodeId of nodeIds) {
+            const node = next.nodesById[nodeId];
+            if (!node)
+              return fail(
+                doc,
+                "missing-node",
+                "The selected capability no longer exists.",
+              );
+            if (node.heatmapValue === heatmapValue) continue;
+            next.nodesById[nodeId] = {
+              ...node,
+              heatmapValue,
+              updatedAt: now(),
+            };
+            changed = true;
+          }
+          return ok(changed ? next : doc);
+        },
+      ),
     ],
     { source: "bulk" },
   );
@@ -1402,6 +1557,53 @@ export function lockSubtree(nodeId: NodeId, locked: boolean): Transaction {
   ]);
 }
 
+export function lockSubtrees(
+  nodeIds: NodeId[],
+  locked: boolean,
+): Transaction {
+  return transaction(
+    locked ? "Preserve selected layouts" : "Stop preserving selected layouts",
+    [
+      command("lock-subtrees", { nodeIds, locked }, (doc) => {
+        if (nodeIds.length === 0) return ok(doc);
+        const allowed = canBulkEditNodes(doc, nodeIds);
+        if (!allowed.valid)
+          return fail(
+            doc,
+            "invalid-selection",
+            allowed.reason ?? "Invalid selection.",
+          );
+        const next = cloneDocument(doc);
+        let changed = false;
+        const toLock = new Set<NodeId>();
+        for (const nodeId of nodeIds) {
+          toLock.add(nodeId);
+          for (const descendantId of descendantsOf(next, nodeId))
+            toLock.add(descendantId);
+        }
+        for (const id of toLock) {
+          const node = next.nodesById[id];
+          if (!node)
+            return fail(
+              doc,
+              "missing-node",
+              "The selected capability no longer exists.",
+            );
+          if (node.isLockedAsIs === locked) continue;
+          next.nodesById[id] = {
+            ...node,
+            isLockedAsIs: locked,
+            updatedAt: now(),
+          };
+          changed = true;
+        }
+        return ok(changed ? next : doc);
+      }),
+    ],
+    { source: "bulk" },
+  );
+}
+
 export function setManualPositioning(
   nodeId: NodeId,
   enabled: boolean,
@@ -1424,6 +1626,53 @@ export function setManualPositioning(
       return ok(next);
     }),
   ]);
+}
+
+export function setManualPositioningForNodes(
+  nodeIds: NodeId[],
+  enabled: boolean,
+): Transaction {
+  return transaction(
+    enabled
+      ? "Enable selected manual positioning"
+      : "Disable selected manual positioning",
+    [
+      command(
+        "set-manual-positioning-for-nodes",
+        { nodeIds, enabled },
+        (doc) => {
+          if (nodeIds.length === 0) return ok(doc);
+          const allowed = canBulkEditNodes(doc, nodeIds);
+          if (!allowed.valid)
+            return fail(
+              doc,
+              "invalid-selection",
+              allowed.reason ?? "Invalid selection.",
+            );
+          const next = cloneDocument(doc);
+          let changed = false;
+          for (const nodeId of nodeIds) {
+            const node = next.nodesById[nodeId];
+            if (!node)
+              return fail(
+                doc,
+                "missing-node",
+                "The selected capability no longer exists.",
+              );
+            if (node.isManualPositioningEnabled === enabled) continue;
+            next.nodesById[nodeId] = {
+              ...node,
+              isManualPositioningEnabled: enabled,
+              updatedAt: now(),
+            };
+            changed = true;
+          }
+          return ok(changed ? next : doc);
+        },
+      ),
+    ],
+    { source: "bulk" },
+  );
 }
 
 type PromptParentResolution =
@@ -1606,6 +1855,20 @@ function stableCapabilityId(value: string): NodeId {
 
 function normalizeCapabilityLabel(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+}
+
+function canBulkEditNodes(doc: CapabilityDocument, nodeIds: NodeId[]) {
+  const nodes = nodeIds.map((id) => doc.nodesById[id]).filter(Boolean);
+  if (nodes.length !== nodeIds.length) {
+    return { valid: false, reason: "One or more selected nodes are missing." };
+  }
+  if (nodes.some((node) => node.isTextLabel || node.type === "text")) {
+    return {
+      valid: false,
+      reason: "Text labels are excluded from multi-selection.",
+    };
+  }
+  return canMultiSelect(doc, nodeIds);
 }
 
 function command<TArgs>(

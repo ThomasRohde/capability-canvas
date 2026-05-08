@@ -59,6 +59,9 @@ export function ViewsDrawer() {
   const setViewport = useUiStore((state) => state.setViewport);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
+  const showSelectionNotice = useUiStore(
+    (state) => state.showSelectionNotice,
+  );
   const [templateId, setTemplateId] =
     useState<VisualTemplateId>("full-model-default@1");
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(
@@ -91,7 +94,12 @@ export function ViewsDrawer() {
     const nextSelection = selected.filter(
       (nodeId) => resolved.nodesById[nodeId]?.isOnCanvas,
     );
-    if (nextSelection.length !== selected.length) setSelection(nextSelection);
+    if (nextSelection.length !== selected.length) {
+      setSelection(nextSelection);
+      showSelectionNotice(
+        "Selection adjusted because selected capabilities are hidden in this view.",
+      );
+    }
   };
 
   const moveView = (viewId: string, direction: -1 | 1) => {

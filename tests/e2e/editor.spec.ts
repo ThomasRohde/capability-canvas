@@ -180,3 +180,108 @@ test('separates active-view remove from source-model delete', async ({ page }) =
   await expect(page.locator('.cc-outline').getByText('Digital Onboarding')).toBeVisible();
   expect(await serializedContains('digital-onboarding')).toBe(true);
 });
+
+test('bulk-selects sibling leaves, aligns, undoes and redoes', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const canvas = page.getByTestId('canvas');
+  const nodeX = (nodeId: string) =>
+    page
+      .locator(`.cc-node:has-text("${nodeIdToLabel(nodeId)}")`)
+      .first()
+      .evaluate((element) => Number((element as HTMLElement).style.left.replace('px', '')));
+
+  await canvas.getByText('Credit Risk').click();
+  await canvas.getByText('Fraud Risk').click({ modifiers: ['Shift'] });
+  await canvas.getByText('Operational Risk').click({ modifiers: ['Shift'] });
+  await expect(page.locator('.cc-bulk-toolbar')).toContainText('3 selected');
+  await expect(page.locator('.cc-bulk-toolbar')).toContainText('Reference: Credit Risk');
+
+  const before = await Promise.all([
+    nodeX('credit-risk'),
+    nodeX('fraud-risk'),
+    nodeX('operational-risk'),
+  ]);
+  await page.getByRole('button', { name: 'Align left' }).click();
+  const aligned = await Promise.all([
+    nodeX('credit-risk'),
+    nodeX('fraud-risk'),
+    nodeX('operational-risk'),
+  ]);
+  expect(new Set(aligned).size).toBe(1);
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  expect(await Promise.all([
+    nodeX('credit-risk'),
+    nodeX('fraud-risk'),
+    nodeX('operational-risk'),
+  ])).toEqual(before);
+
+  await page.getByRole('button', { name: 'Redo' }).click();
+  expect(new Set(await Promise.all([
+    nodeX('credit-risk'),
+    nodeX('fraud-risk'),
+    nodeX('operational-risk'),
+  ])).size).toBe(1);
+});
+
+function nodeIdToLabel(nodeId: string) {
+  return {
+    'credit-risk': 'Credit Risk',
+    'fraud-risk': 'Fraud Risk',
+    'operational-risk': 'Operational Risk',
+  }[nodeId]!;
+}
+
+test('Ctrl+A expands from selected risk child to risk siblings', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const canvas = page.getByTestId('canvas');
+
+  await canvas.getByText('Credit Risk').click();
+  await page.keyboard.press('Control+A');
+
+  await expect(page.locator('.cc-bulk-toolbar')).toContainText('3 selected');
+  await expect(page.locator('.cc-bulk-toolbar')).toContainText('Reference: Credit Risk');
+  await expect(canvas.locator('.cc-node.multi-selected').filter({ hasText: 'Credit Risk' })).toHaveCount(1);
+  await expect(canvas.locator('.cc-node.multi-selected').filter({ hasText: 'Fraud Risk' })).toHaveCount(1);
+  await expect(canvas.locator('.cc-node.multi-selected').filter({ hasText: 'Operational Risk' })).toHaveCount(1);
+  await expect(canvas.locator('.cc-node.multi-selected').filter({ hasText: 'Process Management' })).toHaveCount(0);
+});
+
+test('invalid mixed-parent multi-select shows selection feedback', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const canvas = page.getByTestId('canvas');
+
+  await canvas.getByText('Credit Risk').click();
+  await canvas.getByText('Process Management').click({ modifiers: ['Shift'] });
+
+  await expect(page.getByText('Bulk operations require sibling capabilities.')).toBeVisible();
+  await expect(page.locator('.cc-bulk-toolbar')).toHaveCount(0);
+});
+
+test('marquee selection preview is transient', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const serialize = () =>
+    page.evaluate(() =>
+      JSON.stringify(
+        (
+          window as Window & {
+            __ccTestSerializeDocument?: () => unknown;
+          }
+        ).__ccTestSerializeDocument?.(),
+      ),
+    );
+  const before = await serialize();
+  const box = await page.getByTestId('canvas').boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.keyboard.down('Shift');
+  await page.mouse.move(box!.x + 6, box!.y + 6);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + 460, box!.y + 360);
+
+  await expect(page.locator('.cc-marquee-count')).toBeVisible();
+  expect(await serialize()).toBe(before);
+
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+});

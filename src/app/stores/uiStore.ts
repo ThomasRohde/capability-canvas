@@ -13,6 +13,11 @@ export interface CanvasSizeState {
   h: number;
 }
 
+export interface SelectionNotice {
+  message: string;
+  createdAt: number;
+}
+
 export type ActiveDrawer = "settings" | "export" | "views" | null;
 
 export const DEFAULT_OUTLINE_WIDTH = 260;
@@ -62,6 +67,7 @@ interface UiState {
   exportFormat: ExportFormat;
   inspectorTab: "inspector" | "layout" | "data";
   searchQuery: string;
+  selectionNotice: SelectionNotice | null;
   setSelection: (ids: NodeId[]) => void;
   toggleSelection: (id: NodeId) => void;
   clearSelection: () => void;
@@ -76,6 +82,8 @@ interface UiState {
   setExportFormat: (format: ExportFormat) => void;
   setInspectorTab: (tab: UiState["inspectorTab"]) => void;
   setSearchQuery: (query: string) => void;
+  showSelectionNotice: (message: string) => void;
+  clearSelectionNotice: () => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
@@ -89,6 +97,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   exportFormat: "json",
   inspectorTab: "inspector",
   searchQuery: "",
+  selectionNotice: null,
   setSelection: (ids) => set({ selectedNodeIds: ids }),
   toggleSelection: (id) => {
     const existing = get().selectedNodeIds;
@@ -114,4 +123,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   setExportFormat: (format) => set({ exportFormat: format }),
   setInspectorTab: (tab) => set({ inspectorTab: tab }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  showSelectionNotice: (message) =>
+    set({ selectionNotice: { message, createdAt: Date.now() } }),
+  clearSelectionNotice: () => set({ selectionNotice: null }),
 }));

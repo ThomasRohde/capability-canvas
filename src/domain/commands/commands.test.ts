@@ -5,6 +5,7 @@ import {
   alignNodes,
   deleteNodes,
   fitParentToChildren,
+  lockSubtrees,
   lockSubtree,
   mergePromptCapabilities,
   moveNodes,
@@ -15,7 +16,10 @@ import {
   resizeNode,
   runTransaction,
   setManualPositioning,
+  setManualPositioningForNodes,
   updateNodeColors,
+  updateNodeHeatmapValues,
+  updateNodeSizes,
 } from "./operations";
 import { createEmptyDocument, createNode } from "../document/defaults";
 import { createSampleDocument } from "../fixtures/sample";
@@ -94,6 +98,57 @@ describe("commands", () => {
     for (const nodeId of nodeIds) {
       expect(result.doc.nodesById[nodeId]!.color).toBe("coral");
       expect(result.doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
+    }
+  });
+
+  it("updates selected sizes as one bulk transaction command", () => {
+    const doc = createSampleDocument();
+    const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
+    const txn = updateNodeSizes(nodeIds, { w: 144, h: 64 });
+
+    const result = runTransaction(doc, txn);
+
+    expect(txn.commands).toHaveLength(1);
+    expect(result.diagnostics).toHaveLength(0);
+    for (const nodeId of nodeIds) {
+      expect(result.doc.nodesById[nodeId]).toMatchObject({ w: 144, h: 64 });
+    }
+  });
+
+  it("updates and clears selected heatmap values in bulk", () => {
+    const doc = createSampleDocument();
+    const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
+
+    const updated = runTransaction(
+      doc,
+      updateNodeHeatmapValues(nodeIds, 0.27),
+    ).doc;
+    const cleared = runTransaction(
+      updated,
+      updateNodeHeatmapValues(nodeIds, undefined),
+    );
+
+    expect(cleared.diagnostics).toHaveLength(0);
+    for (const nodeId of nodeIds) {
+      expect(updated.nodesById[nodeId]!.heatmapValue).toBe(0.27);
+      expect(cleared.doc.nodesById[nodeId]!.heatmapValue).toBeUndefined();
+    }
+  });
+
+  it("updates selected manual and preserve flags in bulk", () => {
+    const doc = createSampleDocument();
+    const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
+
+    const manual = runTransaction(
+      doc,
+      setManualPositioningForNodes(nodeIds, true),
+    ).doc;
+    const preserved = runTransaction(manual, lockSubtrees(nodeIds, true));
+
+    expect(preserved.diagnostics).toHaveLength(0);
+    for (const nodeId of nodeIds) {
+      expect(manual.nodesById[nodeId]!.isManualPositioningEnabled).toBe(true);
+      expect(preserved.doc.nodesById[nodeId]!.isLockedAsIs).toBe(true);
     }
   });
 

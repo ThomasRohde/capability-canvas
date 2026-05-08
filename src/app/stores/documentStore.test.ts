@@ -9,6 +9,7 @@ import {
   resetVisualViewLayout,
   resetVisualViewFromTemplate,
   resizeNode,
+  updateNodeSizes,
   updateActiveViewHeatmapSettings,
   updateVisualView,
   updateVisualNodeState,
@@ -163,6 +164,31 @@ describe("document store layout settings", () => {
     expect(
       geometrySnapshot(resolveVisualDocument(useDocumentStore.getState().doc), ids),
     ).toEqual(before);
+  });
+
+  it("undoes a bulk size edit in one step", () => {
+    useDocumentStore.setState({
+      doc: createSampleDocument(),
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
+    const before = geometrySnapshot(useDocumentStore.getState().doc, nodeIds);
+
+    useDocumentStore.getState().execute(updateNodeSizes(nodeIds, { w: 156 }));
+
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    for (const nodeId of nodeIds) {
+      expect(useDocumentStore.getState().doc.nodesById[nodeId]!.w).toBe(156);
+    }
+
+    useDocumentStore.getState().undo();
+    expect(geometrySnapshot(useDocumentStore.getState().doc, nodeIds)).toEqual(
+      before,
+    );
   });
 
   it("re-runs incremental layout for the parent after addChild so the new child is contained", async () => {

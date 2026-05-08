@@ -39,7 +39,7 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
-import { canMultiSelect } from "../../domain/selection/rules";
+import { resolveToggleSelection } from "../../domain/selection/rules";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import {
@@ -452,15 +452,9 @@ function arraysEqual(first: string[], second: string[]) {
 
 function toggleOutlineSelection(doc: CapabilityDocument, nodeId: NodeId) {
   const ui = useUiStore.getState();
-  const current = ui.selectedNodeIds;
-  const candidate = current.includes(nodeId)
-    ? current.filter((id) => id !== nodeId)
-    : [...current, nodeId];
-  if (candidate.length <= 1 || canMultiSelect(doc, candidate).valid) {
-    ui.setSelection(candidate);
-    return;
-  }
-  ui.setSelection([nodeId]);
+  const resolution = resolveToggleSelection(doc, ui.selectedNodeIds, nodeId);
+  ui.setSelection(resolution.nodeIds);
+  if (resolution.reason) ui.showSelectionNotice(resolution.reason);
 }
 
 function OutlineActionsMenu({
