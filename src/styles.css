@@ -1974,9 +1974,9 @@ button:focus-visible {
 
 .cc-export-drawer {
   position: absolute;
-  top: 4px;
+  top: calc(var(--cc-toolbar-height) + 4px);
   right: 4px;
-  bottom: 4px;
+  bottom: calc(var(--cc-statusbar-height) + 4px);
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -1989,9 +1989,9 @@ button:focus-visible {
 
 .cc-settings-drawer {
   position: absolute;
-  top: 4px;
+  top: calc(var(--cc-toolbar-height) + 4px);
   right: 4px;
-  bottom: 4px;
+  bottom: calc(var(--cc-statusbar-height) + 4px);
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -2004,9 +2004,9 @@ button:focus-visible {
 
 .cc-views-drawer {
   position: absolute;
-  top: 4px;
+  top: calc(var(--cc-toolbar-height) + 4px);
   right: 4px;
-  bottom: 4px;
+  bottom: calc(var(--cc-statusbar-height) + 4px);
   z-index: 40;
   display: flex;
   flex-direction: column;

@@ -239,15 +239,6 @@ export function Toolbar() {
           />
           <span className="cc-brand-name">Capability Canvas</span>
         </div>
-        <button
-          className="cc-doc-picker"
-          type="button"
-          aria-label="Edit document title"
-          title="Edit document title"
-          onClick={openSettings}
-        >
-          {doc.title}
-        </button>
         <ViewSwitcher />
         <ToolbarMenu label="View options" icon={SlidersHorizontal} compact>
           {({ closeMenu }) => (

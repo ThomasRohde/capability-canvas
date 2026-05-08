@@ -877,10 +877,14 @@ describe("editor shell", () => {
     }
   });
 
-  it("opens document title editing from the title chip", async () => {
+  it("keeps document title editing in settings", async () => {
     render(<EditorRoute />);
+    expect(
+      screen.queryByRole("button", { name: "Edit document title" }),
+    ).not.toBeInTheDocument();
+
     await userEvent.click(
-      screen.getByRole("button", { name: "Edit document title" }),
+      screen.getByRole("button", { name: "Open settings" }),
     );
 
     expect(

@@ -111,6 +111,9 @@ test('supports panel rail, padding controls and outline actions', async ({ page 
 
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByRole('complementary', { name: 'Settings' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close settings' }).click();
+  await expect(page.getByRole('complementary', { name: 'Settings' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('Top', { exact: true }).fill('48');
   await page.getByRole('button', { name: 'Apply auto layout' }).click();
   await expect(page.getByLabel('Top', { exact: true })).toHaveValue('48');
