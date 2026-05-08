@@ -63,8 +63,12 @@ export function interpolateHeatmap(
 }
 
 export function heatmapGradient(palette: HeatmapState['palette']): string {
-  const stops = HEATMAP_PALETTES[palette] ?? HEATMAP_PALETTES['green-yellow-red'];
+  const stops = heatmapPaletteStops(palette);
   return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
+export function heatmapPaletteStops(palette: HeatmapState['palette']): string[] {
+  return [...(HEATMAP_PALETTES[palette] ?? HEATMAP_PALETTES['green-yellow-red'])];
 }
 
 function mix(a: string, b: string, t: number): string {

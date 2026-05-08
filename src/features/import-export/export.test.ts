@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { createSampleDocument } from '../../domain/fixtures/sample';
 import { runTransaction, updateDocumentTitle } from '../../domain/commands/operations';
-import { resolveVisualDocument } from '../../domain/visual/workspace';
+import { createEmptyDocument, createNode } from '../../domain/document/defaults';
+import { ROOT_PARENT_ID, type CapabilityDocument } from '../../domain/document/types';
+import {
+  createVisualWorkspaceFromDocument,
+  materializeActiveViewMetadata,
+  resolveVisualDocument,
+} from '../../domain/visual/workspace';
 import { resolveNodeFill } from '../heatmap/resolveNodeFill';
 import { archimateExport } from './archimate';
 import { drawioExport } from './drawio';
-import { htmlExport } from './html';
+import { htmlAdapter, htmlExport } from './html';
 import { jsonExport } from './json';
-import { svgExport } from './svg';
+import { pptxAdapter, pptxExport } from './pptx';
+import { buildVisualExportModel } from './renderModel';
+import { svgAdapter, svgExport } from './svg';
 
 describe('exports', () => {
   it('exports all static text formats', () => {
@@ -19,6 +27,60 @@ describe('exports', () => {
     expect(archimateExport(doc).data).toContain('xsi:type="Capability"');
   });
 
+  it('exports PPTX native shapes without snapshotting binary output', async () => {
+    const result = await pptxExport(createExportFixture());
+
+    expect(result.format).toBe('pptx');
+    expect(result.filename).toBe('export-fidelity.pptx');
+    expect(result.data).toBeInstanceOf(Blob);
+  });
+
+  it('reports active-view legend rendering for visual adapters that render it', () => {
+    expect(svgAdapter.legend).toBe('active-view-display');
+    expect(htmlAdapter.legend).toBe('active-view-display');
+    expect(pptxAdapter.legend).toBe('active-view-display');
+  });
+
+  it('snapshots SVG normal color mode fidelity', () => {
+    expect(svgExport(createExportFixture()).data).toMatchSnapshot();
+  });
+
+  it('snapshots SVG heatmap scores and legend fidelity', () => {
+    const doc = createExportFixture();
+    const view = doc.visual.viewsById[doc.visual.activeViewId]!;
+    view.heatmap = {
+      ...view.heatmap,
+      enabled: true,
+      showLegend: true,
+      legendPosition: 'bottom-right',
+    };
+
+    expect(svgExport(doc).data).toMatchSnapshot();
+  });
+
+  it('snapshots SVG active-view visibility filtering', () => {
+    const doc = createExportFixture();
+    doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById.leaf = {
+      ...doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById.leaf,
+      isOnCanvas: false,
+    };
+
+    expect(svgExport(doc).data).toMatchSnapshot();
+  });
+
+  it('snapshots the shared render model used by PPTX', () => {
+    const doc = createExportFixture();
+    const view = doc.visual.viewsById[doc.visual.activeViewId]!;
+    view.heatmap = {
+      ...view.heatmap,
+      enabled: true,
+      showLegend: true,
+      legendPosition: 'top-right',
+    };
+
+    expect(buildVisualExportModel(doc)).toMatchSnapshot();
+  });
+
   it('resolves heatmap fills consistently', () => {
     const doc = createSampleDocument();
     doc.visual.viewsById[doc.visual.activeViewId]!.heatmap.enabled = true;
@@ -27,6 +89,18 @@ describe('exports', () => {
     const fill = resolveNodeFill(node, visualDoc.heatmap);
     expect(fill.border).toMatch(/^#/);
     expect(svgExport(doc).data).toContain(fill.border);
+  });
+
+  it('computes each visual export fill through resolveNodeFill', () => {
+    const doc = createSampleDocument();
+    doc.visual.viewsById[doc.visual.activeViewId]!.heatmap.enabled = true;
+    const visualDoc = resolveVisualDocument(doc);
+    const model = buildVisualExportModel(doc);
+
+    for (const nodeModel of model.nodes) {
+      const node = visualDoc.nodesById[nodeModel.id]!;
+      expect(nodeModel.fill).toEqual(resolveNodeFill(node, visualDoc.heatmap));
+    }
   });
 
   it('keeps visual exports out of heatmap mode when heatmap is disabled', () => {
@@ -75,6 +149,15 @@ describe('exports', () => {
 
     expect(explicitZeroSvg).toContain('>0.00</text>');
     expect(unscoredSvg).not.toContain('>0.00</text>');
+  });
+
+  it('keeps long exported labels bounded with deterministic ellipsis', () => {
+    const model = buildVisualExportModel(createExportFixture());
+    const leaf = model.nodes.find((node) => node.id === 'leaf')!;
+
+    expect(leaf.label.lines).toMatchSnapshot();
+    expect(Math.max(...leaf.label.lines.map((line) => line.length))).toBeLessThanOrEqual(15);
+    expect(leaf.label.lines.at(-1)).toMatch(/\.\.\.$/);
   });
 
   it('escapes HTML title content and sanitizes filenames', () => {
@@ -132,3 +215,48 @@ describe('exports', () => {
     expect(archimateExport(doc).data).toContain('digital-onboarding');
   });
 });
+
+function createExportFixture(): CapabilityDocument {
+  const doc = createEmptyDocument('Export Fidelity');
+  const root = createNode({
+    id: 'root',
+    label: 'Root Capability',
+    type: 'root',
+    color: 'mint',
+    x: 0,
+    y: 0,
+    w: 260,
+    h: 140,
+    heatmapValue: 0.35,
+  });
+  const leaf = createNode({
+    id: 'leaf',
+    parentId: 'root',
+    label: 'Very long onboarding capability name that should fit',
+    type: 'leaf',
+    color: 'sky',
+    x: 24,
+    y: 72,
+    w: 120,
+    h: 40,
+    heatmapValue: 0,
+  });
+
+  doc.nodesById = {
+    root,
+    leaf,
+  };
+  doc.childrenByParentId = {
+    [ROOT_PARENT_ID]: ['root'],
+    root: ['leaf'],
+    leaf: [],
+  };
+  doc.layout = {
+    ...doc.layout,
+    isUserArranged: true,
+    preservePositions: true,
+    boundingBox: { x: 0, y: 0, w: 260, h: 140 },
+  };
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return materializeActiveViewMetadata(doc);
+}

@@ -1,9 +1,12 @@
-import { sortedNodes } from '../../domain/document/normalize';
 import { safeFileBaseName } from '../../domain/document/fileName';
-import { isNodeOnCanvas, type CapabilityDocument, type CapabilityNode } from '../../domain/document/types';
-import { resolveVisualDocument } from '../../domain/visual/workspace';
-import { resolveNodeFill } from '../heatmap/resolveNodeFill';
+import type { CapabilityDocument } from '../../domain/document/types';
 import { escapeXml } from './escape';
+import {
+  buildVisualExportModel,
+  type VisualExportLegendModel,
+  type VisualExportModel,
+  type VisualExportNodeModel,
+} from './renderModel';
 import type { ExportAdapter, ExportResult } from './types';
 
 interface RenderSvgOptions {
@@ -11,102 +14,100 @@ interface RenderSvgOptions {
 }
 
 export function svgExport(doc: CapabilityDocument): ExportResult {
-  const visualDoc = resolveVisualDocument(doc);
+  const model = buildVisualExportModel(doc);
   return {
     format: 'svg',
-    filename: `${safeFileBaseName(visualDoc.title)}.svg`,
+    filename: `${safeFileBaseName(model.title)}.svg`,
     mimeType: 'image/svg+xml',
-    data: renderSvg(visualDoc),
+    data: renderSvg(model),
     diagnostics: []
   };
 }
 
-export function renderSvg(doc: CapabilityDocument, options: RenderSvgOptions = {}): string {
-  const bounds = doc.layout.boundingBox.w > 0 ? doc.layout.boundingBox : { x: 0, y: 0, w: 1200, h: 800 };
-  const nodes = sortedNodes(doc).filter(isNodeOnCanvas);
+export function renderSvg(
+  model: VisualExportModel,
+  options: RenderSvgOptions = {},
+): string {
+  const bounds = model.surfaceBounds;
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${bounds.w + 96}" height="${bounds.h + 96}" viewBox="${bounds.x - 48} ${bounds.y - 48} ${bounds.w + 96} ${bounds.h + 96}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${num(bounds.w)}" height="${num(bounds.h)}" viewBox="${num(bounds.x)} ${num(bounds.y)} ${num(bounds.w)} ${num(bounds.h)}">
+  ${renderDefs(model)}
   <style>
-    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    text { font-family: ${escapeXml(model.fontFamily)}, Arial, sans-serif; fill: #0f172a; }
     .node-label { font-size: 13px; font-weight: 500; }
-    .container-label { font-size: 15px; font-weight: 600; }
+    .container-label { font-size: 14px; font-weight: 600; }
+    .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
+    .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .heatmap-legend-label { font-size: 11px; fill: #64748b; }
   </style>
-  <rect x="${bounds.x - 48}" y="${bounds.y - 48}" width="${bounds.w + 96}" height="${bounds.h + 96}" fill="#f1f5f9" />
-  ${nodes.map((node) => renderNode(doc, node, options)).join('\n  ')}
+  <rect x="${num(bounds.x)}" y="${num(bounds.y)}" width="${num(bounds.w)}" height="${num(bounds.h)}" fill="${model.background}" />
+  ${model.nodes.map((node) => renderNode(node, options)).join('\n  ')}
+  ${model.legend ? renderLegend(model.legend) : ''}
 </svg>`;
 }
 
+function renderDefs(model: VisualExportModel): string {
+  if (!model.legend) return '<defs />';
+  const stopCount = Math.max(1, model.legend.stops.length - 1);
+  const stops = model.legend.stops
+    .map(
+      (color, index) =>
+        `<stop offset="${num((index / stopCount) * 100)}%" stop-color="${color}" />`,
+    )
+    .join('');
+  return `<defs><linearGradient id="cc-heatmap-gradient" x1="0%" y1="0%" x2="100%" y2="0%">${stops}</linearGradient></defs>`;
+}
+
 function renderNode(
-  doc: CapabilityDocument,
-  node: CapabilityNode,
+  node: VisualExportNodeModel,
   options: RenderSvgOptions,
 ): string {
-  const fill = resolveNodeFill(node, doc.heatmap);
-  const isContainer = node.type === 'root' || node.type === 'parent';
-  const radius = isContainer ? 8 : 6;
-  const label = renderLabel(doc, node, isContainer);
-  const heatmapScore =
-    doc.heatmap.enabled && node.heatmapValue !== undefined
-      ? `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 20}" text-anchor="middle" font-size="11">${node.heatmapValue.toFixed(2)}</text>`
-      : '';
-  const description = node.description?.trim();
   const descriptionData =
-    options.includeDescriptionData && description
-      ? ` class="cc-node" tabindex="0" data-description="${escapeXml(description)}"`
+    options.includeDescriptionData && node.description
+      ? ` class="cc-node" tabindex="0" data-description="${escapeXml(node.description)}"`
       : '';
   return `<g data-node-id="${escapeXml(node.id)}"${descriptionData}>
-    <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" fill="${fill.background}" stroke="${fill.border}" stroke-width="${isContainer ? 1.5 : 1}" />
-    ${label}
-    ${heatmapScore}
+    <rect x="${num(node.bounds.x)}" y="${num(node.bounds.y)}" width="${num(node.bounds.w)}" height="${num(node.bounds.h)}" rx="${num(node.radius)}" fill="${node.fill.background}" stroke="${node.fill.border}" stroke-width="${num(node.strokeWidth)}" />
+    ${renderLabel(node)}
+    ${node.score ? renderScore(node) : ''}
   </g>`;
 }
 
-function renderLabel(
-  doc: CapabilityDocument,
-  node: CapabilityNode,
-  isContainer: boolean,
-): string {
-  const className = isContainer ? 'container-label' : 'node-label';
-  const x = node.x + node.w / 2;
-  const maxChars = Math.max(8, Math.floor((node.w - 16) / (isContainer ? 8 : 7)));
-  const lines = wrapLabel(node.label, maxChars, isContainer ? 2 : 3);
-  const lineHeight = isContainer ? 17 : 15;
-  const firstY = isContainer
-    ? node.y + doc.settings.containerLabelOffsetTop + 12
-    : node.y + node.h / 2 - ((lines.length - 1) * lineHeight) / 2 + 5;
-  const tspans = lines
+function renderLabel(node: VisualExportNodeModel): string {
+  const className = node.isContainer ? 'container-label' : 'node-label';
+  const tspans = node.label.lines
     .map(
       (line, index) =>
-        `<tspan x="${x}" ${index === 0 ? `y="${firstY}"` : `dy="${lineHeight}"`}>${escapeXml(line)}</tspan>`,
+        `<tspan x="${num(node.label.x)}" ${index === 0 ? `y="${num(node.label.firstBaselineY)}"` : `dy="${num(node.label.lineHeight)}"`}>${escapeXml(line)}</tspan>`,
     )
     .join('');
-  return `<text text-anchor="middle" class="${className}">${tspans}</text>`;
+  return `<text text-anchor="middle" class="${className}" font-size="${num(node.label.fontSize)}" font-weight="${node.label.fontWeight}">${tspans}</text>`;
 }
 
-function wrapLabel(label: string, maxChars: number, maxLines: number): string[] {
-  const words = label.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [''];
-  const lines: string[] = [];
-  let current = '';
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length <= maxChars) {
-      current = candidate;
-      continue;
-    }
-    if (current) lines.push(current);
-    current = word.length > maxChars ? `${word.slice(0, Math.max(1, maxChars - 3))}...` : word;
-    if (lines.length === maxLines - 1) break;
+function renderScore(node: VisualExportNodeModel): string {
+  const score = node.score;
+  if (!score) return '';
+  if (score.kind === 'badge') {
+    return `<g class="heatmap-score heatmap-score-badge">
+      <rect x="${num(score.bounds.x)}" y="${num(score.bounds.y)}" width="${num(score.bounds.w)}" height="${num(score.bounds.h)}" rx="${num(score.bounds.h / 2)}" fill="#ffffff" fill-opacity="0.72" stroke="#64748b" stroke-opacity="0.16" />
+      <text x="${num(score.textX)}" y="${num(score.textY)}" text-anchor="middle" font-size="${num(score.fontSize)}" font-weight="${score.fontWeight}">${score.value}</text>
+    </g>`;
   }
-  if (current && lines.length < maxLines) lines.push(current);
-  if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
-    const last = lines[maxLines - 1]!;
-    lines[maxLines - 1] =
-      last.length > maxChars - 3
-        ? `${last.slice(0, Math.max(1, maxChars - 3))}...`
-        : `${last}...`;
-  }
-  return lines;
+  return `<text class="heatmap-score" x="${num(score.x)}" y="${num(score.y)}" text-anchor="middle" font-size="${num(score.fontSize)}" font-weight="${score.fontWeight}">${score.value}</text>`;
+}
+
+function renderLegend(legend: VisualExportLegendModel): string {
+  return `<g class="heatmap-legend" data-legend-position="${legend.position}">
+    <rect x="${num(legend.bounds.x)}" y="${num(legend.bounds.y)}" width="${num(legend.bounds.w)}" height="${num(legend.bounds.h)}" rx="10" fill="#ffffff" stroke="#e2e8f0" />
+    <text class="heatmap-legend-title" x="${num(legend.titleX)}" y="${num(legend.titleY)}">${escapeXml(legend.title)}</text>
+    <rect x="${num(legend.barBounds.x)}" y="${num(legend.barBounds.y)}" width="${num(legend.barBounds.w)}" height="${num(legend.barBounds.h)}" rx="${num(legend.barBounds.h / 2)}" fill="url(#cc-heatmap-gradient)" />
+    <text class="heatmap-legend-label" x="${num(legend.barBounds.x)}" y="${num(legend.labelY)}">${escapeXml(legend.lowLabel)}</text>
+    <text class="heatmap-legend-label" x="${num(legend.barBounds.x + legend.barBounds.w)}" y="${num(legend.labelY)}" text-anchor="end">${escapeXml(legend.highLabel)}</text>
+  </g>`;
+}
+
+function num(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
 }
 
 export const svgAdapter: ExportAdapter = {
@@ -117,6 +118,6 @@ export const svgAdapter: ExportAdapter = {
   requiresValidDocument: true,
   hiddenNodes: 'excluded',
   heatmap: 'active-view-display',
-  legend: 'not-rendered',
+  legend: 'active-view-display',
   exportDocument: svgExport
 };

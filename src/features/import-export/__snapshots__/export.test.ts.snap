@@ -1,0 +1,236 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`exports > keeps long exported labels bounded with deterministic ellipsis 1`] = `
+[
+  "Very long",
+  "onboarding...",
+]
+`;
+
+exports[`exports > snapshots SVG active-view visibility filtering 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="356" height="236" viewBox="-48 -48 356 236">
+  <defs />
+  <style>
+    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    .node-label { font-size: 13px; font-weight: 500; }
+    .container-label { font-size: 14px; font-weight: 600; }
+    .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
+    .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .heatmap-legend-label { font-size: 11px; fill: #64748b; }
+  </style>
+  <rect x="-48" y="-48" width="356" height="236" fill="#f1f5f9" />
+  <g data-node-id="root">
+    <rect x="0" y="0" width="260" height="140" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
+    <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="130" y="75.2">Root Capability</tspan></text>
+    
+  </g>
+  
+</svg>"
+`;
+
+exports[`exports > snapshots SVG heatmap scores and legend fidelity 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="356" height="318" viewBox="-48 -48 356 318">
+  <defs><linearGradient id="cc-heatmap-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#86efac" /><stop offset="25%" stop-color="#bef264" /><stop offset="50%" stop-color="#fde047" /><stop offset="75%" stop-color="#fb923c" /><stop offset="100%" stop-color="#ef4444" /></linearGradient></defs>
+  <style>
+    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    .node-label { font-size: 13px; font-weight: 500; }
+    .container-label { font-size: 14px; font-weight: 600; }
+    .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
+    .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .heatmap-legend-label { font-size: 11px; fill: #64748b; }
+  </style>
+  <rect x="-48" y="-48" width="356" height="318" fill="#f1f5f9" />
+  <g data-node-id="root">
+    <rect x="0" y="0" width="260" height="140" rx="8" fill="#f5fad4" stroke="#d7eb58" stroke-width="1.5" />
+    <text text-anchor="middle" class="container-label" font-size="14" font-weight="600"><tspan x="130" y="16">Root Capability</tspan></text>
+    <g class="heatmap-score heatmap-score-badge">
+      <rect x="214.8" y="7" width="35.2" height="16" rx="8" fill="#ffffff" fill-opacity="0.72" stroke="#64748b" stroke-opacity="0.16" />
+      <text x="232.4" y="18" text-anchor="middle" font-size="10" font-weight="600">0.35</text>
+    </g>
+  </g>
+  <g data-node-id="leaf">
+    <rect x="24" y="72" width="120" height="40" rx="6" fill="#e0fbe9" stroke="#86efac" stroke-width="1" />
+    <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="84" y="90.2">Very long...</tspan></text>
+    <text class="heatmap-score" x="84" y="104.2" text-anchor="middle" font-size="11" font-weight="500">0.00</text>
+  </g>
+  <g class="heatmap-legend" data-legend-position="bottom-right">
+    <rect x="50" y="164" width="210" height="58" rx="10" fill="#ffffff" stroke="#e2e8f0" />
+    <text class="heatmap-legend-title" x="62" y="182">Heatmap</text>
+    <rect x="62" y="192" width="186" height="8" rx="4" fill="url(#cc-heatmap-gradient)" />
+    <text class="heatmap-legend-label" x="62" y="214">Low</text>
+    <text class="heatmap-legend-label" x="248" y="214" text-anchor="end">High</text>
+  </g>
+</svg>"
+`;
+
+exports[`exports > snapshots SVG normal color mode fidelity 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="356" height="236" viewBox="-48 -48 356 236">
+  <defs />
+  <style>
+    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    .node-label { font-size: 13px; font-weight: 500; }
+    .container-label { font-size: 14px; font-weight: 600; }
+    .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
+    .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .heatmap-legend-label { font-size: 11px; fill: #64748b; }
+  </style>
+  <rect x="-48" y="-48" width="356" height="236" fill="#f1f5f9" />
+  <g data-node-id="root">
+    <rect x="0" y="0" width="260" height="140" rx="8" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5" />
+    <text text-anchor="middle" class="container-label" font-size="14" font-weight="600"><tspan x="130" y="16">Root Capability</tspan></text>
+    
+  </g>
+  <g data-node-id="leaf">
+    <rect x="24" y="72" width="120" height="40" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
+    <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="84" y="89.4">Very long</tspan><tspan x="84" dy="15.6">onboarding...</tspan></text>
+    
+  </g>
+  
+</svg>"
+`;
+
+exports[`exports > snapshots the shared render model used by PPTX 1`] = `
+{
+  "background": "#f1f5f9",
+  "contentBounds": {
+    "h": 222,
+    "w": 260,
+    "x": 0,
+    "y": -82,
+  },
+  "documentBounds": {
+    "h": 140,
+    "w": 260,
+    "x": 0,
+    "y": 0,
+  },
+  "exportSettings": {
+    "includeGrid": undefined,
+    "pagePreset": undefined,
+    "showFooter": undefined,
+    "showSubtitle": undefined,
+    "showTitle": undefined,
+  },
+  "fontFamily": "Inter",
+  "legend": {
+    "barBounds": {
+      "h": 8,
+      "w": 186,
+      "x": 62,
+      "y": -54,
+    },
+    "bounds": {
+      "h": 58,
+      "w": 210,
+      "x": 50,
+      "y": -82,
+    },
+    "highLabel": "High",
+    "labelY": -32,
+    "lowLabel": "Low",
+    "position": "top-right",
+    "stops": [
+      "#86efac",
+      "#bef264",
+      "#fde047",
+      "#fb923c",
+      "#ef4444",
+    ],
+    "title": "Heatmap",
+    "titleX": 62,
+    "titleY": -64,
+  },
+  "nodes": [
+    {
+      "bounds": {
+        "h": 140,
+        "w": 260,
+        "x": 0,
+        "y": 0,
+      },
+      "description": undefined,
+      "fill": {
+        "background": "#f5fad4",
+        "border": "#d7eb58",
+        "dot": "#d7eb58",
+        "text": "#0f172a",
+      },
+      "id": "root",
+      "isContainer": true,
+      "label": {
+        "firstBaselineY": 16,
+        "fontSize": 14,
+        "fontWeight": 600,
+        "lineHeight": 17,
+        "lines": [
+          "Root Capability",
+        ],
+        "x": 130,
+      },
+      "radius": 8,
+      "score": {
+        "bounds": {
+          "h": 16,
+          "w": 35.2,
+          "x": 214.8,
+          "y": 7,
+        },
+        "fontSize": 10,
+        "fontWeight": 600,
+        "kind": "badge",
+        "textX": 232.4,
+        "textY": 18,
+        "value": "0.35",
+      },
+      "strokeWidth": 1.5,
+    },
+    {
+      "bounds": {
+        "h": 40,
+        "w": 120,
+        "x": 24,
+        "y": 72,
+      },
+      "description": undefined,
+      "fill": {
+        "background": "#e0fbe9",
+        "border": "#86efac",
+        "dot": "#86efac",
+        "text": "#0f172a",
+      },
+      "id": "leaf",
+      "isContainer": false,
+      "label": {
+        "firstBaselineY": 90.2,
+        "fontSize": 13,
+        "fontWeight": 500,
+        "lineHeight": 15.6,
+        "lines": [
+          "Very long...",
+        ],
+        "x": 84,
+      },
+      "radius": 6,
+      "score": {
+        "fontSize": 11,
+        "fontWeight": 500,
+        "kind": "text",
+        "value": "0.00",
+        "x": 84,
+        "y": 104.2,
+      },
+      "strokeWidth": 1,
+    },
+  ],
+  "surfaceBounds": {
+    "h": 318,
+    "w": 356,
+    "x": -48,
+    "y": -130,
+  },
+  "title": "Export Fidelity",
+}
+`;

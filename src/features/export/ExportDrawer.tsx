@@ -345,9 +345,13 @@ function heatmapCopy(adapter: ExportAdapter): string {
 }
 
 function legendCopy(adapter: ExportAdapter): string {
-  return adapter.legend === "source-settings"
-    ? "Stores legend settings as source data."
-    : "Does not render the heatmap legend yet.";
+  if (adapter.legend === "source-settings") {
+    return "Stores legend settings as source data.";
+  }
+  if (adapter.legend === "active-view-display") {
+    return "Renders the active view heatmap legend when enabled.";
+  }
+  return "Does not render the heatmap legend yet.";
 }
 
 function DiagnosticList({ diagnostics }: { diagnostics: Diagnostic[] }) {

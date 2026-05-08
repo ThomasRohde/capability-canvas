@@ -9,7 +9,10 @@ export type ExportHeatmapBehavior =
   | 'source-settings'
   | 'active-view-display'
   | 'not-included';
-export type ExportLegendBehavior = 'source-settings' | 'not-rendered';
+export type ExportLegendBehavior =
+  | 'source-settings'
+  | 'active-view-display'
+  | 'not-rendered';
 
 export interface ExportResult {
   format: ExportFormat;

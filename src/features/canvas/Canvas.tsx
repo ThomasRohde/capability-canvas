@@ -20,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
@@ -51,11 +52,15 @@ import {
   type Bounds,
   type CapabilityColor,
   type CapabilityDocument,
+  type LegendPosition,
   type NodeId,
 } from "../../domain/document/types";
 import { normalizeNodeLabel } from "../../domain/document/labels";
 import { gridSizeFor, snapToGrid } from "../../domain/layout/grid";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import {
+  activeVisualView,
+  resolveVisualDocument,
+} from "../../domain/visual/workspace";
 import {
   findDropTarget,
   isAcceptableDropTarget,
@@ -108,6 +113,7 @@ export function Canvas({
     (state) => state.setActiveViewViewport,
   );
   const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
+  const activeView = useMemo(() => activeVisualView(doc), [doc]);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
   const clearSelection = useUiStore((state) => state.clearSelection);
@@ -1067,7 +1073,10 @@ export function Canvas({
         <BulkToolbar selected={canvasSelected} />
       )}
       {viewDoc.heatmap.enabled && viewDoc.heatmap.showLegend && (
-        <HeatmapLegend palette={viewDoc.heatmap.palette} />
+        <HeatmapLegend
+          palette={viewDoc.heatmap.palette}
+          position={activeView.heatmap.legendPosition}
+        />
       )}
       <Minimap
         bounds={viewDoc.layout.boundingBox}
@@ -1481,11 +1490,13 @@ function BulkColorPicker({
 
 function HeatmapLegend({
   palette,
+  position,
 }: {
   palette: Parameters<typeof heatmapGradient>[0];
+  position?: LegendPosition;
 }) {
   return (
-    <div className="cc-heat-legend">
+    <div className="cc-heat-legend" style={heatmapLegendStyle(position)}>
       <div className="cc-section-title">Heatmap</div>
       <div
         className="cc-heat-bar"
@@ -1504,6 +1515,21 @@ function HeatmapLegend({
       </div>
     </div>
   );
+}
+
+function heatmapLegendStyle(position: LegendPosition | undefined): CSSProperties {
+  const effectivePosition = position === "custom" ? "bottom-left" : position;
+  switch (effectivePosition) {
+    case "top-left":
+      return { top: 16, left: 16, bottom: "auto", right: "auto" };
+    case "top-right":
+      return { top: 16, right: 16, bottom: "auto", left: "auto" };
+    case "bottom-right":
+      return { right: 16, bottom: 16, top: "auto", left: "auto" };
+    case "bottom-left":
+    default:
+      return { left: 16, bottom: 16, top: "auto", right: "auto" };
+  }
 }
 
 function Minimap({

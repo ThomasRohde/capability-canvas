@@ -140,6 +140,42 @@ describe("editor shell", () => {
     ).toHaveAttribute("aria-checked", "true");
   });
 
+  it("positions the heatmap legend from the active view", () => {
+    const doc = useDocumentStore.getState().doc;
+    const activeViewId = doc.visual.activeViewId;
+    const activeView = doc.visual.viewsById[activeViewId]!;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        visual: {
+          ...doc.visual,
+          viewsById: {
+            ...doc.visual.viewsById,
+            [activeViewId]: {
+              ...activeView,
+              heatmap: {
+                ...activeView.heatmap,
+                enabled: true,
+                showLegend: true,
+                legendPosition: "top-right",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    render(<EditorRoute />);
+    const legend = screen
+      .getByTestId("canvas")
+      .querySelector(".cc-heat-legend") as HTMLElement;
+
+    expect(legend.style.top).toBe("16px");
+    expect(legend.style.right).toBe("16px");
+    expect(legend.style.bottom).toBe("auto");
+    expect(legend.style.left).toBe("auto");
+  });
+
   it("keeps secondary model commands in a keyboard-accessible menu", async () => {
     render(<EditorRoute />);
     const trigger = screen.getByRole("button", { name: "Model actions" });

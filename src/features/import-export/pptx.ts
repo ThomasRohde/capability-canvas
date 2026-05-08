@@ -1,64 +1,239 @@
 import pptxgen from 'pptxgenjs';
 import { safeFileBaseName } from '../../domain/document/fileName';
-import { sortedNodes } from '../../domain/document/normalize';
-import { isNodeOnCanvas, type CapabilityDocument } from '../../domain/document/types';
-import { resolveVisualDocument } from '../../domain/visual/workspace';
-import { resolveNodeFill } from '../heatmap/resolveNodeFill';
+import type { Bounds, CapabilityDocument } from '../../domain/document/types';
+import {
+  buildVisualExportModel,
+  type VisualExportLegendModel,
+  type VisualExportModel,
+  type VisualExportNodeModel,
+} from './renderModel';
 import type { ExportAdapter, ExportResult } from './types';
 
+const SLIDE_WIDE_WIDTH = 13.333;
+const SLIDE_WIDE_HEIGHT = 7.5;
+const SLIDE_MARGIN = 0.35;
+const TITLE_HEIGHT = 0.35;
+const TITLE_GAP = 0.15;
+
+interface SlideMapper {
+  x(value: number): number;
+  y(value: number): number;
+  w(value: number): number;
+  h(value: number): number;
+  font(value: number): number;
+}
+
 export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult> {
-  const visualDoc = resolveVisualDocument(doc);
+  const model = buildVisualExportModel(doc);
   const deck = new pptxgen();
   deck.layout = 'LAYOUT_WIDE';
   deck.author = 'Capability Canvas';
-  deck.subject = visualDoc.title;
-  deck.title = visualDoc.title;
+  deck.subject = model.title;
+  deck.title = model.title;
   const slide = deck.addSlide();
-  slide.background = { color: 'F8FAFC' };
-  slide.addText(visualDoc.title, { x: 0.35, y: 0.2, w: 12.5, h: 0.3, fontFace: 'Aptos', fontSize: 13, bold: true });
+  slide.background = { color: toPptColor(model.background) };
 
-  const bounds = visualDoc.layout.boundingBox.w > 0 ? visualDoc.layout.boundingBox : { x: 0, y: 0, w: 1200, h: 800 };
-  const scale = Math.min(12 / bounds.w, 6.6 / bounds.h);
-  const offsetX = 0.5 - bounds.x * scale;
-  const offsetY = 0.7 - bounds.y * scale;
-
-  for (const node of sortedNodes(visualDoc).filter(isNodeOnCanvas)) {
-    const fill = resolveNodeFill(node, visualDoc.heatmap);
-    slide.addShape(deck.ShapeType.roundRect, {
-      x: offsetX + node.x * scale,
-      y: offsetY + node.y * scale,
-      w: Math.max(0.2, node.w * scale),
-      h: Math.max(0.2, node.h * scale),
-      rectRadius: 0.05,
-      fill: { color: fill.background.replace('#', '') },
-      line: { color: fill.border.replace('#', ''), width: node.type === 'leaf' ? 0.5 : 0.8 }
-    });
-    const label =
-      visualDoc.heatmap.enabled && node.heatmapValue !== undefined
-        ? `${node.label}\n${node.heatmapValue.toFixed(2)}`
-        : node.label;
-    slide.addText(label, {
-      x: offsetX + node.x * scale + 0.04,
-      y: offsetY + node.y * scale + 0.04,
-      w: Math.max(0.1, node.w * scale - 0.08),
-      h: Math.max(0.1, node.h * scale - 0.08),
+  const mapper = createSlideMapper(model);
+  if (model.exportSettings.showTitle) {
+    slide.addText(model.title, {
+      x: SLIDE_MARGIN,
+      y: 0.2,
+      w: SLIDE_WIDE_WIDTH - SLIDE_MARGIN * 2,
+      h: TITLE_HEIGHT,
       fontFace: 'Aptos',
-      fontSize: node.type === 'leaf' ? 7 : 8,
-      align: 'center',
-      valign: 'middle',
+      fontSize: 13,
+      bold: true,
       color: '0F172A',
-      bold: node.type !== 'leaf'
+      margin: 0,
     });
+  }
+
+  for (const node of model.nodes) {
+    renderNode(slide, deck, mapper, node);
+  }
+  if (model.legend) {
+    renderLegend(slide, deck, mapper, model.legend);
   }
 
   const blob = await deck.write({ outputType: 'blob' });
   return {
     format: 'pptx',
-    filename: `${safeFileBaseName(visualDoc.title)}.pptx`,
+    filename: `${safeFileBaseName(model.title)}.pptx`,
     mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     data: blob as Blob,
     diagnostics: []
   };
+}
+
+function renderNode(
+  slide: pptxgen.Slide,
+  deck: pptxgen,
+  mapper: SlideMapper,
+  node: VisualExportNodeModel,
+): void {
+  const shape = mapBounds(mapper, node.bounds);
+  slide.addShape(deck.ShapeType.roundRect, {
+    ...shape,
+    rectRadius: Math.max(0.02, Math.min(shape.w, shape.h, mapper.w(node.radius))),
+    fill: { color: toPptColor(node.fill.background) },
+    line: {
+      color: toPptColor(node.fill.border),
+      width: node.isContainer ? 0.8 : 0.5,
+    },
+  });
+
+  const labelTop =
+    node.label.firstBaselineY - node.label.fontSize - node.label.lineHeight * 0.08;
+  slide.addText(node.label.lines.join('\n'), {
+    x: mapper.x(node.bounds.x + (node.isContainer ? 14 : 6)),
+    y: mapper.y(labelTop),
+    w: mapper.w(node.bounds.w - (node.isContainer ? 28 : 12)),
+    h: mapper.h(node.label.lines.length * node.label.lineHeight),
+    fontFace: 'Aptos',
+    fontSize: mapper.font(node.label.fontSize),
+    bold: node.label.fontWeight >= 600,
+    align: 'center',
+    valign: 'top',
+    color: '0F172A',
+    fit: 'shrink',
+    margin: 0,
+    breakLine: false,
+  });
+
+  if (node.score) {
+    if (node.score.kind === 'badge') {
+      const scoreBounds = mapBounds(mapper, node.score.bounds);
+      slide.addShape(deck.ShapeType.roundRect, {
+        ...scoreBounds,
+        rectRadius: scoreBounds.h / 2,
+        fill: { color: 'FFFFFF', transparency: 28 },
+        line: { color: '64748B', transparency: 84, width: 0.4 },
+      });
+      slide.addText(node.score.value, {
+        ...scoreBounds,
+        fontFace: 'Aptos',
+        fontSize: mapper.font(node.score.fontSize),
+        bold: true,
+        align: 'center',
+        valign: 'middle',
+        color: '475569',
+        fit: 'shrink',
+        margin: 0,
+      });
+    } else {
+      slide.addText(node.score.value, {
+        x: mapper.x(node.score.x - node.bounds.w / 2),
+        y: mapper.y(node.score.y - node.score.fontSize),
+        w: mapper.w(node.bounds.w),
+        h: mapper.h(node.score.fontSize + 2),
+        fontFace: 'Aptos',
+        fontSize: mapper.font(node.score.fontSize),
+        bold: false,
+        align: 'center',
+        valign: 'middle',
+        color: '475569',
+        fit: 'shrink',
+        margin: 0,
+      });
+    }
+  }
+}
+
+function renderLegend(
+  slide: pptxgen.Slide,
+  deck: pptxgen,
+  mapper: SlideMapper,
+  legend: VisualExportLegendModel,
+): void {
+  slide.addShape(deck.ShapeType.roundRect, {
+    ...mapBounds(mapper, legend.bounds),
+    rectRadius: mapper.w(10),
+    fill: { color: 'FFFFFF' },
+    line: { color: 'E2E8F0', width: 0.5 },
+  });
+  slide.addText(legend.title, {
+    x: mapper.x(legend.titleX),
+    y: mapper.y(legend.titleY - 11),
+    w: mapper.w(legend.bounds.w - 24),
+    h: mapper.h(14),
+    fontFace: 'Aptos',
+    fontSize: mapper.font(11),
+    bold: true,
+    color: '0F172A',
+    margin: 0,
+  });
+
+  const segmentWidth = legend.barBounds.w / legend.stops.length;
+  legend.stops.forEach((stop, index) => {
+    slide.addShape(deck.ShapeType.rect, {
+      x: mapper.x(legend.barBounds.x + segmentWidth * index),
+      y: mapper.y(legend.barBounds.y),
+      w: mapper.w(segmentWidth + 0.5),
+      h: mapper.h(legend.barBounds.h),
+      fill: { color: toPptColor(stop) },
+      line: { color: toPptColor(stop), transparency: 100 },
+    });
+  });
+
+  slide.addText(legend.lowLabel, {
+    x: mapper.x(legend.barBounds.x),
+    y: mapper.y(legend.labelY - 10),
+    w: mapper.w(legend.barBounds.w / 2),
+    h: mapper.h(12),
+    fontFace: 'Aptos',
+    fontSize: mapper.font(11),
+    color: '64748B',
+    margin: 0,
+  });
+  slide.addText(legend.highLabel, {
+    x: mapper.x(legend.barBounds.x + legend.barBounds.w / 2),
+    y: mapper.y(legend.labelY - 10),
+    w: mapper.w(legend.barBounds.w / 2),
+    h: mapper.h(12),
+    fontFace: 'Aptos',
+    fontSize: mapper.font(11),
+    color: '64748B',
+    align: 'right',
+    margin: 0,
+  });
+}
+
+function createSlideMapper(model: VisualExportModel): SlideMapper {
+  const top = model.exportSettings.showTitle
+    ? 0.2 + TITLE_HEIGHT + TITLE_GAP
+    : SLIDE_MARGIN;
+  const availableW = SLIDE_WIDE_WIDTH - SLIDE_MARGIN * 2;
+  const availableH = SLIDE_WIDE_HEIGHT - top - SLIDE_MARGIN;
+  const scale = Math.min(
+    availableW / model.surfaceBounds.w,
+    availableH / model.surfaceBounds.h,
+  );
+  const renderedW = model.surfaceBounds.w * scale;
+  const renderedH = model.surfaceBounds.h * scale;
+  const offsetX =
+    SLIDE_MARGIN + (availableW - renderedW) / 2 - model.surfaceBounds.x * scale;
+  const offsetY = top + (availableH - renderedH) / 2 - model.surfaceBounds.y * scale;
+
+  return {
+    x: (value) => offsetX + value * scale,
+    y: (value) => offsetY + value * scale,
+    w: (value) => Math.max(0.01, value * scale),
+    h: (value) => Math.max(0.01, value * scale),
+    font: (value) => Math.max(5, value * 0.72),
+  };
+}
+
+function mapBounds(mapper: SlideMapper, bounds: Bounds): Bounds {
+  return {
+    x: mapper.x(bounds.x),
+    y: mapper.y(bounds.y),
+    w: mapper.w(bounds.w),
+    h: mapper.h(bounds.h),
+  };
+}
+
+function toPptColor(color: string): string {
+  return color.replace('#', '').toUpperCase();
 }
 
 export const pptxAdapter: ExportAdapter = {
@@ -69,6 +244,6 @@ export const pptxAdapter: ExportAdapter = {
   requiresValidDocument: true,
   hiddenNodes: 'excluded',
   heatmap: 'active-view-display',
-  legend: 'not-rendered',
+  legend: 'active-view-display',
   exportDocument: pptxExport
 };

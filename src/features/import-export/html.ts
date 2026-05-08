@@ -1,19 +1,19 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import type { CapabilityDocument } from '../../domain/document/types';
-import { resolveVisualDocument } from '../../domain/visual/workspace';
 import { escapeXml } from './escape';
+import { buildVisualExportModel } from './renderModel';
 import { renderSvg } from './svg';
 import type { ExportAdapter, ExportResult } from './types';
 
 export function htmlExport(doc: CapabilityDocument): ExportResult {
-  const visualDoc = resolveVisualDocument(doc);
-  const svg = renderSvg(visualDoc, { includeDescriptionData: true });
+  const model = buildVisualExportModel(doc);
+  const svg = renderSvg(model, { includeDescriptionData: true });
   const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeXml(visualDoc.title)}</title>
+    <title>${escapeXml(model.title)}</title>
     <style>
       body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Inter, system-ui, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
@@ -109,7 +109,7 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
 </html>`;
   return {
     format: 'html',
-    filename: `${safeFileBaseName(visualDoc.title)}.html`,
+    filename: `${safeFileBaseName(model.title)}.html`,
     mimeType: 'text/html',
     data: html,
     diagnostics: []
@@ -124,6 +124,6 @@ export const htmlAdapter: ExportAdapter = {
   requiresValidDocument: true,
   hiddenNodes: 'excluded',
   heatmap: 'active-view-display',
-  legend: 'not-rendered',
+  legend: 'active-view-display',
   exportDocument: htmlExport
 };
