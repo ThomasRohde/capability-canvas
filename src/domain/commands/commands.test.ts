@@ -17,6 +17,7 @@ import {
   runTransaction,
   setManualPositioning,
   setManualPositioningForNodes,
+  updateActiveViewExportSettings,
   updateNodeColors,
   updateNodeHeatmapValues,
   updateNodeSizes,
@@ -133,6 +134,28 @@ describe("commands", () => {
       expect(updated.nodesById[nodeId]!.heatmapValue).toBe(0.27);
       expect(cleared.doc.nodesById[nodeId]!.heatmapValue).toBeUndefined();
     }
+  });
+
+  it("updates active view export settings", () => {
+    const doc = createSampleDocument();
+    const viewId = doc.visual.activeViewId;
+
+    const result = runTransaction(
+      doc,
+      updateActiveViewExportSettings({
+        pagePreset: "16:9",
+        showTitle: true,
+        includeGrid: false,
+      }),
+    );
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.visual.viewsById[viewId]?.export).toMatchObject({
+      pagePreset: "16:9",
+      showTitle: true,
+      includeGrid: false,
+    });
+    expect(result.doc.nodesById).toEqual(doc.nodesById);
   });
 
   it("updates selected manual and preserve flags in bulk", () => {

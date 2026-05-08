@@ -48,6 +48,7 @@ describe("editor shell", () => {
 
   beforeEach(() => {
     window.history.pushState({}, "", "/");
+    window.localStorage.clear();
     useDocumentStore.getState().reset();
     useUiStore.setState({
       selectedNodeIds: ["digital-onboarding"],
@@ -1536,6 +1537,119 @@ describe("editor shell", () => {
     expect(
       screen.getByRole("complementary", { name: "Export" }),
     ).toBeInTheDocument();
+  });
+
+  it("groups settings by scope without repeating ownership badges", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const drawer = screen.getByRole("complementary", { name: "Settings" });
+
+    for (const title of [
+      "Document",
+      "Model defaults",
+      "Layout",
+      "Active view",
+      "Heatmap data",
+      "Export defaults",
+      "Local UI preferences",
+    ]) {
+      expect(
+        within(drawer).getByText(title, { selector: ".cc-section-heading span" }),
+      ).toBeInTheDocument();
+    }
+
+    expect(drawer.querySelector(".cc-scope-badge")).not.toBeInTheDocument();
+  });
+
+  it("updates document, active-view and export-scoped settings from the drawer", async () => {
+    const firstViewId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore
+      .getState()
+      .execute(createVisualView({ name: "Scoped settings view" }));
+    const secondViewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const drawer = screen.getByRole("complementary", { name: "Settings" });
+
+    await userEvent.click(
+      within(drawer).getByRole("checkbox", {
+        name: /Enable heatmap colors/,
+      }),
+    );
+    await userEvent.selectOptions(
+      within(drawer).getByLabelText("Palette"),
+      "mint-amber-coral",
+    );
+    await userEvent.selectOptions(
+      within(drawer).getByLabelText("Page preset"),
+      "16:9",
+    );
+    await userEvent.click(
+      within(drawer).getByRole("checkbox", { name: /Show footer/ }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    expect(doc.heatmap.palette).toBe("mint-amber-coral");
+    expect(doc.visual.viewsById[secondViewId]?.heatmap.enabled).toBe(true);
+    expect(doc.visual.viewsById[firstViewId]?.heatmap.enabled).toBe(false);
+    expect(doc.visual.viewsById[secondViewId]?.export).toMatchObject({
+      pagePreset: "16:9",
+      showFooter: true,
+    });
+    expect(doc.visual.viewsById[firstViewId]?.export.pagePreset).toBeUndefined();
+  });
+
+  it("persists local UI settings without dirtying the document", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const drawer = screen.getByRole("complementary", { name: "Settings" });
+    expect(useDocumentStore.getState().dirty).toBe(false);
+
+    await userEvent.click(
+      within(drawer).getByRole("checkbox", { name: /Show outline/ }),
+    );
+    await userEvent.selectOptions(
+      within(drawer).getByLabelText("Last export format"),
+      "svg",
+    );
+
+    expect(useUiStore.getState().outlineOpen).toBe(false);
+    expect(useUiStore.getState().exportFormat).toBe("svg");
+    expect(window.localStorage.getItem("capability-canvas.outlineOpen")).toBe(
+      "false",
+    );
+    expect(window.localStorage.getItem("capability-canvas.exportFormat")).toBe(
+      "svg",
+    );
+    expect(useDocumentStore.getState().dirty).toBe(false);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it("commits numeric settings on blur without history spam while typing", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const gridSize = screen.getByLabelText("Grid size");
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    await userEvent.clear(gridSize);
+    await userEvent.type(gridSize, "48");
+
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
+    expect(useDocumentStore.getState().doc.settings.gridSize).not.toBe(48);
+
+    fireEvent.blur(gridSize);
+
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore + 1);
+    expect(useDocumentStore.getState().doc.settings.gridSize).toBe(48);
   });
 
   it("runs export validation and renders the selected format as display content", async () => {

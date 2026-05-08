@@ -25,6 +25,17 @@ export const MIN_OUTLINE_WIDTH = 220;
 export const MAX_OUTLINE_WIDTH = 520;
 
 const OUTLINE_WIDTH_STORAGE_KEY = "capability-canvas.outlineWidth";
+const OUTLINE_OPEN_STORAGE_KEY = "capability-canvas.outlineOpen";
+const INSPECTOR_OPEN_STORAGE_KEY = "capability-canvas.inspectorOpen";
+const EXPORT_FORMAT_STORAGE_KEY = "capability-canvas.exportFormat";
+const EXPORT_FORMATS: ExportFormat[] = [
+  "json",
+  "svg",
+  "html",
+  "pptx",
+  "drawio",
+  "archimate",
+];
 
 export function clampOutlineWidth(width: number) {
   return Math.min(
@@ -47,10 +58,53 @@ function readStoredOutlineWidth() {
   }
 }
 
+function readStoredBoolean(key: string, fallback: boolean) {
+  if (typeof localStorage === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readStoredExportFormat() {
+  if (typeof localStorage === "undefined") return "json";
+  try {
+    const raw = localStorage.getItem(EXPORT_FORMAT_STORAGE_KEY);
+    return EXPORT_FORMATS.includes(raw as ExportFormat)
+      ? (raw as ExportFormat)
+      : "json";
+  } catch {
+    return "json";
+  }
+}
+
 function persistOutlineWidth(width: number) {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(OUTLINE_WIDTH_STORAGE_KEY, String(width));
+  } catch {
+    // UI persistence should never block core editor state changes.
+  }
+}
+
+function persistBoolean(key: string, value: boolean) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    // UI persistence should never block core editor state changes.
+  }
+}
+
+function persistExportFormat(format: ExportFormat) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(EXPORT_FORMAT_STORAGE_KEY, format);
   } catch {
     // UI persistence should never block core editor state changes.
   }
@@ -90,11 +144,11 @@ export const useUiStore = create<UiState>((set, get) => ({
   selectedNodeIds: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   canvasSize: { w: 1200, h: 800 },
-  outlineOpen: true,
+  outlineOpen: readStoredBoolean(OUTLINE_OPEN_STORAGE_KEY, true),
   outlineWidth: readStoredOutlineWidth(),
-  inspectorOpen: true,
+  inspectorOpen: readStoredBoolean(INSPECTOR_OPEN_STORAGE_KEY, true),
   activeDrawer: null,
-  exportFormat: "json",
+  exportFormat: readStoredExportFormat(),
   inspectorTab: "inspector",
   searchQuery: "",
   selectionNotice: null,
@@ -110,17 +164,34 @@ export const useUiStore = create<UiState>((set, get) => ({
   clearSelection: () => set({ selectedNodeIds: [] }),
   setViewport: (viewport) => set({ viewport }),
   setCanvasSize: (canvasSize) => set({ canvasSize }),
-  setOutlineOpen: (open) => set({ outlineOpen: open }),
-  toggleOutline: () => set({ outlineOpen: !get().outlineOpen }),
+  setOutlineOpen: (open) => {
+    persistBoolean(OUTLINE_OPEN_STORAGE_KEY, open);
+    set({ outlineOpen: open });
+  },
+  toggleOutline: () => {
+    const outlineOpen = !get().outlineOpen;
+    persistBoolean(OUTLINE_OPEN_STORAGE_KEY, outlineOpen);
+    set({ outlineOpen });
+  },
   setOutlineWidth: (width) => {
     const outlineWidth = clampOutlineWidth(width);
     persistOutlineWidth(outlineWidth);
     set({ outlineWidth });
   },
-  setInspectorOpen: (open) => set({ inspectorOpen: open }),
-  toggleInspector: () => set({ inspectorOpen: !get().inspectorOpen }),
+  setInspectorOpen: (open) => {
+    persistBoolean(INSPECTOR_OPEN_STORAGE_KEY, open);
+    set({ inspectorOpen: open });
+  },
+  toggleInspector: () => {
+    const inspectorOpen = !get().inspectorOpen;
+    persistBoolean(INSPECTOR_OPEN_STORAGE_KEY, inspectorOpen);
+    set({ inspectorOpen });
+  },
   setActiveDrawer: (drawer) => set({ activeDrawer: drawer }),
-  setExportFormat: (format) => set({ exportFormat: format }),
+  setExportFormat: (format) => {
+    persistExportFormat(format);
+    set({ exportFormat: format });
+  },
   setInspectorTab: (tab) => set({ inspectorTab: tab }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   showSelectionNotice: (message) =>

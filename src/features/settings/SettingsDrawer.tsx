@@ -1,6 +1,17 @@
-import { Grid3X3, LayoutTemplate, Upload, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import {
+  FileDown,
+  Grid3X3,
+  LayoutTemplate,
+  Palette,
+  PanelLeft,
+  Settings2,
+  SlidersHorizontal,
+  Upload,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  updateActiveViewExportSettings,
   updateActiveViewHeatmapSettings,
   updateDocumentSettings,
   updateDocumentTitle,
@@ -8,16 +19,53 @@ import {
 } from "../../domain/commands/operations";
 import type { CapabilityColor, LayoutMode } from "../../domain/document/types";
 import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
-import { useUiStore } from "../../app/stores/uiStore";
+import {
+  MAX_OUTLINE_WIDTH,
+  MIN_OUTLINE_WIDTH,
+  useUiStore,
+} from "../../app/stores/uiStore";
 import { importHeatmapCsv } from "../heatmap/csvImport";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import type { ExportFormat } from "../import-export/types";
 import { IconButton } from "../shared/IconButton";
 
-const LAYOUT_MODES: Array<{ value: LayoutMode; label: string }> = [
-  { value: "adaptive", label: "Adaptive" },
-  { value: "flow", label: "Flow" },
-  { value: "uniform", label: "Uniform" },
-  { value: "free", label: "Freeform" },
+const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = [
+  {
+    value: "adaptive",
+    label: "Adaptive",
+    help: "Balances compact placement with parent containment.",
+  },
+  {
+    value: "flow",
+    label: "Flow",
+    help: "Arranges capabilities in a left-to-right reading flow.",
+  },
+  {
+    value: "uniform",
+    label: "Uniform",
+    help: "Keeps peer groups aligned with consistent spacing.",
+  },
+  {
+    value: "free",
+    label: "Freeform",
+    help: "Preserves manual placement unless layout is forced.",
+  },
+];
+
+const EXPORT_FORMATS: Array<{ value: ExportFormat; label: string }> = [
+  { value: "json", label: "JSON" },
+  { value: "svg", label: "SVG" },
+  { value: "html", label: "HTML" },
+  { value: "pptx", label: "PowerPoint" },
+  { value: "drawio", label: "diagrams.net" },
+  { value: "archimate", label: "ArchiMate" },
+];
+
+const EXPORT_PAGE_PRESETS = [
+  { value: "", label: "None" },
+  { value: "16:9", label: "16:9 widescreen" },
+  { value: "4:3", label: "4:3 standard" },
+  { value: "A4", label: "A4" },
 ];
 
 export function SettingsDrawer() {
@@ -31,6 +79,18 @@ export function SettingsDrawer() {
   );
   const open = useUiStore((state) => state.activeDrawer === "settings");
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const outlineOpen = useUiStore((state) => state.outlineOpen);
+  const setOutlineOpen = useUiStore((state) => state.setOutlineOpen);
+  const outlineWidth = useUiStore((state) => state.outlineWidth);
+  const setOutlineWidth = useUiStore((state) => state.setOutlineWidth);
+  const inspectorOpen = useUiStore((state) => state.inspectorOpen);
+  const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
+  const exportFormat = useUiStore((state) => state.exportFormat);
+  const setExportFormat = useUiStore((state) => state.setExportFormat);
+  const activeView = doc.visual.viewsById[doc.visual.activeViewId];
+  const selectedLayoutHelp =
+    LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
+    "";
 
   if (!open) return null;
 
@@ -45,82 +105,23 @@ export function SettingsDrawer() {
         />
       </div>
       <div className="cc-export-body">
-        <section className="cc-settings-section">
-          <div className="cc-section-heading">
-            <LayoutTemplate size={16} />
-            <span>Document settings</span>
-          </div>
-          <div className="cc-field">
-            <label htmlFor="document-title">Title</label>
-            <TextSetting
-              id="document-title"
-              value={doc.title}
-              onCommit={(title) => execute(updateDocumentTitle(title))}
-            />
-          </div>
-          <div className="cc-field">
-            <label htmlFor="layout-mode">Layout mode</label>
-            <select
-              id="layout-mode"
-              className="cc-select"
-              value={doc.settings.layoutMode}
-              disabled={isAutoLayoutRunning}
-              onChange={(event) =>
-                void updateSettings(
-                  { layoutMode: event.target.value as LayoutMode },
-                  { autoLayout: true },
-                )
-              }
-            >
-              {LAYOUT_MODES.map((mode) => (
-                <option key={mode.value} value={mode.value}>
-                  {mode.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
+        <SettingsSection icon={<Settings2 size={16} />} title="Document">
+          <TextSetting
+            id="document-title"
+            label="Title"
+            value={doc.title}
+            onCommit={(title) => execute(updateDocumentTitle(title))}
+          />
+        </SettingsSection>
 
-        <section className="cc-settings-section">
-          <div className="cc-section-heading">
-            <Grid3X3 size={16} />
-            <span>Document layout defaults</span>
-          </div>
-          <label className="cc-check-row">
-            <input
-              type="checkbox"
-              checked={doc.settings.gridEnabled}
-              onChange={(event) =>
-                execute(
-                  updateDocumentSettings({ gridEnabled: event.target.checked }),
-                )
-              }
-            />
-            <span>Show grid</span>
-          </label>
-          <NumberSetting
-            id="grid-size"
-            label="Grid size"
-            value={doc.settings.gridSize}
-            min={4}
-            onChange={(gridSize) =>
-              execute(updateDocumentSettings({ gridSize }))
+        <SettingsSection icon={<Palette size={16} />} title="Model defaults">
+          <ColorSetting
+            label="Default leaf color"
+            value={doc.settings.leafColor}
+            onChange={(leafColor) =>
+              execute(updateDocumentSettings({ leafColor }))
             }
           />
-          <label className="cc-check-row">
-            <input
-              type="checkbox"
-              checked={doc.settings.resizeSnapToGrid}
-              onChange={(event) =>
-                execute(
-                  updateDocumentSettings({
-                    resizeSnapToGrid: event.target.checked,
-                  }),
-                )
-              }
-            />
-            <span>Snap resizing to grid</span>
-          </label>
           <div className="cc-field-row">
             <NumberSetting
               id="leaf-width"
@@ -141,12 +142,6 @@ export function SettingsDrawer() {
               }
             />
           </div>
-          <LeafColorSetting
-            value={doc.settings.leafColor}
-            onChange={(leafColor) =>
-              execute(updateDocumentSettings({ leafColor }))
-            }
-          />
           <div className="cc-section-title">New parent defaults</div>
           <div className="cc-field-row">
             <NumberSetting
@@ -174,8 +169,68 @@ export function SettingsDrawer() {
               }
             />
           </div>
-          <div className="cc-section-title">Container padding</div>
+        </SettingsSection>
+
+        <SettingsSection icon={<LayoutTemplate size={16} />} title="Layout">
+          <SettingField
+            id="layout-mode"
+            label="Layout mode"
+            hint={selectedLayoutHelp}
+          >
+            <select
+              id="layout-mode"
+              className="cc-select"
+              value={doc.settings.layoutMode}
+              disabled={isAutoLayoutRunning}
+              onChange={(event) =>
+                void updateSettings(
+                  { layoutMode: event.target.value as LayoutMode },
+                  { autoLayout: true },
+                )
+              }
+            >
+              {LAYOUT_MODES.map((mode) => (
+                <option key={mode.value} value={mode.value}>
+                  {mode.label}
+                </option>
+              ))}
+            </select>
+          </SettingField>
+          <div className="cc-settings-warning">
+            Layout changes may move unlocked nodes in the active view.
+          </div>
+          {isAutoLayoutRunning && (
+            <div className="cc-settings-status" role="status">
+              Auto layout running...
+            </div>
+          )}
+          <CheckSetting
+            label="Show grid"
+            checked={doc.settings.gridEnabled}
+            onChange={(gridEnabled) =>
+              execute(updateDocumentSettings({ gridEnabled }))
+            }
+          />
           <div className="cc-field-row">
+            <NumberSetting
+              id="grid-size"
+              label="Grid size"
+              value={doc.settings.gridSize}
+              min={4}
+              onChange={(gridSize) =>
+                execute(updateDocumentSettings({ gridSize }))
+              }
+            />
+            <CheckSetting
+              label="Snap resizing to grid"
+              checked={doc.settings.resizeSnapToGrid}
+              onChange={(resizeSnapToGrid) =>
+                execute(updateDocumentSettings({ resizeSnapToGrid }))
+              }
+            />
+          </div>
+          <div className="cc-section-title">Container padding</div>
+          <div className="cc-field-row cc-field-row-compact">
             <NumberSetting
               id="container-padding-top"
               label="Top"
@@ -220,6 +275,8 @@ export function SettingsDrawer() {
                 )
               }
             />
+          </div>
+          <div className="cc-field-row">
             <NumberSetting
               id="container-title-height"
               label="Title area"
@@ -267,29 +324,27 @@ export function SettingsDrawer() {
           >
             <LayoutTemplate /> Apply auto layout
           </button>
-        </section>
+        </SettingsSection>
 
-        <section className="cc-settings-section">
-          <div className="cc-section-heading">
-            <Grid3X3 size={16} />
-            <span>Active view heatmap display</span>
-          </div>
-          <label className="cc-check-row">
-            <input
-              type="checkbox"
-              checked={doc.heatmap.showLegend}
-              onChange={(event) =>
-                execute(
-                  updateActiveViewHeatmapSettings({
-                    showLegend: event.target.checked,
-                  }),
-                )
-              }
-            />
-            <span>Show legend in active view heatmap mode</span>
-          </label>
-          <div className="cc-field">
-            <label htmlFor="heatmap-palette">Palette</label>
+        <SettingsSection icon={<SlidersHorizontal size={16} />} title="Active view">
+          <CheckSetting
+            label="Enable heatmap colors"
+            checked={doc.heatmap.enabled}
+            onChange={(enabled) =>
+              execute(updateActiveViewHeatmapSettings({ enabled }))
+            }
+          />
+          <CheckSetting
+            label="Show heatmap legend"
+            checked={doc.heatmap.showLegend}
+            onChange={(showLegend) =>
+              execute(updateActiveViewHeatmapSettings({ showLegend }))
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection icon={<Grid3X3 size={16} />} title="Heatmap data">
+          <SettingField id="heatmap-palette" label="Palette">
             <select
               id="heatmap-palette"
               className="cc-select"
@@ -305,9 +360,18 @@ export function SettingsDrawer() {
               <option value="green-yellow-red">Green to yellow to red</option>
               <option value="mint-amber-coral">Mint to amber to coral</option>
             </select>
-          </div>
-          <div className="cc-field">
-            <span className="cc-section-title">Data</span>
+          </SettingField>
+          <ColorSetting
+            label="Fallback color"
+            value={doc.heatmap.fallbackColor}
+            onChange={(fallbackColor) =>
+              execute(updateHeatmapSettings({ fallbackColor }))
+            }
+          />
+          <SettingField
+            label="Node scores"
+            hint="CSV import updates heatmap values stored on capabilities."
+          >
             <label className="cc-btn cc-file-label" htmlFor="heatmap-csv">
               <Upload /> Import CSV
             </label>
@@ -341,29 +405,190 @@ export function SettingsDrawer() {
                 });
               }}
             />
-          </div>
-        </section>
+          </SettingField>
+        </SettingsSection>
+
+        <SettingsSection icon={<FileDown size={16} />} title="Export defaults">
+          <SettingField id="export-page-preset" label="Page preset">
+            <select
+              id="export-page-preset"
+              className="cc-select"
+              value={activeView?.export.pagePreset ?? ""}
+              disabled={!activeView}
+              onChange={(event) =>
+                execute(
+                  updateActiveViewExportSettings({
+                    pagePreset: event.target.value || undefined,
+                  }),
+                )
+              }
+            >
+              {EXPORT_PAGE_PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </SettingField>
+          <CheckSetting
+            label="Show title"
+            checked={activeView?.export.showTitle ?? false}
+            disabled={!activeView}
+            onChange={(showTitle) =>
+              execute(updateActiveViewExportSettings({ showTitle }))
+            }
+          />
+          <CheckSetting
+            label="Show subtitle"
+            checked={activeView?.export.showSubtitle ?? false}
+            disabled={!activeView}
+            onChange={(showSubtitle) =>
+              execute(updateActiveViewExportSettings({ showSubtitle }))
+            }
+          />
+          <CheckSetting
+            label="Show footer"
+            checked={activeView?.export.showFooter ?? false}
+            disabled={!activeView}
+            onChange={(showFooter) =>
+              execute(updateActiveViewExportSettings({ showFooter }))
+            }
+          />
+          <CheckSetting
+            label="Include grid"
+            checked={activeView?.export.includeGrid ?? false}
+            disabled={!activeView}
+            onChange={(includeGrid) =>
+              execute(updateActiveViewExportSettings({ includeGrid }))
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection icon={<PanelLeft size={16} />} title="Local UI preferences">
+          <CheckSetting
+            label="Show outline"
+            checked={outlineOpen}
+            onChange={setOutlineOpen}
+          />
+          <CheckSetting
+            label="Show inspector"
+            checked={inspectorOpen}
+            onChange={setInspectorOpen}
+          />
+          <NumberSetting
+            id="outline-width"
+            label="Outline width"
+            value={outlineWidth}
+            min={MIN_OUTLINE_WIDTH}
+            max={MAX_OUTLINE_WIDTH}
+            onChange={setOutlineWidth}
+          />
+          <SettingField
+            id="last-export-format"
+            label="Last export format"
+          >
+            <select
+              id="last-export-format"
+              className="cc-select"
+              value={exportFormat}
+              onChange={(event) =>
+                setExportFormat(event.target.value as ExportFormat)
+              }
+            >
+              {EXPORT_FORMATS.map((format) => (
+                <option key={format.value} value={format.value}>
+                  {format.label}
+                </option>
+              ))}
+            </select>
+          </SettingField>
+        </SettingsSection>
       </div>
     </aside>
   );
 }
 
-function LeafColorSetting({
+function SettingsSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="cc-settings-section">
+      <div className="cc-section-heading">
+        {icon}
+        <span>{title}</span>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SettingField({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id?: string;
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="cc-field">
+      {id ? <label htmlFor={id}>{label}</label> : <span>{label}</span>}
+      {children}
+      {hint && <div className="cc-field-hint">{hint}</div>}
+    </div>
+  );
+}
+
+function CheckSetting({
+  label,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="cc-check-row">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="cc-check-label">{label}</span>
+    </label>
+  );
+}
+
+function ColorSetting({
+  label,
   value,
   onChange,
 }: {
+  label: string;
   value: CapabilityColor;
   onChange: (value: CapabilityColor) => void;
 }) {
   return (
-    <div className="cc-field">
-      <span className="cc-section-title">Default leaf color</span>
+    <SettingField label={label}>
       <div className="cc-color-row">
         {CAPABILITY_COLORS.map((color) => (
           <button
             key={color}
             type="button"
-            aria-label={`Set default leaf color ${color}`}
+            aria-label={`Set ${label.toLowerCase()} ${color}`}
             className={`cc-color-swatch ${value === color ? "on" : ""}`}
             style={{
               color: CATEGORY_STYLES[color].border,
@@ -373,7 +598,7 @@ function LeafColorSetting({
           />
         ))}
       </div>
-    </div>
+    </SettingField>
   );
 }
 
@@ -382,21 +607,26 @@ function NumberSetting({
   label,
   value,
   min = 0,
+  max,
   step = 1,
+  disabled = false,
   onChange,
 }: {
   id: string;
   label: string;
   value: number;
   min?: number;
+  max?: number;
   step?: number | "any";
+  disabled?: boolean;
   onChange: (value: number) => void;
 }) {
-  const [draft, setDraft] = useState(() => String(Math.max(min, value)));
+  const normalizedValue = clampNumber(value, min, max);
+  const [draft, setDraft] = useState(() => String(normalizedValue));
   const skipCommit = useRef(false);
   useEffect(() => {
-    setDraft(String(Math.max(min, value)));
-  }, [min, value]);
+    setDraft(String(clampNumber(value, min, max)));
+  }, [max, min, value]);
   const commit = () => {
     if (skipCommit.current) {
       skipCommit.current = false;
@@ -404,23 +634,24 @@ function NumberSetting({
     }
     const parsed = Number(draft);
     if (!Number.isFinite(parsed)) {
-      setDraft(String(Math.max(min, value)));
+      setDraft(String(clampNumber(value, min, max)));
       return;
     }
-    const next = Math.max(min, parsed);
+    const next = clampNumber(parsed, min, max);
     setDraft(String(next));
     if (next !== value) onChange(next);
   };
   return (
-    <div className="cc-field">
-      <label htmlFor={id}>{label}</label>
+    <SettingField id={id} label={label}>
       <input
         id={id}
         className="cc-input"
         type="number"
         min={min}
+        max={max}
         step={step}
         value={draft}
+        disabled={disabled}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {
@@ -430,21 +661,23 @@ function NumberSetting({
           }
           if (event.key === "Escape") {
             skipCommit.current = true;
-            setDraft(String(Math.max(min, value)));
+            setDraft(String(clampNumber(value, min, max)));
             (event.target as HTMLInputElement).blur();
           }
         }}
       />
-    </div>
+    </SettingField>
   );
 }
 
 function TextSetting({
   id,
+  label,
   value,
   onCommit,
 }: {
   id: string;
+  label: string;
   value: string;
   onCommit: (value: string) => void;
 }) {
@@ -461,23 +694,30 @@ function TextSetting({
     if (draft !== value) onCommit(draft);
   };
   return (
-    <input
-      id={id}
-      className="cc-input"
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          (event.target as HTMLInputElement).blur();
-        }
-        if (event.key === "Escape") {
-          skipCommit.current = true;
-          setDraft(value);
-          (event.target as HTMLInputElement).blur();
-        }
-      }}
-    />
+    <SettingField id={id} label={label}>
+      <input
+        id={id}
+        className="cc-input"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            (event.target as HTMLInputElement).blur();
+          }
+          if (event.key === "Escape") {
+            skipCommit.current = true;
+            setDraft(value);
+            (event.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    </SettingField>
   );
+}
+
+function clampNumber(value: number, min: number, max?: number) {
+  const lower = Math.max(min, value);
+  return max === undefined ? lower : Math.min(max, lower);
 }

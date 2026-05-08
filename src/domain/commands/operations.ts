@@ -1118,6 +1118,23 @@ export function updateActiveViewLayoutSettings(
   ]);
 }
 
+export function updateActiveViewExportSettings(
+  patch: Partial<VisualView["export"]>,
+): Transaction {
+  return transaction("Update view export settings", [
+    command("update-active-view-export-settings", { patch }, (doc) => {
+      const view = activeVisualView(doc);
+      return updateView(doc, view.id, {
+        export: {
+          ...view.export,
+          ...patch,
+        },
+        updatedAt: now(),
+      });
+    }),
+  ]);
+}
+
 export function deleteNodes(nodeIds: NodeId[]): Transaction {
   return transaction(
     "Delete from model",

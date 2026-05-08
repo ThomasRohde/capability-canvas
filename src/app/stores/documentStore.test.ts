@@ -14,6 +14,7 @@ import {
   resizeNode,
   setDefaultVisualView,
   updateNodeSizes,
+  updateActiveViewExportSettings,
   updateActiveViewHeatmapSettings,
   updateVisualView,
   updateVisualNodeState,
@@ -148,6 +149,20 @@ describe("document store layout settings", () => {
     expect(doc.nodesById.operations!.y).toBeGreaterThan(
       doc.nodesById.servicing!.y,
     );
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Set layout mode to uniform",
+    );
+  });
+
+  it("records document layout setting changes with a scoped history label", async () => {
+    await useDocumentStore
+      .getState()
+      .updateSettings({ fixedLeafWidth: 180 }, { autoLayout: true });
+
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Update layout settings",
+    );
+    expect(useDocumentStore.getState().doc.settings.fixedLeafWidth).toBe(180);
   });
 
   it("records forced auto layout as an undoable history entry", async () => {
@@ -312,6 +327,34 @@ describe("document store layout settings", () => {
 
     useDocumentStore.getState().undo();
     expect(useDocumentStore.getState().doc.visual.viewsById[secondViewId]).toBeUndefined();
+  });
+
+  it("stores heatmap display settings on the active view only", () => {
+    const firstViewId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore.getState().execute(createVisualView({ name: "Second view" }));
+    const secondViewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore
+      .getState()
+      .execute(updateActiveViewHeatmapSettings({ enabled: true }));
+
+    const { viewsById } = useDocumentStore.getState().doc.visual;
+    expect(viewsById[secondViewId]?.heatmap.enabled).toBe(true);
+    expect(viewsById[firstViewId]?.heatmap.enabled).toBe(false);
+  });
+
+  it("stores export defaults on the active view only", () => {
+    const firstViewId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore.getState().execute(createVisualView({ name: "Second view" }));
+    const secondViewId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore
+      .getState()
+      .execute(updateActiveViewExportSettings({ pagePreset: "16:9" }));
+
+    const { viewsById } = useDocumentStore.getState().doc.visual;
+    expect(viewsById[secondViewId]?.export.pagePreset).toBe("16:9");
+    expect(viewsById[firstViewId]?.export.pagePreset).toBeUndefined();
   });
 
   it("duplicates visual state without changing the source hierarchy", () => {

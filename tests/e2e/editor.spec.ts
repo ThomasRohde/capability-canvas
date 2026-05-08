@@ -114,9 +114,14 @@ test('supports panel rail, padding controls and outline actions', async ({ page 
   await page.getByRole('button', { name: 'Close settings' }).click();
   await expect(page.getByRole('complementary', { name: 'Settings' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open settings' }).click();
-  await page.getByLabel('Top', { exact: true }).fill('48');
-  await page.getByRole('button', { name: 'Apply auto layout' }).click();
-  await expect(page.getByLabel('Top', { exact: true })).toHaveValue('48');
+  const topPadding = page.getByLabel('Top', { exact: true });
+  const previousTopPadding = await topPadding.inputValue();
+  await topPadding.fill('48');
+  await topPadding.press('Enter');
+  await expect(topPadding).toHaveValue('48');
+  await expect(page.getByRole('button', { name: 'Apply auto layout' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(topPadding).toHaveValue(previousTopPadding);
 
   await page.getByRole('button', { name: 'Open export' }).click();
   await expect(page.getByRole('complementary', { name: 'Export' })).toBeVisible();
