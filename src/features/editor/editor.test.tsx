@@ -277,12 +277,21 @@ describe("editor shell", () => {
     expect(
       screen.getByRole("complementary", { name: "Views" }),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await userEvent.clear(screen.getByLabelText("New view name"));
+    await userEvent.type(screen.getByLabelText("New view name"), "Ops map");
+    await userEvent.selectOptions(
+      screen.getByLabelText("View template"),
+      "level-2-map@1",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
 
     expect(useDocumentStore.getState().doc.visual.viewOrder).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "Open active view" }),
-    ).toHaveTextContent("Full model default");
+    ).toHaveTextContent("Ops map");
+    expect(screen.getAllByText("Level 2 map").length).toBeGreaterThan(0);
     await userEvent.click(
       screen.getByRole("button", { name: "Use Default view" }),
     );
@@ -345,15 +354,17 @@ describe("editor shell", () => {
     render(<EditorRoute />);
     await userEvent.click(screen.getByRole("button", { name: "Open views" }));
 
+    await userEvent.click(
+      screen.getByRole("button", { name: "View actions for Default view" }),
+    );
     expect(
-      screen.getByRole("button", { name: "Reset layout for Default view" }),
+      screen.getByRole("menuitem", { name: "Reset layout" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", {
-        name: "Reset Default view to Full model default template",
-      }),
+      screen.getByRole("menuitem", { name: "Reset from template" }),
     ).toBeDisabled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
 
     act(() => {
       useDocumentStore
@@ -366,22 +377,57 @@ describe("editor shell", () => {
     });
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Reset layout for Default view" }),
+      screen.getByRole("button", { name: "View actions for Default view" }),
     );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Reset layout" }));
     let dialog = screen.getByRole("alertdialog", { name: "Reset layout" });
     expect(within(dialog).getByText(/positions, sizes, layout mode/))
       .toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
     await userEvent.click(
-      screen.getByRole("button", {
-        name: "Reset Default view to Full model default template",
-      }),
+      screen.getByRole("button", { name: "View actions for Default view" }),
+    );
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Reset from template" }),
     );
     dialog = screen.getByRole("alertdialog", { name: "Reset from template" });
     expect(
       within(dialog).getByText(/visibility, collapse state, heatmap view settings/),
     ).toBeInTheDocument();
+  });
+
+  it("prevents deleting the last view and explains delete scope", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Open views" }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "View actions for Default view" }),
+    );
+    const disabledDelete = screen.getByRole("menuitem", {
+      name: "Delete view",
+    });
+    expect(disabledDelete).toBeDisabled();
+    expect(disabledDelete).toHaveAttribute(
+      "title",
+      "At least one visual view is required.",
+    );
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "View actions for Default view" }),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete view" }));
+
+    const dialog = screen.getByRole("alertdialog", { name: "Delete view" });
+    expect(
+      within(dialog).getByText(/source model and capabilities are not deleted/i),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/Undo can restore the view/i))
+      .toBeInTheDocument();
   });
 
   it("renders depth-limited view endpoints as leaf cards", async () => {
@@ -391,7 +437,9 @@ describe("editor shell", () => {
       screen.getByLabelText("View template"),
       "level-1-map@1",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
 
     const canvas = screen.getByTestId("canvas");
     const customerNode = within(canvas)
@@ -427,7 +475,9 @@ describe("editor shell", () => {
       ),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
     expect(
       screen.getAllByText(
         "Top three levels with deeper branches collapsed and 16:9 export framing.",
@@ -443,7 +493,9 @@ describe("editor shell", () => {
       screen.getByLabelText("View template"),
       "domain-deep-dive@1",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
 
     const doc = useDocumentStore.getState().doc;
     const activeView = doc.visual.viewsById[doc.visual.activeViewId]!;
@@ -465,7 +517,9 @@ describe("editor shell", () => {
       screen.getByLabelText("View template"),
       "executive-overview@1",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
     act(() => {
       useDocumentStore
         .getState()
@@ -477,9 +531,10 @@ describe("editor shell", () => {
     });
 
     await userEvent.click(
-      screen.getByRole("button", {
-        name: "Reset Default view to Full model default template",
-      }),
+      screen.getByRole("button", { name: "View actions for Default view" }),
+    );
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Reset from template" }),
     );
     const dialog = screen.getByRole("alertdialog", {
       name: "Reset from template",
@@ -887,7 +942,9 @@ describe("editor shell", () => {
       screen.getByLabelText("View template"),
       "level-1-map@1",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create and switch" }),
+    );
 
     expect(
       resolveVisualDocument(useDocumentStore.getState().doc).nodesById.customer

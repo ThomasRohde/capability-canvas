@@ -3,12 +3,16 @@ import { applyImportedDocument } from "../importDocument";
 import {
   addChild,
   createVisualView,
+  deleteVisualView,
+  duplicateVisualView,
   deleteNodes,
   moveNodes,
   reparentNode,
   resetVisualViewLayout,
   resetVisualViewFromTemplate,
+  resetVisualViewVisibility,
   resizeNode,
+  setDefaultVisualView,
   updateNodeSizes,
   updateActiveViewHeatmapSettings,
   updateVisualView,
@@ -308,6 +312,145 @@ describe("document store layout settings", () => {
 
     useDocumentStore.getState().undo();
     expect(useDocumentStore.getState().doc.visual.viewsById[secondViewId]).toBeUndefined();
+  });
+
+  it("duplicates visual state without changing the source hierarchy", () => {
+    useDocumentStore.getState().reset();
+    const sourceId = useDocumentStore.getState().doc.visual.activeViewId;
+    const sourceNodes = useDocumentStore.getState().doc.nodesById;
+    const sourceChildren = useDocumentStore.getState().doc.childrenByParentId;
+    const sourceView = useDocumentStore.getState().doc.visual.viewsById[sourceId]!;
+
+    useDocumentStore.getState().execute(
+      updateVisualView(sourceId, {
+        viewport: { x: 24, y: -16, zoom: 1.25 },
+        heatmap: { ...sourceView.heatmap, enabled: true, showLegend: true },
+        export: { pagePreset: "16:9", showTitle: true },
+        nodeStatesById: {
+          ...sourceView.nodeStatesById,
+          operations: {
+            ...(sourceView.nodeStatesById.operations ?? {}),
+            isCollapsed: true,
+          },
+          risk: {
+            ...(sourceView.nodeStatesById.risk ?? {}),
+            x: 888,
+            isOnCanvas: false,
+          },
+        },
+      }),
+    );
+
+    useDocumentStore.getState().execute(duplicateVisualView(sourceId));
+    const firstCopyId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore.getState().execute(duplicateVisualView(sourceId));
+    const secondCopyId = useDocumentStore.getState().doc.visual.activeViewId;
+    const doc = useDocumentStore.getState().doc;
+    const updatedSource = doc.visual.viewsById[sourceId]!;
+    const firstCopy = doc.visual.viewsById[firstCopyId]!;
+    const secondCopy = doc.visual.viewsById[secondCopyId]!;
+
+    expect(doc.nodesById).toEqual(sourceNodes);
+    expect(doc.childrenByParentId).toEqual(sourceChildren);
+    expect(firstCopy.nodeStatesById).toEqual(updatedSource.nodeStatesById);
+    expect(firstCopy.viewport).toEqual(updatedSource.viewport);
+    expect(firstCopy.heatmap).toEqual(updatedSource.heatmap);
+    expect(firstCopy.export).toEqual(updatedSource.export);
+    expect(firstCopy.layout).toEqual(updatedSource.layout);
+    expect(firstCopy.name).toBe(`${updatedSource.name} copy`);
+    expect(secondCopy.name).toBe(`${updatedSource.name} copy 2`);
+    expect(firstCopy.baseline).toBeDefined();
+    expect(secondCopy.baseline).toBeDefined();
+  });
+
+  it("keeps visual workspace valid when deleting non-active, active, and default views", () => {
+    useDocumentStore.getState().reset();
+    const defaultId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore.getState().execute(createVisualView({ name: "Second" }));
+    const secondId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore.getState().execute(createVisualView({ name: "Third" }));
+    const thirdId = useDocumentStore.getState().doc.visual.activeViewId;
+
+    useDocumentStore.getState().execute(deleteVisualView(secondId));
+    let visual = useDocumentStore.getState().doc.visual;
+    expect(visual.viewsById[secondId]).toBeUndefined();
+    expect(visual.activeViewId).toBe(thirdId);
+    expect(visual.defaultViewId).toBe(defaultId);
+    expect(visual.viewOrder).not.toContain(secondId);
+
+    useDocumentStore.getState().execute(deleteVisualView(thirdId));
+    visual = useDocumentStore.getState().doc.visual;
+    expect(visual.viewsById[visual.activeViewId]).toBeDefined();
+    expect(visual.viewsById[visual.defaultViewId]).toBeDefined();
+    expect(visual.activeViewId).toBe(defaultId);
+
+    useDocumentStore.getState().execute(createVisualView({ name: "Fourth" }));
+    const fourthId = useDocumentStore.getState().doc.visual.activeViewId;
+    useDocumentStore.getState().execute(setDefaultVisualView(fourthId));
+    useDocumentStore.getState().execute(deleteVisualView(fourthId));
+    visual = useDocumentStore.getState().doc.visual;
+    expect(visual.viewsById[fourthId]).toBeUndefined();
+    expect(visual.viewsById[visual.activeViewId]).toBeDefined();
+    expect(visual.viewsById[visual.defaultViewId]).toBeDefined();
+    expect(visual.viewOrder).toHaveLength(1);
+  });
+
+  it("prevents deleting the last visual view", () => {
+    useDocumentStore.getState().reset();
+    const onlyViewId = useDocumentStore.getState().doc.visual.activeViewId;
+    const diagnostics = useDocumentStore
+      .getState()
+      .execute(deleteVisualView(onlyViewId));
+
+    expect(diagnostics.some((diagnostic) => diagnostic.code === "delete-last-view"))
+      .toBe(true);
+    expect(useDocumentStore.getState().doc.visual.viewOrder).toEqual([
+      onlyViewId,
+    ]);
+  });
+
+  it("resets visibility and collapse while preserving layout and view settings", () => {
+    useDocumentStore.getState().reset();
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+    const view = useDocumentStore.getState().doc.visual.viewsById[viewId]!;
+    useDocumentStore.getState().execute(
+      updateVisualView(viewId, {
+        viewport: { x: 12, y: 18, zoom: 1.4 },
+        heatmap: { ...view.heatmap, enabled: true, showLegend: true },
+        export: { pagePreset: "16:9", showFooter: true },
+        nodeStatesById: {
+          ...view.nodeStatesById,
+          operations: {
+            ...(view.nodeStatesById.operations ?? {}),
+            isCollapsed: true,
+          },
+          risk: {
+            ...(view.nodeStatesById.risk ?? {}),
+            x: 777,
+            y: 333,
+            isOnCanvas: false,
+          },
+        },
+      }),
+    );
+    const before = useDocumentStore.getState().doc;
+
+    useDocumentStore.getState().execute(resetVisualViewVisibility(viewId));
+
+    const after = useDocumentStore.getState().doc;
+    const afterView = after.visual.viewsById[viewId]!;
+    expect(after.nodesById).toEqual(before.nodesById);
+    expect(after.childrenByParentId).toEqual(before.childrenByParentId);
+    expect(afterView.nodeStatesById.operations?.isCollapsed).toBeUndefined();
+    expect(afterView.nodeStatesById.risk?.isOnCanvas).toBe(true);
+    expect(afterView.nodeStatesById.risk?.x).toBe(777);
+    expect(afterView.nodeStatesById.risk?.y).toBe(333);
+    expect(afterView.viewport).toEqual({ x: 12, y: 18, zoom: 1.4 });
+    expect(afterView.heatmap).toMatchObject({ enabled: true, showLegend: true });
+    expect(afterView.export).toMatchObject({
+      pagePreset: "16:9",
+      showFooter: true,
+    });
   });
 
   it("keeps movement isolated to the active visual view", () => {

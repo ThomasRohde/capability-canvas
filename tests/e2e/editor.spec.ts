@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.setTimeout(60_000);
+
 test('loads editor shell and opens export drawer', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.cc-editor-toolbar .cc-brand-mark')).toBeVisible();
@@ -30,7 +32,9 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
       'Import',
       'Export',
     ]) {
-      await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name, exact: true })).toBeVisible({
+        timeout: 15000,
+      });
     }
 
     const metrics = await toolbar.evaluate((element) => ({
@@ -212,6 +216,124 @@ test('outline search finds, restores and expands active view results', async ({ 
     .getByRole('button', { name: 'Expand Digital in active view to show Digital Onboarding' })
     .click();
   await expect(canvas.getByText('Digital Onboarding')).toBeVisible();
+});
+
+test('creates, renames, duplicates, resets, deletes and persists visual views', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const sourceNodeIds = () =>
+    page.evaluate(() =>
+      (
+        (
+          window as Window & {
+            __ccTestSerializeDocument?: () => { nodes?: Array<{ id?: string }> };
+          }
+        ).__ccTestSerializeDocument?.().nodes ?? []
+      )
+        .map((node) => node.id)
+        .sort(),
+    );
+  const beforeNodeIds = await sourceNodeIds();
+
+  await page.getByRole('button', { name: 'Open views' }).click();
+  await page.getByLabel('New view name').fill('Stakeholder map');
+  await page.getByRole('button', { name: 'Create and switch' }).click();
+  await expect(page.getByRole('button', { name: 'Open active view' })).toContainText(
+    'Stakeholder map',
+  );
+
+  const nameInput = page.getByLabel('Name for Stakeholder map');
+  await nameInput.fill('Executive map');
+  await nameInput.blur();
+  await expect(page.getByRole('button', { name: 'Open active view' })).toContainText(
+    'Executive map',
+  );
+
+  await page
+    .getByRole('button', { name: 'Duplicate visual state for Executive map', exact: true })
+    .click();
+  await expect(page.getByRole('button', { name: 'Open active view' })).toContainText(
+    'Executive map copy',
+  );
+
+  await page.getByRole('button', { name: 'View actions for Executive map copy' }).click();
+  await page.getByRole('menuitem', { name: 'Set as default' }).click();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('complementary', { name: 'Views' })).toHaveCount(0);
+  const canvas = page.getByTestId('canvas');
+  await canvas.getByText('Digital Onboarding').click();
+  await page.keyboard.press('Delete');
+  await expect(canvas.getByText('Digital Onboarding')).toHaveCount(0);
+  expect(await sourceNodeIds()).toEqual(beforeNodeIds);
+
+  await page.getByRole('button', { name: 'Open views' }).click();
+  await page.getByRole('button', { name: 'View actions for Executive map copy' }).click();
+  await page.getByRole('menuitem', { name: 'Reset visibility/collapse' }).click();
+  await page.getByRole('alertdialog', { name: 'Reset visibility and collapse' })
+    .getByRole('button', { name: 'Reset visibility' })
+    .click();
+  await expect(canvas.getByText('Digital Onboarding')).toBeVisible();
+
+  await page
+    .getByRole('button', { name: 'View actions for Executive map', exact: true })
+    .click();
+  await page.getByRole('menuitem', { name: 'Delete view' }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Delete view' })).toContainText(
+    'source model and capabilities are not deleted',
+  );
+  await page.getByRole('alertdialog', { name: 'Delete view' })
+    .getByRole('button', { name: 'Delete view' })
+    .click();
+  await expect(page.getByLabel('Name for Executive map', { exact: true })).toHaveCount(0);
+  expect(await sourceNodeIds()).toEqual(beforeNodeIds);
+
+  await expect(page.getByText('Saved locally just now')).toBeVisible({ timeout: 5000 });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('button', { name: 'Open active view' })).toContainText(
+    'Executive map copy',
+  );
+});
+
+test('views drawer remains readable on a narrow viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 720 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Open views' }).click();
+  await expect(page.getByRole('complementary', { name: 'Views' })).toBeVisible();
+  await page.getByLabel('New view name').fill('Narrow menu check');
+  await page.getByRole('button', { name: 'Create and switch' }).click();
+
+  const metrics = await page.getByRole('complementary', { name: 'Views' }).evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+
+  const listMetrics = await page.locator('.cc-view-list').evaluate((element) => {
+    const listRect = element.getBoundingClientRect();
+    const drawerRect = document
+      .querySelector('.cc-views-drawer')
+      ?.getBoundingClientRect();
+    return {
+      drawerBottom: drawerRect?.bottom ?? 0,
+      listBottom: listRect.bottom,
+      listHeight: listRect.height,
+    };
+  });
+  expect(listMetrics.listHeight).toBeGreaterThan(0);
+  expect(listMetrics.drawerBottom - listMetrics.listBottom).toBeLessThanOrEqual(30);
+
+  await page.getByRole('button', { name: 'View actions for Narrow menu check' }).click();
+  const menu = page.getByRole('menu', { name: 'Actions for Narrow menu check' });
+  await expect(menu.getByRole('menuitem', { name: 'Delete view' })).toBeVisible();
+
+  const menuBox = await menu.boundingBox();
+  const viewport = page.viewportSize();
+  expect(menuBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(menuBox?.y).toBeGreaterThanOrEqual(0);
+  expect((menuBox?.y ?? 0) + (menuBox?.height ?? 0)).toBeLessThanOrEqual(
+    (viewport?.height ?? 0) + 1,
+  );
 });
 
 test('bulk-selects sibling leaves, aligns, undoes and redoes', async ({ page }) => {

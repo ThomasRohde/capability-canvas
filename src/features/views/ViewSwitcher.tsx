@@ -6,6 +6,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import type { VisualViewId } from "../../domain/document/types";
+import { summarizeVisualView } from "../../domain/visual/viewSummary";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 
@@ -37,6 +38,7 @@ export function ViewSwitcher({
   const rootRef = useRef<HTMLDivElement>(null);
   const effectiveActiveViewId = activeViewId ?? doc.visual.activeViewId;
   const activeView = doc.visual.viewsById[effectiveActiveViewId];
+  const activeSummary = summarizeVisualView(doc, effectiveActiveViewId);
   const orderedViews = doc.visual.viewOrder
     .map((viewId) => doc.visual.viewsById[viewId])
     .filter(Boolean);
@@ -104,7 +106,14 @@ export function ViewSwitcher({
         }}
       >
         <Eye />
-        <span>{activeView.name}</span>
+        <span className="cc-view-trigger-text">
+          <span className="cc-view-trigger-name">{activeView.name}</span>
+          {activeSummary && (
+            <span className="cc-view-trigger-meta">
+              {activeSummary.templateName} - {activeSummary.visibleNodeCount} visible
+            </span>
+          )}
+        </span>
         {readonly ? <ChevronDown /> : null}
       </button>
       {readonly && open && (

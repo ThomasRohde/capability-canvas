@@ -772,7 +772,7 @@ export function duplicateVisualView(viewId?: VisualViewId): Transaction {
       visual.viewsById[id] = {
         ...cloneVisualView(source),
         id,
-        name: `${source.name} copy`,
+        name: uniqueViewName(doc, `${source.name} copy`),
         createdAt: now(),
         updatedAt: now(),
       };
@@ -999,6 +999,36 @@ export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
       relayout: { scope: "document", force: true, viewId },
     },
   );
+}
+
+export function resetVisualViewVisibility(viewId: VisualViewId): Transaction {
+  return transaction("Reset visual view visibility", [
+    command("reset-visual-view-visibility", { viewId }, (doc) => {
+      const existing = doc.visual.viewsById[viewId];
+      if (!existing) return fail(doc, "missing-view", "Select a valid view.");
+      const templateId = builtInTemplateId(existing.templateId);
+      const contextRootId = existing.templateContext?.rootId;
+      const baseline = createViewFromTemplate(doc, {
+        id: viewId,
+        templateId,
+        name: existing.name,
+        context: { rootId: contextRootId },
+      });
+      const next = cloneDocument(doc);
+      const visual = cloneVisualWorkspace(next.visual);
+      const current = visual.viewsById[viewId]!;
+      visual.viewsById[viewId] = {
+        ...current,
+        nodeStatesById: mergeVisibilityNodeStates(
+          current.nodeStatesById,
+          baseline.nodeStatesById,
+        ),
+        updatedAt: now(),
+      };
+      next.visual = visual;
+      return ok(materializeActiveViewMetadata(next));
+    }),
+  ]);
 }
 
 export function resetVisualViewFromTemplate(
@@ -1985,6 +2015,45 @@ function mergeLayoutNodeStates(
     };
   }
   return next;
+}
+
+function mergeVisibilityNodeStates(
+  currentStates: Record<NodeId, VisualNodeState>,
+  baselineStates: Record<NodeId, VisualNodeState>,
+): Record<NodeId, VisualNodeState> {
+  const next: Record<NodeId, VisualNodeState> = {};
+  const nodeIds = new Set([
+    ...Object.keys(currentStates),
+    ...Object.keys(baselineStates),
+  ]);
+  for (const nodeId of nodeIds) {
+    const current = currentStates[nodeId] ?? {};
+    const baseline = baselineStates[nodeId];
+    const merged: VisualNodeState = { ...current };
+    if (baseline && "isOnCanvas" in baseline) {
+      merged.isOnCanvas = baseline.isOnCanvas;
+    } else {
+      delete merged.isOnCanvas;
+    }
+    if (baseline?.isCollapsed === true) {
+      merged.isCollapsed = true;
+    } else {
+      delete merged.isCollapsed;
+    }
+    delete merged[COLLAPSED_VISIBILITY_KEY];
+    next[nodeId] = merged;
+  }
+  return next;
+}
+
+function uniqueViewName(doc: CapabilityDocument, baseName: string): string {
+  const existing = new Set(
+    Object.values(doc.visual.viewsById).map((view) => view.name),
+  );
+  if (!existing.has(baseName)) return baseName;
+  let suffix = 2;
+  while (existing.has(`${baseName} ${suffix}`)) suffix += 1;
+  return `${baseName} ${suffix}`;
 }
 
 function builtInTemplateId(value: unknown): VisualTemplateId {
