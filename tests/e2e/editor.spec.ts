@@ -147,7 +147,7 @@ test('viewer presentation controls do not mutate the serialized document', async
   expect(await serialize()).toBe(before);
 });
 
-test('separates active-view remove from source-model delete', async ({ page }) => {
+test('separates active view remove from source-model delete', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 
   const serializedContains = (nodeId: string) =>
@@ -179,6 +179,39 @@ test('separates active-view remove from source-model delete', async ({ page }) =
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.locator('.cc-outline').getByText('Digital Onboarding')).toBeVisible();
   expect(await serializedContains('digital-onboarding')).toBe(true);
+});
+
+test('outline search finds, restores and expands active view results', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const outline = page.locator('.cc-outline');
+  const canvas = page.getByTestId('canvas');
+  const search = page.getByPlaceholder('Search outline');
+
+  await search.fill('open accounts');
+  await expect(outline).toContainText('Digital Onboarding');
+  await expect(outline).toContainText('Retail Banking > Customer > Channels > Digital');
+  await search.press('Enter');
+  await expect(outline.locator('.cc-tree-row.active').filter({ hasText: 'Digital Onboarding' })).toBeVisible();
+
+  await canvas.getByText('Digital Onboarding').click();
+  await page.keyboard.press('Delete');
+  await expect(canvas.getByText('Digital Onboarding')).toHaveCount(0);
+
+  await search.fill('Digital Onboarding');
+  await expect(page.getByTitle('Hidden in active view')).toBeVisible();
+  await page.getByRole('button', { name: 'Add Digital Onboarding to active view' }).click();
+  await expect(canvas.getByText('Digital Onboarding')).toBeVisible();
+
+  await search.fill('');
+  await page.getByRole('button', { name: 'Actions for Digital', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Collapse in view' }).click();
+  await expect(canvas.getByText('Digital Onboarding')).toHaveCount(0);
+
+  await search.fill('Digital Onboarding');
+  await page
+    .getByRole('button', { name: 'Expand Digital in active view to show Digital Onboarding' })
+    .click();
+  await expect(canvas.getByText('Digital Onboarding')).toBeVisible();
 });
 
 test('bulk-selects sibling leaves, aligns, undoes and redoes', async ({ page }) => {

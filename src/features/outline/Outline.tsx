@@ -18,8 +18,9 @@ import {
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
+  ReactNode,
 } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addChild,
   addRoot,
@@ -40,43 +41,73 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { resolveToggleSelection } from "../../domain/selection/rules";
+import {
+  searchOutline,
+  type OutlineSearchMatch,
+} from "../../domain/search/outlineSearch";
+import {
+  getActiveViewNodeContexts,
+  type ActiveViewNodeContext,
+} from "../../domain/visual/viewStatus";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import {
   MAX_OUTLINE_WIDTH,
   MIN_OUTLINE_WIDTH,
   clampOutlineWidth,
+  type ViewportState,
   useUiStore,
 } from "../../app/stores/uiStore";
+import { focusNodeInViewport } from "../canvas/viewport";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 
 export function Outline({
   readonly = false,
   displayDoc,
+  onViewportChange,
 }: {
   readonly?: boolean;
   displayDoc?: CapabilityDocument;
+  onViewportChange?: (viewport: ViewportState) => void;
 }) {
   const storeDoc = useDocumentStore((state) => state.doc);
   const doc = displayDoc ?? storeDoc;
   const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
   const execute = useDocumentStore((state) => state.execute);
+  const setActiveViewViewport = useDocumentStore(
+    (state) => state.setActiveViewViewport,
+  );
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
   const setOutlineOpen = useUiStore((state) => state.setOutlineOpen);
   const outlineWidth = useUiStore((state) => state.outlineWidth);
   const setOutlineWidth = useUiStore((state) => state.setOutlineWidth);
   const viewport = useUiStore((state) => state.viewport);
+  const setViewport = useUiStore((state) => state.setViewport);
   const canvasSize = useUiStore((state) => state.canvasSize);
   const searchQuery = useUiStore((state) => state.searchQuery);
   const setSearchQuery = useUiStore((state) => state.setSearchQuery);
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
   const [filterToSelection, setFilterToSelection] = useState(false);
+  const searchCursorIndexRef = useRef(-1);
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
   const safeChildrenByParentId = useMemo(
     () => buildSafeChildrenByParentId(doc).childrenByParentId,
+    [doc],
+  );
+  const searchResult = useMemo(
+    () => searchOutline(doc, searchQuery),
+    [doc, searchQuery],
+  );
+  const searchActive = searchResult.normalizedQuery.length > 0;
+  const searchMatchIds = useMemo(
+    () => new Set(searchResult.matchingNodeIds),
+    [searchResult.matchingNodeIds],
+  );
+  const activeViewContexts = useMemo(
+    () => getActiveViewNodeContexts(doc),
     [doc],
   );
 
@@ -120,6 +151,22 @@ export function Outline({
       return arraysEqual(previous, next) ? previous : next;
     });
   }, [folderIds]);
+
+  useEffect(() => {
+    searchCursorIndexRef.current = -1;
+  }, [searchResult.normalizedQuery]);
+
+  useEffect(() => {
+    if (!searchActive || searchResult.ancestorNodeIds.size === 0) return;
+    setExpandedItems((previous) => {
+      const next = [...previous];
+      for (const nodeId of searchResult.ancestorNodeIds) {
+        if ((safeChildrenByParentId[nodeId] ?? []).length === 0) continue;
+        if (!next.includes(nodeId)) next.push(nodeId);
+      }
+      return arraysEqual(previous, next) ? previous : next;
+    });
+  }, [safeChildrenByParentId, searchActive, searchResult.ancestorNodeIds]);
 
   const tree = useTree<string>({
     rootItemId,
@@ -197,6 +244,62 @@ export function Outline({
     setOutlineWidth(keyWidths[event.key]!);
   };
 
+  const focusNode = useCallback(
+    (nodeId: NodeId) => {
+      const node = viewDoc.nodesById[nodeId];
+      if (!node || !isNodeOnCanvas(node)) return;
+      const nextViewport = focusNodeInViewport(node, viewport, canvasSize);
+      setViewport(nextViewport);
+      if (onViewportChange) {
+        onViewportChange(nextViewport);
+      } else if (!readonly) {
+        setActiveViewViewport(nextViewport);
+      }
+    },
+    [
+      canvasSize,
+      onViewportChange,
+      readonly,
+      setActiveViewViewport,
+      setViewport,
+      viewDoc.nodesById,
+      viewport,
+    ],
+  );
+
+  const selectNode = useCallback(
+    (nodeId: NodeId, shouldToggle: boolean) => {
+      if (shouldToggle) {
+        toggleOutlineSelection(doc, nodeId);
+        return;
+      }
+      setSelection([nodeId]);
+      focusNode(nodeId);
+    },
+    [doc, focusNode, setSelection],
+  );
+
+  const jumpSearchResult = useCallback(
+    (direction: 1 | -1) => {
+      if (searchResult.matchingNodeIds.length === 0) return;
+      const length = searchResult.matchingNodeIds.length;
+      const current = searchCursorIndexRef.current;
+      const nextIndex =
+        current < 0
+          ? direction === 1
+            ? 0
+            : length - 1
+          : (current + direction + length) % length;
+      searchCursorIndexRef.current = nextIndex;
+      const nodeId = searchResult.matchingNodeIds[nextIndex];
+      if (nodeId) {
+        setSelection([nodeId]);
+        focusNode(nodeId);
+      }
+    },
+    [focusNode, searchResult.matchingNodeIds, setSelection],
+  );
+
   return (
     <aside className="cc-outline">
       <div className="cc-outline-header">
@@ -227,6 +330,17 @@ export function Outline({
             placeholder="Search outline"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && searchQuery.length > 0) {
+                event.preventDefault();
+                setSearchQuery("");
+                return;
+              }
+              if (event.key === "Enter" && searchActive) {
+                event.preventDefault();
+                jumpSearchResult(event.shiftKey ? -1 : 1);
+              }
+            }}
           />
         </div>
         <button
@@ -262,11 +376,8 @@ export function Outline({
           .filter((item) => item.getId() !== rootItemId)
           .filter((item) => {
             const nodeId = item.getId();
-            const query = searchQuery.trim().toLowerCase();
             const matchesSearch =
-              query.length === 0 ||
-              (doc.nodesById[nodeId]?.label.toLowerCase().includes(query) ??
-                false);
+              !searchActive || searchResult.visibleNodeIds.has(nodeId);
             return (
               matchesSearch &&
               matchesOutlineSelectionFilter(
@@ -295,22 +406,29 @@ export function Outline({
               doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
                 node.id
               ];
-            const visibleInView = isNodeOnCanvas(viewNode);
+            const viewContext = activeViewContexts[node.id];
+            const visibleInView = viewContext?.visibility === "visible";
+            const collapsedAncestor = viewContext?.collapsedAncestorId
+              ? doc.nodesById[viewContext.collapsedAncestorId]
+              : undefined;
+            const searchMatches = searchResult.matchesByNodeId[node.id] ?? [];
+            const isSearchMatch = searchMatchIds.has(node.id);
             return (
               <div
                 {...itemProps}
                 key={node.id}
-                className={`cc-tree-row ${active ? "active" : ""}`}
+                className={`cc-tree-row ${active ? "active" : ""} ${
+                  isSearchMatch ? "search-match" : ""
+                } ${searchActive && !isSearchMatch ? "search-context" : ""}`}
                 style={{
                   paddingLeft: `${8 + item.getItemMeta().level * 14}px`,
                 }}
                 onClick={(event) => {
                   itemProps.onClick?.(event);
-                  if (event.ctrlKey || event.metaKey || event.shiftKey) {
-                    toggleOutlineSelection(doc, node.id);
-                  } else {
-                    setSelection([node.id]);
-                  }
+                  selectNode(
+                    node.id,
+                    event.ctrlKey || event.metaKey || event.shiftKey,
+                  );
                 }}
               >
                 {item.isFolder() ? (
@@ -326,28 +444,54 @@ export function Outline({
                   className="cc-tree-swatch"
                   style={{ color: style.border, background: style.background }}
                 />
-                <span className="cc-tree-label">{node.label}</span>
+                <span className="cc-tree-text">
+                  <span className="cc-tree-label">
+                    <HighlightedText
+                      text={node.label}
+                      matches={searchMatches.filter(
+                        (match) => match.field === "label",
+                      )}
+                    />
+                  </span>
+                  {searchActive && isSearchMatch && (
+                    <>
+                      <span className="cc-tree-path">
+                        {formatSearchPath(
+                          searchResult.pathLabelsByNodeId[node.id],
+                        )}
+                      </span>
+                      <SearchHitSummary matches={searchMatches} />
+                    </>
+                  )}
+                </span>
                 <span
-                  className={`cc-tree-visibility ${visibleInView ? "visible" : "hidden"}`}
-                  title={
-                    visibleInView
-                      ? "Visible in active view"
-                      : "Hidden in active view"
-                  }
+                  className={`cc-tree-visibility ${visibilityClass(viewContext)}`}
+                  title={visibilityLabel(viewContext, collapsedAncestor?.label)}
                 >
                   {visibleInView ? (
                     <Eye aria-label="Visible in active view" />
                   ) : (
-                    <EyeOff aria-label="Hidden in active view" />
+                    <EyeOff aria-label={visibilityLabel(viewContext)} />
                   )}
                 </span>
-                {activeViewState?.isCollapsed && (
+                {viewContext?.isCollapsed && (
                   <span
                     className="cc-tree-visibility collapsed"
                     title="Collapsed in active view"
                   >
                     <ChevronsRight aria-label="Collapsed in active view" />
                   </span>
+                )}
+                {searchActive && isSearchMatch && !readonly && (
+                  <SearchResultAction
+                    nodeId={node.id}
+                    nodeLabel={node.label}
+                    viewId={doc.visual.activeViewId}
+                    viewContext={viewContext}
+                    collapsedAncestorLabel={collapsedAncestor?.label}
+                    canvasTargetCenter={canvasTargetCenter}
+                    onAfterAction={() => setSelection([node.id])}
+                  />
                 )}
                 {viewDoc.heatmap.enabled && node.heatmapValue !== undefined && (
                   <span className="cc-tree-score">
@@ -455,6 +599,155 @@ function toggleOutlineSelection(doc: CapabilityDocument, nodeId: NodeId) {
   const resolution = resolveToggleSelection(doc, ui.selectedNodeIds, nodeId);
   ui.setSelection(resolution.nodeIds);
   if (resolution.reason) ui.showSelectionNotice(resolution.reason);
+}
+
+function formatSearchPath(pathLabels: string[] | undefined): string {
+  const parentLabels = pathLabels?.slice(0, -1) ?? [];
+  return parentLabels.length > 0 ? parentLabels.join(" > ") : "Top level";
+}
+
+function SearchHitSummary({ matches }: { matches: OutlineSearchMatch[] }) {
+  const match =
+    matches.find((item) => item.field !== "label") ?? matches[0] ?? null;
+  if (!match || match.field === "label") return null;
+  const label =
+    match.field === "id"
+      ? "ID"
+      : match.field === "description"
+        ? "Description"
+        : "Metadata";
+  return (
+    <span className="cc-tree-search-hit">
+      {label}: <HighlightedText text={match.value} matches={[match]} />
+    </span>
+  );
+}
+
+function HighlightedText({
+  text,
+  matches,
+}: {
+  text: string;
+  matches: OutlineSearchMatch[];
+}) {
+  if (matches.length === 0) return <>{text}</>;
+  const ranges = mergeRanges(
+    matches
+      .map((match) => match.range)
+      .filter((range) => range.start >= 0 && range.end <= text.length),
+  );
+  if (ranges.length === 0) return <>{text}</>;
+
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  ranges.forEach((range, index) => {
+    if (range.start > cursor) {
+      parts.push(
+        <Fragment key={`text-${index}`}>{text.slice(cursor, range.start)}</Fragment>,
+      );
+    }
+    parts.push(
+      <mark className="cc-search-highlight" key={`mark-${index}`}>
+        {text.slice(range.start, range.end)}
+      </mark>,
+    );
+    cursor = range.end;
+  });
+  if (cursor < text.length) {
+    parts.push(<Fragment key="tail">{text.slice(cursor)}</Fragment>);
+  }
+  return <>{parts}</>;
+}
+
+function mergeRanges(ranges: Array<{ start: number; end: number }>) {
+  const sorted = [...ranges].sort((a, b) => a.start - b.start || a.end - b.end);
+  const merged: Array<{ start: number; end: number }> = [];
+  for (const range of sorted) {
+    const previous = merged[merged.length - 1];
+    if (!previous || range.start > previous.end) {
+      merged.push({ ...range });
+      continue;
+    }
+    previous.end = Math.max(previous.end, range.end);
+  }
+  return merged;
+}
+
+function visibilityClass(context: ActiveViewNodeContext | undefined): string {
+  if (context?.visibility === "visible") return "visible";
+  if (context?.visibility === "outside-active-view") return "outside";
+  return "hidden";
+}
+
+function visibilityLabel(
+  context: ActiveViewNodeContext | undefined,
+  collapsedAncestorLabel?: string,
+): string {
+  if (context?.visibility === "visible") return "Visible in active view";
+  if (context?.collapsedAncestorId) {
+    return collapsedAncestorLabel
+      ? `Hidden by collapsed ${collapsedAncestorLabel}`
+      : "Hidden by collapsed ancestor";
+  }
+  if (context?.visibility === "outside-active-view") return "Outside active view";
+  return "Hidden in active view";
+}
+
+function SearchResultAction({
+  nodeId,
+  nodeLabel,
+  viewId,
+  viewContext,
+  collapsedAncestorLabel,
+  canvasTargetCenter,
+  onAfterAction,
+}: {
+  nodeId: NodeId;
+  nodeLabel: string;
+  viewId: string;
+  viewContext: ActiveViewNodeContext | undefined;
+  collapsedAncestorLabel?: string;
+  canvasTargetCenter: { x: number; y: number };
+  onAfterAction: () => void;
+}) {
+  const execute = useDocumentStore((state) => state.execute);
+  if (!viewContext || viewContext.visibility === "visible") return null;
+  if (viewContext.collapsedAncestorId) {
+    return (
+      <button
+        className="cc-tree-result-action"
+        type="button"
+        aria-label={`Expand ${
+          collapsedAncestorLabel ?? "collapsed ancestor"
+        } in active view to show ${nodeLabel}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          execute(
+            updateVisualNodeState(viewId, viewContext.collapsedAncestorId!, {
+              isCollapsed: false,
+            }),
+          );
+          onAfterAction();
+        }}
+      >
+        Expand in active view
+      </button>
+    );
+  }
+  return (
+    <button
+      className="cc-tree-result-action"
+      type="button"
+      aria-label={`Add ${nodeLabel} to active view`}
+      onClick={(event) => {
+        event.stopPropagation();
+        execute(addSubtreeToCanvas(nodeId, canvasTargetCenter));
+        onAfterAction();
+      }}
+    >
+      Add to active view
+    </button>
+  );
 }
 
 function OutlineActionsMenu({

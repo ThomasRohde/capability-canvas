@@ -272,7 +272,7 @@ export function SettingsDrawer() {
         <section className="cc-settings-section">
           <div className="cc-section-heading">
             <Grid3X3 size={16} />
-            <span>Active-view heatmap display</span>
+            <span>Active view heatmap display</span>
           </div>
           <label className="cc-check-row">
             <input
@@ -286,7 +286,7 @@ export function SettingsDrawer() {
                 )
               }
             />
-            <span>Show legend in active-view heatmap mode</span>
+            <span>Show legend in active view heatmap mode</span>
           </label>
           <div className="cc-field">
             <label htmlFor="heatmap-palette">Palette</label>

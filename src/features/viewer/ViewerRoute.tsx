@@ -177,7 +177,13 @@ export function ViewerRoute() {
         className={`cc-workspace cc-viewer-workspace ${outlineOpen ? "" : "outline-closed"} ${inspectorOpen ? "" : "inspector-closed"}`}
         style={workspaceStyle}
       >
-        {outlineOpen && <Outline readonly displayDoc={displayDoc} />}
+        {outlineOpen && (
+          <Outline
+            readonly
+            displayDoc={displayDoc}
+            onViewportChange={commitViewerViewport}
+          />
+        )}
         <Canvas
           readonly
           displayDoc={displayDoc}

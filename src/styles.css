@@ -663,6 +663,19 @@ button:focus-visible {
   font-weight: 500;
 }
 
+.cc-tree-row.search-context {
+  color: var(--cc-slate-600);
+}
+
+.cc-tree-row.search-match {
+  align-items: flex-start;
+  background: #fff;
+}
+
+.cc-tree-row.active.search-match {
+  background: var(--cc-brand-50);
+}
+
 .cc-tree-swatch {
   width: 11px;
   height: 11px;
@@ -671,12 +684,45 @@ button:focus-visible {
   border: 1.5px solid currentColor;
 }
 
-.cc-tree-label {
+.cc-tree-row.search-match .cc-tree-swatch {
+  margin-top: 4px;
+}
+
+.cc-tree-text {
+  display: flex;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cc-tree-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cc-tree-path,
+.cc-tree-search-hit {
+  overflow: hidden;
+  color: var(--cc-slate-500);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-tree-search-hit {
+  color: var(--cc-slate-600);
+}
+
+.cc-search-highlight {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: #fef3c7;
+  color: inherit;
 }
 
 .cc-tree-score {
@@ -697,6 +743,11 @@ button:focus-visible {
   color: var(--cc-slate-500);
 }
 
+.cc-tree-row.search-match .cc-tree-visibility,
+.cc-tree-row.search-match .cc-tree-actions {
+  margin-top: 0;
+}
+
 .cc-tree-visibility svg {
   width: 12px;
   height: 12px;
@@ -713,9 +764,33 @@ button:focus-visible {
   background: var(--cc-slate-50);
 }
 
+.cc-tree-visibility.outside {
+  color: var(--cc-slate-500);
+  border-style: dashed;
+  background: #fff;
+}
+
 .cc-tree-visibility.collapsed {
   color: var(--cc-warning);
   background: #fffbeb;
+}
+
+.cc-tree-result-action {
+  margin-top: 0;
+  height: 22px;
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--cc-brand-700);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cc-tree-result-action:hover {
+  border-color: var(--cc-brand-300);
+  background: var(--cc-brand-50);
 }
 
 .cc-tree-actions {

@@ -119,7 +119,7 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
 export const htmlAdapter: ExportAdapter = {
   format: 'html',
   label: 'HTML',
-  description: 'Standalone browser-readable active-view export.',
+  description: 'Standalone browser-readable active view export.',
   scope: 'active-view',
   requiresValidDocument: true,
   hiddenNodes: 'excluded',

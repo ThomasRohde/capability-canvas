@@ -15,6 +15,7 @@ import {
   addTextLabel,
   lockSubtree,
   createVisualView,
+  removeNodesFromCanvas,
   reparentNode,
   runTransaction,
   updateVisualNodeState,
@@ -980,6 +981,112 @@ describe("editor shell", () => {
     expect(within(outline).getByText("Risk")).toBeInTheDocument();
   });
 
+  it("searches outline metadata with path context and keyboard navigation", async () => {
+    useUiStore.setState({ selectedNodeIds: [] });
+    const { container } = render(<EditorRoute />);
+    const outline = container.querySelector(".cc-outline") as HTMLElement;
+    const input = screen.getByPlaceholderText("Search outline");
+    const viewportBefore = useUiStore.getState().viewport;
+
+    await userEvent.type(input, "Digital Banking");
+
+    expect(
+      within(outline).getByText("Retail Banking > Customer > Channels > Digital"),
+    ).toBeInTheDocument();
+    expect(within(outline).getByText(/owner:/)).toBeInTheDocument();
+    expect(outline.querySelector(".cc-search-highlight")).toHaveTextContent(
+      "Digital Banking",
+    );
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(useUiStore.getState().selectedNodeIds).toEqual([
+      "digital-onboarding",
+    ]);
+    expect(useUiStore.getState().viewport).not.toEqual(viewportBefore);
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input).toHaveValue("");
+  });
+
+  it("adds hidden outline search results back to the active view", async () => {
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(removeNodesFromCanvas(["digital-onboarding"]));
+    });
+    const { container } = render(<EditorRoute />);
+    const outline = container.querySelector(".cc-outline") as HTMLElement;
+    const input = screen.getByPlaceholderText("Search outline");
+
+    await userEvent.type(input, "Digital Onboarding");
+
+    expect(within(outline).getByTitle("Hidden in active view")).toBeInTheDocument();
+    await userEvent.click(
+      within(outline).getByRole("button", {
+        name: "Add Digital Onboarding to active view",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId("canvas")).getByText("Digital Onboarding"),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("expands collapsed ancestors from outline search results", async () => {
+    const viewId = useDocumentStore.getState().doc.visual.activeViewId;
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(updateVisualNodeState(viewId, "digital", { isCollapsed: true }));
+    });
+    const { container } = render(<EditorRoute />);
+    const outline = container.querySelector(".cc-outline") as HTMLElement;
+
+    expect(
+      within(screen.getByTestId("canvas")).queryByText("Digital Onboarding"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getByPlaceholderText("Search outline"),
+      "Digital Onboarding",
+    );
+    await userEvent.click(
+      within(outline).getByRole("button", {
+        name: "Expand Digital in active view to show Digital Onboarding",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId("canvas")).getByText("Digital Onboarding"),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("keeps restore actions out of readonly outline search", async () => {
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(removeNodesFromCanvas(["digital-onboarding"]));
+    });
+    const { container } = render(<ViewerRoute />);
+    const outline = container.querySelector(".cc-outline") as HTMLElement;
+
+    await userEvent.type(
+      screen.getByPlaceholderText("Search outline"),
+      "Digital Onboarding",
+    );
+
+    expect(within(outline).getByTitle("Hidden in active view")).toBeInTheDocument();
+    expect(
+      within(outline).queryByRole("button", {
+        name: "Add Digital Onboarding to active view",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("wires status bar actions to workspace state", async () => {
     render(<EditorRoute />);
 
@@ -1508,7 +1615,7 @@ describe("editor shell", () => {
     );
   });
 
-  it("shows source model and active-view status in the inspector", () => {
+  it("shows source model and active view status in the inspector", () => {
     const { container } = render(<EditorRoute />);
     const inspector = container.querySelector(".cc-inspector") as HTMLElement;
 

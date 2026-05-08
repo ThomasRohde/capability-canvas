@@ -804,7 +804,7 @@ function SourceViewStatus({
   const layoutState = viewNode.isLockedAsIs
     ? "Preserved from auto layout"
     : viewNode.isManualPositioningEnabled
-      ? "Manual active-view layout"
+      ? "Manual active view layout"
       : "Auto layout";
 
   return (
