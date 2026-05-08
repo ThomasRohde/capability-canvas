@@ -63,6 +63,35 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
   }
 });
 
+test('renames a canvas label inline and undoes the rename', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const canvas = page.getByTestId('canvas');
+
+  await canvas.getByText('Digital Onboarding').dblclick();
+  const input = page.getByRole('textbox', { name: 'Edit label for Digital Onboarding' });
+  await expect(input).toBeFocused();
+  await input.fill('Online Origination');
+  await input.press('Enter');
+
+  await expect(canvas.getByText('Online Origination')).toBeVisible();
+  await page.keyboard.press('Control+Z');
+  await expect(canvas.getByText('Digital Onboarding')).toBeVisible();
+});
+
+test('cancels a canvas inline label edit with Escape', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const canvas = page.getByTestId('canvas');
+
+  await canvas.getByText('Digital Onboarding').dblclick();
+  const input = page.getByRole('textbox', { name: 'Edit label for Digital Onboarding' });
+  await input.fill('Canceled label');
+  await input.press('Escape');
+
+  await expect(input).toHaveCount(0);
+  await expect(canvas.getByText('Digital Onboarding')).toBeVisible();
+  await expect(canvas.getByText('Canceled label')).toHaveCount(0);
+});
+
 test('supports panel rail, padding controls and outline actions', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 

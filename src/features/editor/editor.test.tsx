@@ -12,6 +12,7 @@ import { APP_VERSION } from "../../app/version";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { DEFAULT_OUTLINE_WIDTH, useUiStore } from "../../app/stores/uiStore";
 import {
+  addTextLabel,
   lockSubtree,
   createVisualView,
   reparentNode,
@@ -630,6 +631,192 @@ describe("editor shell", () => {
       expect(style.overflowWrap).toBe("anywhere");
       expect(style.textOverflow).not.toBe("ellipsis");
       expect(style.overflow).toBe("visible");
+    }
+  });
+
+  it("renames a canvas label inline and syncs canvas, outline, inspector, and JSON", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const outline = document.querySelector(".cc-outline") as HTMLElement;
+
+    await userEvent.dblClick(within(canvas).getByText("Digital Onboarding"));
+    const input = screen.getByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+    expect(input).toHaveFocus();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "Online Origination");
+    await userEvent.keyboard("{Enter}");
+
+    expect(within(canvas).getByText("Online Origination")).toBeInTheDocument();
+    expect(within(outline).getByText("Online Origination")).toBeInTheDocument();
+    expect(screen.getByLabelText("Label")).toHaveValue("Online Origination");
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]?.label,
+    ).toBe("Online Origination");
+    expect(stringifyDocument(useDocumentStore.getState().doc)).toContain(
+      "Online Origination",
+    );
+  });
+
+  it("cancels inline label edits with Escape without changing history", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const before = stringifyDocument(useDocumentStore.getState().doc);
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    await userEvent.dblClick(within(canvas).getByText("Digital Onboarding"));
+    const input = screen.getByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, "Canceled label");
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      screen.queryByRole("textbox", {
+        name: "Edit label for Digital Onboarding",
+      }),
+    ).not.toBeInTheDocument();
+    expect(within(canvas).getByText("Digital Onboarding")).toBeInTheDocument();
+    expect(stringifyDocument(useDocumentStore.getState().doc)).toBe(before);
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
+  });
+
+  it("does not commit inline label edits when normalization leaves the label unchanged", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    await userEvent.dblClick(within(canvas).getByText("Digital Onboarding"));
+    const input = screen.getByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, "  Digital   Onboarding  ");
+    await userEvent.keyboard("{Enter}");
+
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]?.label,
+    ).toBe("Digital Onboarding");
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
+  });
+
+  it("opens inline label editing with Enter for one selected visible node", async () => {
+    render(<EditorRoute />);
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(
+      screen.getByRole("textbox", {
+        name: "Edit label for Digital Onboarding",
+      }),
+    ).toHaveFocus();
+  });
+
+  it("undo restores the previous label after one inline rename", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+
+    await userEvent.dblClick(within(canvas).getByText("Digital Onboarding"));
+    const input = screen.getByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, "Undoable Label");
+    await userEvent.keyboard("{Enter}");
+
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Update capability",
+    );
+    act(() => {
+      useDocumentStore.getState().undo();
+    });
+
+    expect(within(canvas).getByText("Digital Onboarding")).toBeInTheDocument();
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]?.label,
+    ).toBe("Digital Onboarding");
+  });
+
+  it("does not run canvas shortcuts while inline label input is active", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const beforeX =
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]!.x;
+
+    await userEvent.dblClick(within(canvas).getByText("Digital Onboarding"));
+    const input = screen.getByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+
+    fireEvent.keyDown(input, { key: "ArrowRight" });
+    fireEvent.keyDown(input, { key: "Delete" });
+
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"],
+    ).toBeDefined();
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]!.x,
+    ).toBe(beforeX);
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById[
+        "digital-onboarding"
+      ]?.isOnCanvas,
+    ).toBe(true);
+  });
+
+  it("normalizes blank inline labels to Untitled capability", async () => {
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+
+    await userEvent.dblClick(within(canvas).getByText("Digital Onboarding"));
+    const input = screen.getByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+    await userEvent.clear(input);
+    await userEvent.keyboard("{Enter}");
+
+    expect(within(canvas).getByText("Untitled capability")).toBeInTheDocument();
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]?.label,
+    ).toBe("Untitled capability");
+  });
+
+  it("supports inline label editing for root, parent, leaf, and text-label nodes", async () => {
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(addTextLabel("retail-banking", "Canvas note"));
+    });
+    render(<EditorRoute />);
+    const canvas = screen.getByTestId("canvas");
+    const textNode = Object.values(useDocumentStore.getState().doc.nodesById).find(
+      (node) => node.isTextLabel,
+    );
+    expect(textNode).toBeDefined();
+
+    const cases = [
+      ["retail-banking", "Retail Banking", "Edited root"],
+      ["customer", "Customer", "Edited parent"],
+      ["digital-onboarding", "Digital Onboarding", "Edited leaf"],
+      [textNode!.id, "Canvas note", "Edited note"],
+    ] as const;
+
+    for (const [nodeId, initialLabel, nextLabel] of cases) {
+      await userEvent.dblClick(within(canvas).getByText(initialLabel));
+      const input = screen.getByRole("textbox", {
+        name: `Edit label for ${initialLabel}`,
+      });
+      await userEvent.clear(input);
+      await userEvent.type(input, nextLabel);
+      await userEvent.keyboard("{Enter}");
+
+      expect(useDocumentStore.getState().doc.nodesById[nodeId]?.label).toBe(
+        nextLabel,
+      );
+      expect(within(canvas).getByText(nextLabel)).toBeInTheDocument();
     }
   });
 

@@ -7,6 +7,7 @@ import {
   setManualPositioning,
   updateNode,
 } from "../../domain/commands/operations";
+import { normalizeNodeLabel } from "../../domain/document/labels";
 import {
   isNodeOnCanvas,
   type CapabilityDocument,
@@ -17,6 +18,7 @@ import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import { CommitTextInput } from "../shared/CommitTextInput";
 
 export function Inspector({
   readonly = false,
@@ -105,7 +107,9 @@ function Properties({
         <label htmlFor="node-label">Label</label>
         <CommitTextInput
           id="node-label"
+          className="cc-input"
           value={node.label}
+          normalize={normalizeNodeLabel}
           onCommit={(label) => execute(updateNode(node.id, { label }))}
         />
       </div>
@@ -524,49 +528,6 @@ function SourceViewStatus({
         {sourceId && <FragmentRow label="Source ID" value={sourceId} />}
       </dl>
     </div>
-  );
-}
-
-function CommitTextInput({
-  id,
-  value,
-  onCommit,
-}: {
-  id: string;
-  value: string;
-  onCommit: (value: string) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  const skipCommit = useRef(false);
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-  const commit = () => {
-    if (skipCommit.current) {
-      skipCommit.current = false;
-      return;
-    }
-    if (draft !== value) onCommit(draft);
-  };
-  return (
-    <input
-      id={id}
-      className="cc-input"
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          (event.target as HTMLInputElement).blur();
-        }
-        if (event.key === "Escape") {
-          skipCommit.current = true;
-          setDraft(value);
-          (event.target as HTMLInputElement).blur();
-        }
-      }}
-    />
   );
 }
 

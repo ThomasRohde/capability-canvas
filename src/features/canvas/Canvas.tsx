@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import {
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -39,6 +40,7 @@ import {
   resizeNode,
   sameSize,
   transaction,
+  updateNode,
   updateNodeColors,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
@@ -51,6 +53,7 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
+import { normalizeNodeLabel } from "../../domain/document/labels";
 import { gridSizeFor, snapToGrid } from "../../domain/layout/grid";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import {
@@ -122,6 +125,10 @@ export function Canvas({
     x: number;
     y: number;
   } | null>(null);
+  const [editingNodeId, setEditingNodeId] = useState<NodeId | null>(null);
+  const [labelDraft, setLabelDraft] = useState("");
+  const labelInputRef = useRef<HTMLInputElement>(null);
+  const skipNextLabelCommitRef = useRef(false);
   const docViewport = useMemo(
     () => viewportToDocumentBounds(viewport, size),
     [viewport, size],
@@ -150,6 +157,51 @@ export function Canvas({
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
 
+  const closeLabelEditor = useCallback(() => {
+    setEditingNodeId(null);
+    setLabelDraft("");
+  }, []);
+
+  const startLabelEdit = useCallback(
+    (nodeId: NodeId) => {
+      if (readonly) return;
+      const sourceNode = doc.nodesById[nodeId];
+      const viewNode = viewDoc.nodesById[nodeId];
+      if (!sourceNode || !viewNode || !isNodeOnCanvas(viewNode)) return;
+      useTransientStore.getState().cancel();
+      setContextMenu(null);
+      setSelection([nodeId]);
+      setEditingNodeId(nodeId);
+      setLabelDraft(sourceNode.label);
+      skipNextLabelCommitRef.current = false;
+    },
+    [doc.nodesById, readonly, setSelection, viewDoc.nodesById],
+  );
+
+  const commitLabelEdit = useCallback(() => {
+    if (skipNextLabelCommitRef.current) {
+      skipNextLabelCommitRef.current = false;
+      closeLabelEditor();
+      return;
+    }
+    if (!editingNodeId) return;
+    const node = doc.nodesById[editingNodeId];
+    if (!node) {
+      closeLabelEditor();
+      return;
+    }
+    const normalizedDraft = normalizeNodeLabel(labelDraft);
+    if (normalizedDraft !== normalizeNodeLabel(node.label)) {
+      execute(updateNode(editingNodeId, { label: normalizedDraft }));
+    }
+    closeLabelEditor();
+  }, [closeLabelEditor, doc.nodesById, editingNodeId, execute, labelDraft]);
+
+  const cancelLabelEdit = useCallback(() => {
+    skipNextLabelCommitRef.current = true;
+    closeLabelEditor();
+  }, [closeLabelEditor]);
+
   const commitViewport = useCallback(
     (nextViewport: ViewportState) => {
       if (onViewportChange) {
@@ -177,6 +229,19 @@ export function Canvas({
     observer.observe(element);
     return () => observer.disconnect();
   }, [setCanvasSize]);
+
+  useEffect(() => {
+    if (!editingNodeId) return;
+    labelInputRef.current?.focus();
+    labelInputRef.current?.select();
+  }, [editingNodeId]);
+
+  useEffect(() => {
+    if (!editingNodeId) return;
+    const viewNode = viewDoc.nodesById[editingNodeId];
+    if (!doc.nodesById[editingNodeId] || !viewNode || !isNodeOnCanvas(viewNode))
+      closeLabelEditor();
+  }, [closeLabelEditor, doc.nodesById, editingNodeId, viewDoc.nodesById]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -271,8 +336,22 @@ export function Canvas({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (readonly) return;
+      if (editingNodeId) return;
       if (isEditableTarget(event.target)) {
         if (event.key === "Escape") (event.target as HTMLElement).blur();
+        return;
+      }
+      if (
+        event.key === "Enter" &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        selected.length === 1 &&
+        canvasSelected.length === 1 &&
+        !isInteractiveTarget(event.target)
+      ) {
+        event.preventDefault();
+        startLabelEdit(selected[0]!);
         return;
       }
       if (event.key === "Delete" && event.shiftKey && selected.length > 0) {
@@ -347,11 +426,13 @@ export function Canvas({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     canvasSelected,
+    editingNodeId,
     execute,
     fitView,
     readonly,
     requestDeleteFromModel,
     selected,
+    startLabelEdit,
     viewDoc,
   ]);
 
@@ -525,6 +606,7 @@ export function Canvas({
             const isContainer = vm.node.type !== "leaf" && !vm.node.isTextLabel;
             const selectedNodeClass =
               selectedState && !isContainer ? "selected" : "";
+            const isEditing = editingNodeId === vm.node.id;
             const dragDelta = drag?.nodeIds.includes(vm.node.id)
               ? { x: drag.dx / viewport.zoom, y: drag.dy / viewport.zoom }
               : { x: 0, y: 0 };
@@ -535,7 +617,7 @@ export function Canvas({
             return (
               <div
                 key={vm.node.id}
-                className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
                 style={
                   {
                     left: vm.node.x + dragDelta.x,
@@ -558,6 +640,7 @@ export function Canvas({
                   setContextMenu(null);
                   event.stopPropagation();
                   if (event.button > 0) return;
+                  if (isEditing) return;
                   if (event.ctrlKey || event.metaKey || event.shiftKey)
                     toggleSelectionWithRules(viewDoc, vm.node.id);
                   else if (!selected.includes(vm.node.id))
@@ -700,10 +783,30 @@ export function Canvas({
               >
                 {isContainer ? (
                   <div className="cc-node-title">
-                    <span className="cc-node-label">{vm.node.label}</span>
+                    <NodeLabel
+                      nodeId={vm.node.id}
+                      label={vm.node.label}
+                      isEditing={isEditing}
+                      labelDraft={labelDraft}
+                      inputRef={labelInputRef}
+                      onDraftChange={setLabelDraft}
+                      onCommit={commitLabelEdit}
+                      onCancel={cancelLabelEdit}
+                      onStartEdit={startLabelEdit}
+                    />
                   </div>
                 ) : (
-                  <span className="cc-node-label">{vm.node.label}</span>
+                  <NodeLabel
+                    nodeId={vm.node.id}
+                    label={vm.node.label}
+                    isEditing={isEditing}
+                    labelDraft={labelDraft}
+                    inputRef={labelInputRef}
+                    onDraftChange={setLabelDraft}
+                    onCommit={commitLabelEdit}
+                    onCancel={cancelLabelEdit}
+                    onStartEdit={startLabelEdit}
+                  />
                 )}
                 {viewDoc.heatmap.enabled && vm.node.heatmapValue !== undefined && (
                   <span
@@ -712,7 +815,7 @@ export function Canvas({
                     {vm.node.heatmapValue.toFixed(2)}
                   </span>
                 )}
-                {!readonly && selectedState && (
+                {!readonly && selectedState && !isEditing && (
                   <span
                     className="cc-resize"
                     onPointerDown={(event) => {
@@ -942,6 +1045,71 @@ function isCanvasBackgroundTarget(
   );
 }
 
+function NodeLabel({
+  nodeId,
+  label,
+  isEditing,
+  labelDraft,
+  inputRef,
+  onDraftChange,
+  onCommit,
+  onCancel,
+  onStartEdit,
+}: {
+  nodeId: NodeId;
+  label: string;
+  isEditing: boolean;
+  labelDraft: string;
+  inputRef: RefObject<HTMLInputElement | null>;
+  onDraftChange: (value: string) => void;
+  onCommit: () => void;
+  onCancel: () => void;
+  onStartEdit: (nodeId: NodeId) => void;
+}) {
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        className="cc-node-label-input"
+        aria-label={`Edit label for ${label}`}
+        value={labelDraft}
+        onChange={(event) => onDraftChange(event.target.value)}
+        onBlur={onCommit}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onCancel();
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="cc-node-label"
+      onPointerDown={(event) => {
+        if (event.detail > 1) event.stopPropagation();
+      }}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onStartEdit(nodeId);
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
 function toggleSelectionWithRules(doc: CapabilityDocument, nodeId: NodeId) {
   const ui = useUiStore.getState();
   const current = ui.selectedNodeIds;
@@ -991,6 +1159,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
   const tag = target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   return target.isContentEditable;
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target === document.body) return false;
+  return !!target.closest(
+    'button, a, input, textarea, select, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="dialog"]',
+  );
 }
 
 function BulkToolbar({ selected }: { selected: NodeId[] }) {

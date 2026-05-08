@@ -1,4 +1,5 @@
 import { createNode, makeId, nextColor } from "../document/defaults";
+import { normalizeNodeLabel } from "../document/labels";
 import { cloneDocument, rebuildChildren } from "../document/normalize";
 import {
   canvasChildrenOf,
@@ -470,6 +471,9 @@ export function updateNode(
         );
       const next = cloneDocument(doc);
       const nodePatch = { ...patch };
+      if (Object.hasOwn(patch, "label")) {
+        nodePatch.label = normalizeNodeLabel(patch.label ?? "");
+      }
       const colorPatch: Partial<CapabilityNode> = {};
       if (Object.hasOwn(patch, "color") && patch.color) {
         colorPatch.colorOverride = patch.color;

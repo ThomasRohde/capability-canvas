@@ -1122,6 +1122,10 @@ button:focus-visible {
     0 0 0 6px rgba(20, 184, 166, 0.18);
 }
 
+.cc-node.editing {
+  cursor: text;
+}
+
 .cc-container-frame {
   position: absolute;
   pointer-events: none;
@@ -1174,6 +1178,25 @@ button:focus-visible {
   overflow: visible;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+.cc-node-label-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--cc-brand-700);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.94);
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  line-height: 1.2;
+  text-align: center;
+  padding: 2px 4px;
+  box-shadow: var(--cc-ring-focus);
+}
+
+.cc-node-label-input:focus {
+  outline: none;
 }
 
 .cc-node-score {
