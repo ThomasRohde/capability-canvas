@@ -23,157 +23,157 @@ describe("layout engine", () => {
   it.each(["adaptive", "balanced"] as const)(
     "does not patch locked nodes in %s layout, even when force bypasses document position preservation",
     async (mode) => {
-    const doc = runTransaction(
-      createSampleDocument(),
-      updateNode("risk", { isLockedAsIs: true }),
-    ).doc;
+      const doc = runTransaction(
+        createSampleDocument(),
+        updateNode("risk", { isLockedAsIs: true }),
+      ).doc;
       const result = await layoutDocument({ doc, force: true, mode });
-    expect(result.patches.find((patch) => patch.id === "risk")).toBeUndefined();
-    expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({
-        code: "locked-subtree-preserved",
-      }),
-    );
-    expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({
-        code: "layout-partial",
-        severity: "info",
-      }),
-    );
+      expect(
+        result.patches.find((patch) => patch.id === "risk"),
+      ).toBeUndefined();
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "locked-subtree-preserved",
+        }),
+      );
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "layout-partial",
+          severity: "info",
+        }),
+      );
     },
   );
 
   it.each(["adaptive", "balanced"] as const)(
     "preserves manual child positions under manual parents in %s layout",
     async (mode) => {
-    const doc = runTransaction(
-      createSampleDocument(),
-      updateNode("risk", { isManualPositioningEnabled: true }),
-    ).doc;
+      const doc = runTransaction(
+        createSampleDocument(),
+        updateNode("risk", { isManualPositioningEnabled: true }),
+      ).doc;
       const result = await layoutDocument({ doc, force: true, mode });
-    const after = applyLayoutPatches(doc, result.patches);
-    expect(after.nodesById["credit-risk"]!.x - after.nodesById.risk!.x).toBe(
-      doc.nodesById["credit-risk"]!.x - doc.nodesById.risk!.x,
-    );
-    expect(after.nodesById["credit-risk"]!.y - after.nodesById.risk!.y).toBe(
-      doc.nodesById["credit-risk"]!.y - doc.nodesById.risk!.y,
-    );
-    expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({
-        code: "manual-subtree-preserved",
-        severity: "info",
-        nodeId: "risk",
-      }),
-    );
+      const after = applyLayoutPatches(doc, result.patches);
+      expect(after.nodesById["credit-risk"]!.x - after.nodesById.risk!.x).toBe(
+        doc.nodesById["credit-risk"]!.x - doc.nodesById.risk!.x,
+      );
+      expect(after.nodesById["credit-risk"]!.y - after.nodesById.risk!.y).toBe(
+        doc.nodesById["credit-risk"]!.y - doc.nodesById.risk!.y,
+      );
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "manual-subtree-preserved",
+          severity: "info",
+          nodeId: "risk",
+        }),
+      );
     },
   );
 
   it.each(["adaptive", "balanced"] as const)(
     "does not scoped-layout inside a locked ancestor in %s layout",
     async (mode) => {
-    const doc = runTransaction(
-      createSampleDocument(),
-      updateNode("risk", { isLockedAsIs: true }),
-    ).doc;
+      const doc = runTransaction(
+        createSampleDocument(),
+        updateNode("risk", { isLockedAsIs: true }),
+      ).doc;
 
-    const result = await layoutDocument({
-      doc,
-      affectedNodeIds: ["credit-risk"],
-      force: true,
+      const result = await layoutDocument({
+        doc,
+        affectedNodeIds: ["credit-risk"],
+        force: true,
         mode,
-    });
+      });
 
-    expect(
-      result.patches.find((patch) => patch.id === "credit-risk"),
-    ).toBeUndefined();
-    expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({
-        code: "layout-scope-blocked-by-locked-ancestor",
-        severity: "warning",
-        nodeId: "credit-risk",
-      }),
-    );
+      expect(
+        result.patches.find((patch) => patch.id === "credit-risk"),
+      ).toBeUndefined();
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "layout-scope-blocked-by-locked-ancestor",
+          severity: "warning",
+          nodeId: "credit-risk",
+        }),
+      );
     },
   );
 
   it.each(["adaptive", "balanced"] as const)(
     "preserves descendants inside a manual ancestor during scoped %s layout",
     async (mode) => {
-    const doc = runTransaction(
-      createSampleDocument(),
-      updateNode("risk", { isManualPositioningEnabled: true }),
-    ).doc;
-    const beforeDx =
-      doc.nodesById["credit-risk"]!.x - doc.nodesById.risk!.x;
-    const beforeDy =
-      doc.nodesById["credit-risk"]!.y - doc.nodesById.risk!.y;
+      const doc = runTransaction(
+        createSampleDocument(),
+        updateNode("risk", { isManualPositioningEnabled: true }),
+      ).doc;
+      const beforeDx = doc.nodesById["credit-risk"]!.x - doc.nodesById.risk!.x;
+      const beforeDy = doc.nodesById["credit-risk"]!.y - doc.nodesById.risk!.y;
 
-    const result = await layoutDocument({
-      doc,
-      affectedNodeIds: ["credit-risk"],
-      force: true,
+      const result = await layoutDocument({
+        doc,
+        affectedNodeIds: ["credit-risk"],
+        force: true,
         mode,
-    });
-    const after = applyLayoutPatches(doc, result.patches);
+      });
+      const after = applyLayoutPatches(doc, result.patches);
 
-    expect(after.nodesById["credit-risk"]!.x - after.nodesById.risk!.x).toBe(
-      beforeDx,
-    );
-    expect(after.nodesById["credit-risk"]!.y - after.nodesById.risk!.y).toBe(
-      beforeDy,
-    );
-    expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({
-        code: "manual-subtree-preserved",
-        nodeId: "risk",
-      }),
-    );
+      expect(after.nodesById["credit-risk"]!.x - after.nodesById.risk!.x).toBe(
+        beforeDx,
+      );
+      expect(after.nodesById["credit-risk"]!.y - after.nodesById.risk!.y).toBe(
+        beforeDy,
+      );
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "manual-subtree-preserved",
+          nodeId: "risk",
+        }),
+      );
     },
   );
 
   it.each(["adaptive", "balanced"] as const)(
     "lays out full and scoped large fixtures within explicit budgets in %s mode",
     async (mode) => {
-    const doc = createThousandNodeDocument();
-    const start = performance.now();
+      const doc = createThousandNodeDocument();
+      const start = performance.now();
       const result = await layoutDocument({ doc, force: true, mode });
-    const elapsed = performance.now() - start;
-    expect(result.patches.length).toBeGreaterThan(900);
-    expect(elapsed).toBeLessThan(2500);
+      const elapsed = performance.now() - start;
+      expect(result.patches.length).toBeGreaterThan(900);
+      expect(elapsed).toBeLessThan(2500);
 
-    const scopedStart = performance.now();
-    const scoped = await layoutDocument({
-      doc,
-      affectedNodeIds: ["root-0-parent-0"],
-      force: true,
+      const scopedStart = performance.now();
+      const scoped = await layoutDocument({
+        doc,
+        affectedNodeIds: ["root-0-parent-0"],
+        force: true,
         mode,
-    });
-    const scopedElapsed = performance.now() - scopedStart;
-    const scopedPatchIds = scoped.patches.map((patch) => patch.id).sort();
-    expect(scopedPatchIds).toContain("root-0");
-    expect(scopedPatchIds).toContain("root-0-parent-0");
-    expect(scopedPatchIds).toContain("root-0-parent-8-leaf-9");
-    expect(scopedPatchIds.some((id) => id.startsWith("root-1"))).toBe(false);
-    expect(scopedElapsed).toBeLessThan(1000);
+      });
+      const scopedElapsed = performance.now() - scopedStart;
+      const scopedPatchIds = scoped.patches.map((patch) => patch.id).sort();
+      expect(scopedPatchIds).toContain("root-0");
+      expect(scopedPatchIds).toContain("root-0-parent-0");
+      expect(scopedPatchIds).toContain("root-0-parent-8-leaf-9");
+      expect(scopedPatchIds.some((id) => id.startsWith("root-1"))).toBe(false);
+      expect(scopedElapsed).toBeLessThan(1000);
     },
   );
 
   it.each(["uniform", "balanced"] as const)(
     "uses exact global padding and gap settings when grid snapping is disabled in %s mode",
     async (mode) => {
-    const doc = twoChildDocument();
-    doc.settings.gridEnabled = false;
-    doc.settings.containerPaddingLeft = 48;
-    doc.settings.containerPaddingTop = 40;
-    doc.settings.childGapX = 24;
+      const doc = twoChildDocument();
+      doc.settings.gridEnabled = false;
+      doc.settings.containerPaddingLeft = 48;
+      doc.settings.containerPaddingTop = 40;
+      doc.settings.childGapX = 24;
 
       const result = await layoutDocument({ doc, force: true, mode });
-    expect(
-      result.patches.find((patch) => patch.id === "child-a"),
-    ).toMatchObject({ x: 72, y: 92 });
-    expect(
-      result.patches.find((patch) => patch.id === "child-b"),
-    ).toMatchObject({ x: 271, y: 92 });
+      expect(
+        result.patches.find((patch) => patch.id === "child-a"),
+      ).toMatchObject({ x: 72, y: 92 });
+      expect(
+        result.patches.find((patch) => patch.id === "child-b"),
+      ).toMatchObject({ x: 271, y: 92 });
     },
   );
 
@@ -240,7 +240,7 @@ describe("layout engine", () => {
     expect(result.aspectRatioFrame).toBeDefined();
     expect(result.aspectRatioTarget).toEqual({ w: 16, h: 9 });
     const frame = result.aspectRatioFrame!;
-    const ratioError = Math.abs(Math.log((frame.w / frame.h) / (16 / 9)));
+    const ratioError = Math.abs(Math.log(frame.w / frame.h / (16 / 9)));
     expect(ratioError).toBeLessThan(0.02);
   });
 
@@ -314,7 +314,10 @@ describe("layout engine", () => {
   });
 
   it("centers visual rows in adaptive layout", async () => {
-    const after = await applyAutoLayoutCycle(createSampleDocument(), "adaptive");
+    const after = await applyAutoLayoutCycle(
+      createSampleDocument(),
+      "adaptive",
+    );
     const quality = evaluateAdaptiveLayoutQuality(after);
 
     expect(
@@ -326,7 +329,10 @@ describe("layout engine", () => {
   });
 
   it("centers adaptive child groups when parent minimum width leaves spare space", async () => {
-    const after = await applyAutoLayoutCycle(createSampleDocument(), "adaptive");
+    const after = await applyAutoLayoutCycle(
+      createSampleDocument(),
+      "adaptive",
+    );
     const padding = horizontalChildPadding(after, "branch");
 
     expect(Math.abs(padding.left - padding.right)).toBeLessThanOrEqual(
