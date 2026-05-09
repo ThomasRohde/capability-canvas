@@ -1,48 +1,7 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  Copy,
-  Eye,
-  LayoutTemplate,
-  MoreHorizontal,
-  Plus,
-  RotateCcw,
-  Star,
-  Trash2,
-  X,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  createVisualView,
-  deleteVisualView,
-  duplicateVisualView,
-  renameVisualView,
-  reorderVisualViews,
-  resetVisualViewLayout,
-  resetVisualViewVisibility,
-  resetVisualViewFromTemplate,
-  setDefaultVisualView,
-} from "../../domain/commands/operations";
-import type {
-  CapabilityDocument,
-  NodeId,
-  VisualView,
-} from "../../domain/document/types";
-import {
-  buildSafeChildrenByParentId,
-  ROOT_PARENT_ID,
-} from "../../domain/document/types";
-import {
-  BUILT_IN_VIEW_TEMPLATES,
-  DEFAULT_VISUAL_TEMPLATE_ID,
-  isBuiltInTemplateId,
-  templateById,
-  type VisualTemplateId,
-} from "../../domain/visual/templates";
-import {
-  summarizeVisualView,
-  type VisualViewSummary,
-} from "../../domain/visual/viewSummary";
+import { Eye, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { reorderVisualViews } from "../../domain/commands/operations";
+import { summarizeVisualView } from "../../domain/visual/viewSummary";
 import {
   switchActiveVisualView,
   syncUiForVisualView,
@@ -50,22 +9,16 @@ import {
 } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
-import { CommitTextInput } from "../shared/CommitTextInput";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { IconButton } from "../shared/IconButton";
-import { useFocusReturn, useMenuKeyboardNavigation } from "../shared/a11y";
-
-interface ConfirmRequest {
-  title: string;
-  body: string;
-  confirmLabel: string;
-  tone?: "default" | "danger";
-  onConfirm: () => void;
-}
-
-const VIEW_ROW_MENU_GAP = 6;
-const VIEW_ROW_MENU_PADDING = 8;
-const VIEW_ROW_MENU_MAX_HEIGHT = 320;
+import { useFocusReturn } from "../shared/a11y";
+import { CreateViewForm } from "./CreateViewForm";
+import { ViewRow } from "./ViewRow";
+import {
+  descriptionForView,
+  orderedVisualViews,
+} from "./viewDrawerModel";
+import type { ConfirmRequest } from "./viewDrawerTypes";
 
 export function ViewsDrawer() {
   const doc = useDocumentStore((state) => state.doc);
@@ -74,23 +27,11 @@ export function ViewsDrawer() {
   const open = useUiStore((state) => state.activeDrawer === "views");
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const selected = useUiStore((state) => state.selectedNodeIds);
-  const [createName, setCreateName] = useState("");
-  const [templateId, setTemplateId] =
-    useState<VisualTemplateId>(DEFAULT_VISUAL_TEMPLATE_ID);
-  const [createRootId, setCreateRootId] = useState<NodeId>("");
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(
     null,
   );
-  const orderedViews = doc.visual.viewOrder
-    .map((viewId) => doc.visual.viewsById[viewId])
-    .filter(Boolean);
+  const orderedViews = orderedVisualViews(doc);
   const hasMultipleViews = orderedViews.length > 1;
-  const selectedTemplate = templateById(templateId);
-  const rootTargets = useMemo(() => orderedRootTargets(doc), [doc]);
-  const defaultDeepDiveRootId =
-    rootIdForTemplate(doc, "domain-deep-dive@1", selected) ??
-    rootTargets[0]?.id ??
-    "";
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -106,32 +47,14 @@ export function ViewsDrawer() {
 
   useFocusReturn({ active: open, initialFocusRef: closeRef });
 
-  useEffect(() => {
-    if (templateId !== "domain-deep-dive@1") return;
-    if (createRootId && doc.nodesById[createRootId]) return;
-    setCreateRootId(defaultDeepDiveRootId);
-  }, [createRootId, defaultDeepDiveRootId, doc.nodesById, templateId]);
-
   if (!open) return null;
+
+  const syncUiForActiveView = () => {
+    syncUiForVisualView(useDocumentStore.getState().doc);
+  };
 
   const switchToView = (viewId: string) => {
     switchActiveVisualView(viewId);
-  };
-
-  const createAndSwitch = () => {
-    const rootId =
-      templateId === "domain-deep-dive@1"
-        ? createRootId || defaultDeepDiveRootId
-        : undefined;
-    execute(
-      createVisualView({
-        name: normalizeCreateName(createName, selectedTemplate.name),
-        templateId,
-        rootId,
-      }),
-    );
-    syncUiForVisualView(useDocumentStore.getState().doc);
-    setCreateName("");
   };
 
   const moveView = (viewId: string, direction: -1 | 1) => {
@@ -183,73 +106,12 @@ export function ViewsDrawer() {
             <Plus size={16} />
             <span>Create View</span>
           </div>
-          <div className="cc-view-create-form">
-            <label className="cc-field">
-              <span>View name</span>
-              <input
-                className="cc-input"
-                aria-label="New view name"
-                value={createName}
-                placeholder={selectedTemplate.name}
-                onChange={(event) => setCreateName(event.target.value)}
-              />
-            </label>
-            <label className="cc-field">
-              <span>Template</span>
-              <select
-                className="cc-select"
-                aria-label="View template"
-                value={templateId}
-                onChange={(event) =>
-                  setTemplateId(event.target.value as VisualTemplateId)
-                }
-              >
-                {BUILT_IN_VIEW_TEMPLATES.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {templateId === "domain-deep-dive@1" && (
-              <label className="cc-field cc-view-root-field">
-                <span>Root target</span>
-                <select
-                  className="cc-select"
-                  aria-label="Deep-dive root target"
-                  value={createRootId || defaultDeepDiveRootId}
-                  onChange={(event) => setCreateRootId(event.target.value)}
-                >
-                  {rootTargets.map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.path}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
-          <div className="cc-view-create-footer">
-            <p className="cc-view-template-description">
-              {createDescriptionPreview(
-                selectedTemplate.description,
-                templateId,
-                doc,
-                createRootId || defaultDeepDiveRootId,
-              )}
-            </p>
-            <button
-              className="cc-btn cc-btn-primary cc-view-create-action"
-              type="button"
-              disabled={
-                templateId === "domain-deep-dive@1" &&
-                rootTargets.length === 0
-              }
-              onClick={createAndSwitch}
-            >
-              <Plus /> Create and switch
-            </button>
-          </div>
+          <CreateViewForm
+            doc={doc}
+            execute={execute}
+            selectedNodeIds={selected}
+            onCreated={syncUiForActiveView}
+          />
         </section>
 
         <section className="cc-settings-section cc-view-manage-section">
@@ -270,9 +132,7 @@ export function ViewsDrawer() {
                 moveView={moveView}
                 orderedViewsLength={orderedViews.length}
                 setConfirmRequest={setConfirmRequest}
-                syncUiForActiveView={() => {
-                  syncUiForVisualView(useDocumentStore.getState().doc);
-                }}
+                syncUiForActiveView={syncUiForActiveView}
                 switchToView={switchToView}
                 summary={summarizeVisualView(doc, view.id)}
                 view={view}
@@ -297,411 +157,4 @@ export function ViewsDrawer() {
       )}
     </aside>
   );
-}
-
-function ViewRow({
-  doc,
-  execute,
-  hasMultipleViews,
-  index,
-  isActive,
-  isDefault,
-  moveView,
-  orderedViewsLength,
-  setConfirmRequest,
-  syncUiForActiveView,
-  switchToView,
-  summary,
-  view,
-}: {
-  doc: CapabilityDocument;
-  execute: ReturnType<typeof useDocumentStore.getState>["execute"];
-  hasMultipleViews: boolean;
-  index: number;
-  isActive: boolean;
-  isDefault: boolean;
-  moveView: (viewId: string, direction: -1 | 1) => void;
-  orderedViewsLength: number;
-  setConfirmRequest: (request: ConfirmRequest) => void;
-  syncUiForActiveView: () => void;
-  switchToView: (viewId: string) => void;
-  summary: VisualViewSummary | null;
-  view: VisualView;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number;
-    right: number;
-    maxHeight: number;
-  } | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const menuAnchorRef = useRef<HTMLDivElement>(null);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const viewTemplateId = summary?.templateId ?? templateIdForView(view);
-  const templateName = summary?.templateName ?? templateById(viewTemplateId).name;
-  const fullChanged = summary?.fullChanged ?? false;
-  const layoutChanged = summary?.layoutChanged ?? false;
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        menuRef.current?.contains(event.target)
-      )
-        return;
-      setMenuOpen(false);
-    };
-    const closeOnResize = () => setMenuOpen(false);
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("resize", closeOnResize);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("resize", closeOnResize);
-    };
-  }, [menuOpen]);
-
-  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
-    open: menuOpen,
-    menuRef,
-    triggerRef: menuButtonRef,
-    onClose: () => setMenuOpen(false),
-  });
-
-  const toggleMenu = () => {
-    if (menuOpen) {
-      setMenuOpen(false);
-      return;
-    }
-    const rect = menuAnchorRef.current?.getBoundingClientRect();
-    if (!rect) {
-      setMenuPosition({
-        top: VIEW_ROW_MENU_PADDING,
-        right: VIEW_ROW_MENU_PADDING,
-        maxHeight: Math.max(
-          1,
-          Math.min(
-            VIEW_ROW_MENU_MAX_HEIGHT,
-            window.innerHeight - VIEW_ROW_MENU_PADDING * 2,
-          ),
-        ),
-      });
-      setMenuOpen(true);
-      return;
-    }
-    const availableBelow = Math.max(
-      0,
-      window.innerHeight -
-        rect.bottom -
-        VIEW_ROW_MENU_GAP -
-        VIEW_ROW_MENU_PADDING,
-    );
-    const availableAbove = Math.max(
-      0,
-      rect.top - VIEW_ROW_MENU_GAP - VIEW_ROW_MENU_PADDING,
-    );
-    const openAbove =
-      availableBelow < VIEW_ROW_MENU_MAX_HEIGHT &&
-      availableAbove > availableBelow;
-    const availableHeight = openAbove ? availableAbove : availableBelow;
-    const maxHeight = Math.max(
-      1,
-      Math.min(VIEW_ROW_MENU_MAX_HEIGHT, availableHeight),
-    );
-
-    setMenuPosition(
-      {
-        top: openAbove
-          ? Math.max(
-              VIEW_ROW_MENU_PADDING,
-              rect.top - VIEW_ROW_MENU_GAP - maxHeight,
-            )
-          : rect.bottom + VIEW_ROW_MENU_GAP,
-        right: Math.max(VIEW_ROW_MENU_PADDING, window.innerWidth - rect.right),
-        maxHeight,
-      },
-    );
-    setMenuOpen(true);
-  };
-
-  const duplicateView = () => {
-    execute(duplicateVisualView(view.id));
-    syncUiForActiveView();
-    setMenuOpen(false);
-  };
-
-  const confirmAndSync = (request: Omit<ConfirmRequest, "onConfirm"> & {
-    onConfirm: () => void;
-  }) => {
-    setMenuOpen(false);
-    setConfirmRequest({
-      ...request,
-      onConfirm: () => {
-        request.onConfirm();
-        syncUiForActiveView();
-      },
-    });
-  };
-
-  return (
-    <div className={`cc-view-row ${isActive ? "active" : ""}`}>
-      <button
-        className="cc-view-use"
-        type="button"
-        aria-label={`Use ${view.name}`}
-        aria-current={isActive ? "true" : undefined}
-        onClick={() => switchToView(view.id)}
-      >
-        <Eye />
-      </button>
-      <div className="cc-view-details">
-        <CommitTextInput
-          className="cc-input"
-          aria-label={`Name for ${view.name}`}
-          value={view.name}
-          normalize={normalizeViewName}
-          onCommit={(name) => execute(renameVisualView(view.id, name))}
-        />
-        <div className="cc-view-meta" aria-label={`Summary for ${view.name}`}>
-          {isActive && <span className="cc-view-badge active">Active</span>}
-          {isDefault && <span className="cc-view-badge">Default</span>}
-          <span>{templateName}</span>
-          <span>{summary?.visibleNodeCount ?? 0} visible</span>
-          <span>{viewChangeLabel(fullChanged, layoutChanged)}</span>
-          <span>{formatUpdatedAt(summary?.updatedAt ?? view.updatedAt)}</span>
-        </div>
-        <p className="cc-view-description">{descriptionForView(view, doc)}</p>
-      </div>
-      <div className="cc-view-row-actions">
-        <IconButton
-          icon={Copy}
-          label={`Duplicate visual state for ${view.name}`}
-          tooltip="Duplicate visual state only"
-          onClick={duplicateView}
-        />
-        <div ref={menuRef} className="cc-view-row-menu-wrap">
-          <div ref={menuAnchorRef}>
-            <IconButton
-              ref={menuButtonRef}
-              icon={MoreHorizontal}
-              label={`View actions for ${view.name}`}
-              active={menuOpen}
-              onClick={toggleMenu}
-            />
-          </div>
-          {menuOpen && menuPosition && (
-            <div
-              className="cc-view-row-menu"
-              role="menu"
-              aria-label={`Actions for ${view.name}`}
-              onKeyDown={handleMenuKeyDown}
-              style={{
-                top: menuPosition.top,
-                right: menuPosition.right,
-                maxHeight: menuPosition.maxHeight,
-              }}
-            >
-              <button
-                type="button"
-                role="menuitem"
-                disabled={index === 0}
-                onClick={() => {
-                  moveView(view.id, -1);
-                  setMenuOpen(false);
-                }}
-              >
-                <ArrowUp /> <span>Move up</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={index === orderedViewsLength - 1}
-                onClick={() => {
-                  moveView(view.id, 1);
-                  setMenuOpen(false);
-                }}
-              >
-                <ArrowDown /> <span>Move down</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={isDefault}
-                onClick={() => {
-                  execute(setDefaultVisualView(view.id));
-                  setMenuOpen(false);
-                }}
-              >
-                <Star /> <span>Set as default</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={!layoutChanged}
-                onClick={() =>
-                  confirmAndSync({
-                    title: "Reset layout",
-                    body: `Reset layout for "${view.name}"? This discards positions, sizes, layout mode, and layout preservation for this view. Visibility, collapse state, heatmap, export settings, and the view name are preserved.`,
-                    confirmLabel: "Reset layout",
-                    onConfirm: () => execute(resetVisualViewLayout(view.id)),
-                  })
-                }
-              >
-                <RotateCcw /> <span>Reset layout</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={!fullChanged}
-                onClick={() =>
-                  confirmAndSync({
-                    title: "Reset visibility and collapse",
-                    body: `Reset visibility and collapse state for "${view.name}" from the ${templateName} template? Layout positions, heatmap settings, export settings, and the source model are preserved.`,
-                    confirmLabel: "Reset visibility",
-                    onConfirm: () => execute(resetVisualViewVisibility(view.id)),
-                  })
-                }
-              >
-                <Eye /> <span>Reset visibility/collapse</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={!fullChanged}
-                onClick={() =>
-                  confirmAndSync({
-                    title: "Reset from template",
-                    body: `Reset "${view.name}" to the ${templateName} template? This discards layout, visibility, collapse state, heatmap view settings, and export view settings for this view. The source model and the view name are preserved.`,
-                    confirmLabel: "Reset view",
-                    onConfirm: () =>
-                      execute(resetVisualViewFromTemplate(view.id, viewTemplateId)),
-                  })
-                }
-              >
-                <LayoutTemplate /> <span>Reset from template</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={!hasMultipleViews}
-                title={
-                  hasMultipleViews
-                    ? undefined
-                    : "At least one visual view is required."
-                }
-                onClick={() =>
-                  confirmAndSync({
-                    title: "Delete view",
-                    body: `Delete visual view "${view.name}"? The source model and capabilities are not deleted. Undo can restore the view.`,
-                    confirmLabel: "Delete view",
-                    tone: "danger",
-                    onConfirm: () => execute(deleteVisualView(view.id)),
-                  })
-                }
-              >
-                <Trash2 /> <span>Delete view</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function normalizeViewName(value: string) {
-  return value.trim() || "Untitled view";
-}
-
-function normalizeCreateName(value: string, fallback: string) {
-  return value.trim() || fallback;
-}
-
-function createDescriptionPreview(
-  description: string,
-  templateId: VisualTemplateId,
-  doc: CapabilityDocument,
-  rootId: NodeId,
-): string {
-  if (templateId !== "domain-deep-dive@1") return description;
-  const target = doc.nodesById[rootId];
-  return target ? `${description} Target: ${target.label}.` : description;
-}
-
-function viewChangeLabel(fullChanged: boolean, layoutChanged: boolean): string {
-  if (!fullChanged) return "Unchanged";
-  return layoutChanged ? "Layout changed" : "View changed";
-}
-
-function formatUpdatedAt(updatedAt: number): string {
-  const ageMs = Math.max(0, Date.now() - updatedAt);
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (ageMs < minute) return "Updated just now";
-  if (ageMs < hour) return `Updated ${Math.floor(ageMs / minute)}m ago`;
-  if (ageMs < day) return `Updated ${Math.floor(ageMs / hour)}h ago`;
-  return `Updated ${new Date(updatedAt).toISOString().slice(0, 10)}`;
-}
-
-function templateIdForView(view: VisualView): VisualTemplateId {
-  return isBuiltInTemplateId(view.templateId)
-    ? view.templateId
-    : DEFAULT_VISUAL_TEMPLATE_ID;
-}
-
-function descriptionForView(view: VisualView, doc?: CapabilityDocument): string {
-  const viewTemplateId = templateIdForView(view);
-  const description = isBuiltInTemplateId(view.templateId)
-    ? templateById(viewTemplateId).description
-    : view.description || templateById(viewTemplateId).description;
-  if (viewTemplateId !== "domain-deep-dive@1" || !doc) return description;
-  const target = view.templateContext?.rootId
-    ? doc.nodesById[view.templateContext.rootId]
-    : undefined;
-  return target ? `${description} Target: ${target.label}.` : description;
-}
-
-function rootIdForTemplate(
-  doc: CapabilityDocument,
-  templateId: VisualTemplateId,
-  selectedNodeIds: NodeId[],
-): NodeId | undefined {
-  if (templateId !== "domain-deep-dive@1") return undefined;
-  return selectedNodeIds.find((nodeId) => {
-    const node = doc.nodesById[nodeId];
-    return node && !node.isTextLabel && node.type !== "text";
-  });
-}
-
-function orderedRootTargets(doc: CapabilityDocument): Array<{
-  id: NodeId;
-  path: string;
-}> {
-  const safeChildren = buildSafeChildrenByParentId(doc).childrenByParentId;
-  const out: Array<{ id: NodeId; path: string }> = [];
-  const emitted = new Set<NodeId>();
-
-  const visit = (parentId: NodeId, path: string[]) => {
-    for (const childId of safeChildren[parentId] ?? []) {
-      if (emitted.has(childId)) continue;
-      emitted.add(childId);
-      const node = doc.nodesById[childId];
-      if (!node) continue;
-      const nextPath = [...path, node.label];
-      if (!node.isTextLabel && node.type !== "text") {
-        out.push({ id: childId, path: nextPath.join(" > ") });
-      }
-      visit(childId, nextPath);
-    }
-  };
-
-  visit(ROOT_PARENT_ID, []);
-  for (const nodeId of Object.keys(doc.nodesById).sort()) {
-    if (emitted.has(nodeId)) continue;
-    const node = doc.nodesById[nodeId];
-    if (!node || node.isTextLabel || node.type === "text") continue;
-    out.push({ id: nodeId, path: node.label });
-  }
-  return out;
 }
