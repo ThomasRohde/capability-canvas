@@ -1,19 +1,11 @@
 import { create } from "zustand";
-import {
-  runTransaction,
-  transaction,
-  updateActiveViewLayoutSettings,
-  updateDocumentSettings,
-} from "../../domain/commands/operations";
+import { transaction } from "../../domain/commands/operations";
 import type {
   HistoryEntry,
-  RelayoutScope,
   Transaction,
 } from "../../domain/commands/types";
-import { cloneDocument } from "../../domain/document/normalize";
 import type {
   CapabilityDocument,
-  NodeId,
   VisualViewId,
   VisualViewport,
 } from "../../domain/document/types";
@@ -25,20 +17,41 @@ import {
   resolveVisualDocument,
   updateActiveViewViewport,
 } from "../../domain/visual/workspace";
-import { attachViewBaseline } from "../../domain/visual/viewChanges";
 import {
-  applyLayoutMetadata,
-  applyLayoutPatches,
-  computeDocumentBounds,
-  layoutDocument,
-} from "../../domain/layout/engine";
-import {
-  error as diagnosticError,
   warning,
   type Diagnostic,
 } from "../../domain/validation/diagnostics";
+import {
+  appendHistoryEntry,
+  clearRedo,
+  cloneHistoryAfter,
+  cloneHistoryBefore,
+  createHistoryEntry,
+  moveLastHistoryEntryToFuture,
+  moveNextFutureEntryToPast,
+} from "./documentHistory";
+import {
+  ensureLayoutBounds,
+  layoutAndRepair,
+  runRelayout,
+} from "./documentRelayout";
+import {
+  markDirty,
+  saveFailedTransition,
+  saveStartedTransition,
+  saveSucceededTransition,
+  type SaveStatus,
+} from "./documentSaveLifecycle";
+import {
+  settingsLabel,
+  settingsTransaction,
+} from "./documentSettings";
+import {
+  applyBaselineResult,
+  runStoreTransaction,
+} from "./documentTransactions";
 
-export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+export type { SaveStatus } from "./documentSaveLifecycle";
 
 interface DocumentState {
   doc: CapabilityDocument;
@@ -108,23 +121,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       lastDiagnostics: result.diagnostics,
       ...(committed ? markDirty(state) : {}),
       past: committed
-        ? [
-            ...state.past,
-            {
+        ? appendHistoryEntry(
+            state.past,
+            createHistoryEntry({
               label: txn.label,
-              before: cloneDocument(before),
-              after: cloneDocument(result.doc),
-              relayout: txn.meta?.relayout
-                ? {
-                    scope: txn.meta.relayout.scope,
-                    force: txn.meta.relayout.force ?? false,
-                    viewId: txn.meta.relayout.viewId,
-                  }
-                : undefined,
-            },
-          ]
+              before,
+              after: result.doc,
+              relayout: txn.meta?.relayout,
+            }),
+          )
         : state.past,
-      future: committed ? [] : state.future,
+      future: committed ? clearRedo() : state.future,
     });
     if (committed && txn.meta?.relayout) {
       void runRelayout({
@@ -212,26 +219,27 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     set({ doc: next, ...markDirty(get()) });
   },
   undo: () => {
-    const past = get().past;
-    const entry = past[past.length - 1];
+    const state = get();
+    const { entry, past, future } = moveLastHistoryEntryToFuture(state);
     if (!entry) return;
     set({
-      doc: cloneDocument(entry.before),
-      past: past.slice(0, -1),
-      future: [entry, ...get().future],
-      ...markDirty(get()),
+      doc: cloneHistoryBefore(entry),
+      past,
+      future,
+      ...markDirty(state),
       lastDiagnostics: [],
     });
   },
   redo: () => {
-    const entry = get().future[0];
+    const state = get();
+    const { entry, past, future } = moveNextFutureEntryToPast(state);
     if (!entry) return;
-    const after = cloneDocument(entry.after);
+    const after = cloneHistoryAfter(entry);
     set({
       doc: after,
-      past: [...get().past, entry],
-      future: get().future.slice(1),
-      ...markDirty(get()),
+      past,
+      future,
+      ...markDirty(state),
       lastDiagnostics: [],
     });
     if (entry.relayout) {
@@ -255,15 +263,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const state = get();
     set({
       doc: repaired,
-      past: [
-        ...state.past,
-        {
-          label,
-          before: cloneDocument(before),
-          after: cloneDocument(repaired),
-        },
-      ],
-      future: [],
+      past: appendHistoryEntry(
+        state.past,
+        createHistoryEntry({ label, before, after: repaired }),
+      ),
+      future: clearRedo(),
       ...markDirty(state),
       lastDiagnostics: diagnostics,
     });
@@ -287,39 +291,16 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     });
   },
   markSaveStarted: (revision) => {
-    const state = get();
-    if (!state.dirty || state.revision !== revision) return;
-    set({
-      saveStatus: "saving",
-      lastSaveError: undefined,
-    });
+    const transition = saveStartedTransition(get(), revision);
+    if (transition) set(transition);
   },
   markSaveSucceeded: (revision) => {
-    const state = get();
-    if (state.revision !== revision) return;
-    set({
-      dirty: false,
-      saveStatus: "saved",
-      lastSavedAt: Date.now(),
-      lastSaveError: undefined,
-      dirtySince: undefined,
-    });
+    const transition = saveSucceededTransition(get(), revision);
+    if (transition) set(transition);
   },
   markSaveFailed: (revision, error) => {
-    const state = get();
-    if (state.revision !== revision) return;
-    const message = error instanceof Error ? error.message : String(error);
-    set({
-      dirty: true,
-      saveStatus: "error",
-      lastSaveError: message,
-      lastDiagnostics: mergeDiagnostics(state.lastDiagnostics, [
-        diagnosticError(
-          "save-failed",
-          `Local save failed. ${message}`,
-        ),
-      ]),
-    });
+    const transition = saveFailedTransition(get(), revision, error);
+    if (transition) set(transition);
   },
   setDiagnostics: (diagnostics) => set({ lastDiagnostics: diagnostics }),
   reset: () =>
@@ -354,21 +335,22 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         set({ lastDiagnostics: diagnostics, isAutoLayoutRunning: false });
         return diagnostics;
       }
+      const state = get();
+      const changed = result.doc !== before;
       set({
         doc: result.doc,
-        past:
-          result.doc === before
-            ? get().past
-            : [
-                ...get().past,
-                {
-                  label: "Auto layout",
-                  before: cloneDocument(before),
-                  after: cloneDocument(result.doc),
-                },
-              ],
-        future: result.doc === before ? get().future : [],
-        ...(result.doc === before ? {} : markDirty(get())),
+        past: changed
+          ? appendHistoryEntry(
+              state.past,
+              createHistoryEntry({
+                label: "Auto layout",
+                before,
+                after: result.doc,
+              }),
+            )
+          : state.past,
+        future: changed ? clearRedo() : state.future,
+        ...(changed ? markDirty(state) : {}),
         lastDiagnostics: result.diagnostics,
         isAutoLayoutRunning: false,
       });
@@ -391,22 +373,23 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       settingsTransaction(patch),
     );
     if (settingsResult.doc === before || !options.autoLayout) {
+      const state = get();
+      const changed = settingsResult.doc !== before;
       set({
         doc: settingsResult.doc,
         lastDiagnostics: settingsResult.diagnostics,
-        ...(settingsResult.doc === before ? {} : markDirty(get())),
-        past:
-          settingsResult.doc === before
-            ? get().past
-            : [
-                ...get().past,
-                {
-                  label: settingsLabel(patch),
-                  before: cloneDocument(before),
-                  after: cloneDocument(settingsResult.doc),
-                },
-              ],
-        future: settingsResult.doc === before ? get().future : [],
+        ...(changed ? markDirty(state) : {}),
+        past: changed
+          ? appendHistoryEntry(
+              state.past,
+              createHistoryEntry({
+                label: settingsLabel(patch),
+                before,
+                after: settingsResult.doc,
+              }),
+            )
+          : state.past,
+        future: changed ? clearRedo() : state.future,
       });
       return settingsResult.diagnostics;
     }
@@ -437,18 +420,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         ...settingsResult.diagnostics,
         ...layoutResult.diagnostics,
       ];
+      const state = get();
       set({
         doc: layoutResult.doc,
-        past: [
-          ...get().past,
-          {
+        past: appendHistoryEntry(
+          state.past,
+          createHistoryEntry({
             label: settingsLabel(patch),
-            before: cloneDocument(before),
-            after: cloneDocument(layoutResult.doc),
-          },
-        ],
-        future: [],
-        ...markDirty(get()),
+            before,
+            after: layoutResult.doc,
+          }),
+        ),
+        future: clearRedo(),
+        ...markDirty(state),
         lastDiagnostics: diagnostics,
         isAutoLayoutRunning: false,
       });
@@ -461,16 +445,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           `Auto layout failed. ${error instanceof Error ? error.message : String(error)}`,
         ),
       ];
+      const state = get();
       set({
-        past: [
-          ...get().past,
-          {
+        past: appendHistoryEntry(
+          state.past,
+          createHistoryEntry({
             label: settingsLabel(patch),
-            before: cloneDocument(before),
-            after: cloneDocument(withSettings),
-          },
-        ],
-        future: [],
+            before,
+            after: withSettings,
+          }),
+        ),
+        future: clearRedo(),
         lastDiagnostics: diagnostics,
         isAutoLayoutRunning: false,
       });
@@ -483,20 +468,21 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const repaired = ensureParentContainment(resolved);
     if (repaired.changedNodeIds.length === 0) return;
     const after = applyResolvedVisualDocument(before, repaired.doc);
+    const state = get();
     set({
       doc: after,
-      past: [
-        ...get().past,
-        {
+      past: appendHistoryEntry(
+        state.past,
+        createHistoryEntry({
           label: "Repair containment",
-          before: cloneDocument(before),
-          after: cloneDocument(after),
-        },
-      ],
-      future: [],
-      ...markDirty(get()),
+          before,
+          after,
+        }),
+      ),
+      future: clearRedo(),
+      ...markDirty(state),
       lastDiagnostics: [
-        ...get().lastDiagnostics,
+        ...state.lastDiagnostics,
         warning(
           "parent-containment-repaired",
           "Expanded parent capabilities to contain their children visually.",
@@ -506,263 +492,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
   clearDiagnostics: () => set({ lastDiagnostics: [] }),
 }));
-
-function markDirty(state: DocumentState): Pick<
-  DocumentState,
-  "dirty" | "saveStatus" | "dirtySince" | "lastSaveError" | "revision"
-> {
-  return {
-    dirty: true,
-    saveStatus: "dirty",
-    dirtySince: state.dirtySince ?? Date.now(),
-    lastSaveError: undefined,
-    revision: state.revision + 1,
-  };
-}
-
-const VISUAL_COMMAND_TYPES = new Set([
-  "add-subtree-to-canvas",
-  "remove-subtree-from-canvas",
-  "remove-nodes-from-canvas",
-  "move-nodes",
-  "resize-node",
-  "align-nodes",
-  "distribute-nodes",
-  "same-size",
-  "fit-parent-to-children",
-  "repair-sibling-overlaps",
-  "lock-subtree",
-  "set-manual-positioning",
-]);
-
-function runStoreTransaction(doc: CapabilityDocument, txn: Transaction) {
-  if (!isVisualEditTransaction(txn)) return runTransaction(doc, txn);
-  const resolved = resolveVisualDocument(doc);
-  const result = runTransaction(resolved, txn);
-  if (result.doc === resolved) return { doc, diagnostics: result.diagnostics };
-  return {
-    doc: applyResolvedVisualDocument(doc, result.doc),
-    diagnostics: result.diagnostics,
-  };
-}
-
-function applyBaselineResult(
-  result: { doc: CapabilityDocument; diagnostics: Diagnostic[] },
-  txn: Transaction,
-): { doc: CapabilityDocument; diagnostics: Diagnostic[] } {
-  if (!txn.meta?.baseline) return result;
-  return {
-    ...result,
-    doc: attachViewBaseline(
-      result.doc,
-      txn.meta.baseline.viewId,
-      txn.meta.baseline.mode,
-    ),
-  };
-}
-
-function isVisualEditTransaction(txn: Transaction): boolean {
-  return (
-    txn.commands.length > 0 &&
-    txn.commands.every((command) => VISUAL_COMMAND_TYPES.has(command.type))
-  );
-}
-
-function settingsTransaction(
-  patch: Partial<CapabilityDocument["settings"]>,
-): Transaction {
-  const { layoutMode, ...documentPatch } = patch;
-  const transactions: Transaction[] = [];
-  if (Object.keys(documentPatch).length > 0)
-    transactions.push(updateDocumentSettings(documentPatch));
-  if (layoutMode)
-    transactions.push(updateActiveViewLayoutSettings({ mode: layoutMode }));
-  return transaction(
-    settingsLabel(patch),
-    transactions.flatMap((item) => item.commands),
-    { source: "edit" },
-  );
-}
-
-async function runRelayout(args: {
-  before: CapabilityDocument;
-  after: CapabilityDocument;
-  scope: RelayoutScope;
-  force: boolean;
-  viewId?: VisualViewId;
-  label: string;
-  get: () => DocumentState;
-  set: (partial: Partial<DocumentState>) => void;
-  baseline?: NonNullable<Transaction["meta"]>["baseline"];
-}): Promise<void> {
-  const { before, after, scope, force, viewId, get, set } = args;
-  if (get().doc !== after) return;
-  const resolvedBefore = resolveVisualDocument(before, viewId);
-  const resolvedAfter = resolveVisualDocument(after, viewId);
-  const ids = resolveScope(scope, resolvedBefore, resolvedAfter);
-  if (ids?.length === 0) return;
-
-  try {
-    const rawResult = await layoutAndRepair(after, force, ids ?? undefined, viewId);
-    const result = args.baseline
-      ? {
-          ...rawResult,
-          doc: attachViewBaseline(
-            rawResult.doc,
-            args.baseline.viewId,
-            args.baseline.mode,
-          ),
-        }
-      : rawResult;
-    if (get().doc !== after) return;
-    if (result.doc === after) {
-      const merged = mergeDiagnostics(
-        get().lastDiagnostics,
-        result.diagnostics,
-      );
-      if (merged !== get().lastDiagnostics) set({ lastDiagnostics: merged });
-      return;
-    }
-    if (get().doc !== after) return;
-
-    const past = get().past;
-    const last = past[past.length - 1];
-    const replacement: HistoryEntry = last
-      ? {
-          label: last.label,
-          before: last.before,
-          after: cloneDocument(result.doc),
-          relayout: last.relayout,
-        }
-      : {
-          label: args.label,
-          before: cloneDocument(before),
-          after: cloneDocument(result.doc),
-          relayout: { scope, force, viewId },
-        };
-
-    const state = get();
-    set({
-      doc: result.doc,
-      past: last ? [...past.slice(0, -1), replacement] : [...past, replacement],
-      future: [],
-      ...markDirty(state),
-      lastDiagnostics: mergeDiagnostics(
-        state.lastDiagnostics,
-        result.diagnostics,
-      ),
-    });
-  } catch (error) {
-    if (get().doc !== after) return;
-    set({
-      lastDiagnostics: mergeDiagnostics(get().lastDiagnostics, [
-        warning(
-          "layout-failed",
-          `Auto layout after ${args.label.toLowerCase()} failed. ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      ]),
-    });
-  }
-}
-
-function resolveScope(
-  scope: RelayoutScope,
-  before: CapabilityDocument,
-  after: CapabilityDocument,
-): NodeId[] | null {
-  if (scope === "document") return null;
-  if (typeof scope === "function") return scope(before, after);
-  return scope;
-}
-
-function mergeDiagnostics(
-  existing: Diagnostic[],
-  additions: Diagnostic[],
-): Diagnostic[] {
-  if (additions.length === 0) return existing;
-  return [...existing, ...additions];
-}
-
-async function layoutAndRepair(
-  doc: CapabilityDocument,
-  force: boolean,
-  affectedNodeIds?: NodeId[],
-  viewId?: VisualViewId,
-): Promise<{ doc: CapabilityDocument; diagnostics: Diagnostic[] }> {
-  const resolved = resolveVisualDocument(doc, viewId);
-  const result = await layoutDocument({
-    doc: resolved,
-    affectedNodeIds,
-    force,
-    mode: resolved.settings.layoutMode,
-  });
-  const laidOut = applyLayoutPatches(resolved, result.patches);
-  const repaired = ensureParentContainment(laidOut);
-  const withMetadata = applyLayoutMetadata(repaired.doc, result);
-  const nextDoc =
-    withMetadata === resolved
-      ? doc
-      : applyResolvedVisualDocument(doc, withMetadata, viewId);
-  return {
-    doc: nextDoc,
-    diagnostics:
-      repaired.changedNodeIds.length > 0
-        ? [
-            ...result.diagnostics,
-            warning(
-              "parent-containment-repaired",
-              "Expanded parent capabilities to contain their children after auto layout.",
-            ),
-          ]
-        : result.diagnostics,
-  };
-}
-
-function settingsLabel(patch: Partial<CapabilityDocument["settings"]>) {
-  if (patch.layoutMode) return `Set layout mode to ${patch.layoutMode}`;
-  return "Update layout settings";
-}
-
-function ensureLayoutBounds(doc: CapabilityDocument): CapabilityDocument {
-  const boundingBox = computeDocumentBounds(resolveVisualDocument(doc));
-  const keepFrame =
-    doc.layout.mode === "balanced" &&
-    !doc.layout.isUserArranged &&
-    sameBounds(doc.layout.boundingBox, boundingBox);
-  if (
-    doc.layout.boundingBox.x === boundingBox.x &&
-    doc.layout.boundingBox.y === boundingBox.y &&
-    doc.layout.boundingBox.w === boundingBox.w &&
-    doc.layout.boundingBox.h === boundingBox.h &&
-    (keepFrame ||
-      (!doc.layout.aspectRatioFrame && !doc.layout.aspectRatioTarget))
-  )
-    return doc;
-  return {
-    ...doc,
-    layout: {
-      ...doc.layout,
-      boundingBox,
-      aspectRatioFrame: keepFrame ? doc.layout.aspectRatioFrame : undefined,
-      aspectRatioTarget: keepFrame ? doc.layout.aspectRatioTarget : undefined,
-    },
-  };
-}
-
-function sameBounds(
-  left: { x: number; y: number; w: number; h: number } | undefined,
-  right: { x: number; y: number; w: number; h: number } | undefined,
-): boolean {
-  if (!left || !right) return left === right;
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    left.w === right.w &&
-    left.h === right.h
-  );
-}
 
 export function executeMany(
   label: string,
