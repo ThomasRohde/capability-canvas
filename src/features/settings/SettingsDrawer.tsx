@@ -26,6 +26,7 @@ import {
   EXPORT_FORMAT_OPTIONS,
   type ExportFormat,
 } from "../../app/exportFormats";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
 import {
   MAX_OUTLINE_WIDTH,
@@ -103,7 +104,7 @@ export function SettingsDrawer() {
   const exportFormat = useUiStore((state) => state.exportFormat);
   const setExportFormat = useUiStore((state) => state.setExportFormat);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const activeView = doc.visual.viewsById[doc.visual.activeViewId];
+  const { activeView } = useActiveVisualState({ doc });
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
     "";

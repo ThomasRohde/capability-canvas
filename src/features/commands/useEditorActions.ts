@@ -16,7 +16,7 @@ import {
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { gridSizeFor } from "../../domain/layout/grid";
 import { resolveSelectAllSelection } from "../../domain/selection/rules";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -93,10 +93,8 @@ export function useEditorActions(
   const requestLabelEdit = useUiStore((state) => state.requestLabelEdit);
   const showSelectionNotice = useUiStore((state) => state.showSelectionNotice);
   const doc = providedDoc ?? storeDoc;
-  const viewDoc = useMemo(
-    () => providedViewDoc ?? resolveVisualDocument(doc),
-    [doc, providedViewDoc],
-  );
+  const { visualDocument: activeVisualDocument } = useActiveVisualState({ doc });
+  const viewDoc = providedViewDoc ?? activeVisualDocument;
   const displayBounds = useMemo(
     () => providedDisplayBounds ?? layoutDisplayBounds(viewDoc),
     [providedDisplayBounds, viewDoc],

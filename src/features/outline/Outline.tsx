@@ -51,7 +51,7 @@ import {
   getActiveViewNodeContexts,
   type ActiveViewNodeContext,
 } from "../../domain/visual/viewStatus";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import {
   MAX_OUTLINE_WIDTH,
@@ -76,7 +76,11 @@ export function Outline({
 }) {
   const storeDoc = useDocumentStore((state) => state.doc);
   const doc = displayDoc ?? storeDoc;
-  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
+  const {
+    visualDocument: viewDoc,
+    activeView,
+    activeViewId,
+  } = useActiveVisualState({ doc });
   const execute = useDocumentStore((state) => state.execute);
   const setActiveViewViewport = useDocumentStore(
     (state) => state.setActiveViewViewport,
@@ -112,8 +116,8 @@ export function Outline({
     [searchResult.matchingNodeIds],
   );
   const activeViewContexts = useMemo(
-    () => getActiveViewNodeContexts(doc),
-    [doc],
+    () => getActiveViewNodeContexts(doc, activeViewId),
+    [activeViewId, doc],
   );
 
   const rootItemId = "outline-root";
@@ -415,10 +419,7 @@ export function Outline({
             const hasVisibleCanvasNodes = subtreeIds.some((id) =>
               isNodeOnCanvas(viewDoc.nodesById[id]),
             );
-            const activeViewState =
-              doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
-                node.id
-              ];
+            const activeViewState = activeView.nodeStatesById[node.id];
             const viewContext = activeViewContexts[node.id];
             const visibleInView = viewContext?.visibility === "visible";
             const collapsedAncestor = viewContext?.collapsedAncestorId
@@ -507,7 +508,7 @@ export function Outline({
                   <SearchResultAction
                     nodeId={node.id}
                     nodeLabel={node.label}
-                    viewId={doc.visual.activeViewId}
+                    viewId={activeViewId}
                     viewContext={viewContext}
                     collapsedAncestorLabel={collapsedAncestor?.label}
                     canvasTargetCenter={canvasTargetCenter}
@@ -541,7 +542,7 @@ export function Outline({
                 {!readonly && menuNodeId === node.id && (
                   <OutlineActionsMenu
                     nodeId={node.id}
-                    viewId={doc.visual.activeViewId}
+                    viewId={activeViewId}
                     canAddChild={!node.isTextLabel && node.type !== "text"}
                     canAddToCanvas={hasHiddenCanvasNodes}
                     canRemoveFromCanvas={hasVisibleCanvasNodes}

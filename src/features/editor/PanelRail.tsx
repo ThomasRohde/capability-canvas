@@ -1,8 +1,8 @@
 import { Download, Grid3X3, Layers3, PanelLeft, PanelRight, Settings } from 'lucide-react';
+import { useActiveVisualState } from '../../app/activeVisualState';
 import { useDocumentStore } from '../../app/stores/documentStore';
 import { useUiStore } from '../../app/stores/uiStore';
 import { updateActiveViewHeatmapSettings } from '../../domain/commands/operations';
-import { resolveVisualDocument } from '../../domain/visual/workspace';
 
 export function PanelRail() {
   const doc = useDocumentStore((state) => state.doc);
@@ -13,7 +13,7 @@ export function PanelRail() {
   const toggleOutline = useUiStore((state) => state.toggleOutline);
   const toggleInspector = useUiStore((state) => state.toggleInspector);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
-  const viewDoc = resolveVisualDocument(doc);
+  const { visualDocument: viewDoc } = useActiveVisualState({ doc });
   const toggleHeatmap = () =>
     execute(
       updateActiveViewHeatmapSettings({

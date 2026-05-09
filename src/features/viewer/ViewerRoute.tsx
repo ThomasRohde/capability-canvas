@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { serializeDocument } from "../../domain/document/serialize";
 import type { VisualViewId, VisualViewport } from "../../domain/document/types";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import {
+  filterSelectionToVisibleNodes,
+  resolveActiveVisualState,
+  useActiveVisualState,
+} from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { Canvas } from "../canvas/Canvas";
@@ -50,7 +54,9 @@ export function ViewerRoute() {
       }),
     [doc, viewerActiveViewId, viewerHeatmapEnabledByViewId],
   );
-  const viewDoc = useMemo(() => resolveVisualDocument(displayDoc), [displayDoc]);
+  const { visualDocument: viewDoc } = useActiveVisualState({
+    doc: displayDoc,
+  });
   const displayBounds = useMemo(() => layoutDisplayBounds(viewDoc), [viewDoc]);
   const workspaceStyle = {
     "--cc-outline-width": `${outlineWidth}px`,
@@ -92,10 +98,11 @@ export function ViewerRoute() {
         activeViewId: viewId,
         heatmapEnabledByViewId: viewerHeatmapEnabledByViewId,
       });
-      const resolved = resolveVisualDocument(nextDoc);
+      const { visualDocument } = resolveActiveVisualState(nextDoc);
       const selected = useUiStore.getState().selectedNodeIds;
-      const nextSelection = selected.filter(
-        (nodeId) => resolved.nodesById[nodeId]?.isOnCanvas,
+      const nextSelection = filterSelectionToVisibleNodes(
+        visualDocument,
+        selected,
       );
       if (nextSelection.length !== selected.length) setSelection(nextSelection);
     },

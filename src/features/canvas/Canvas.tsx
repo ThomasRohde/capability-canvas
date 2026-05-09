@@ -22,10 +22,7 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
-import {
-  activeVisualView,
-  resolveVisualDocument,
-} from "../../domain/visual/workspace";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { type ViewportState, useUiStore } from "../../app/stores/uiStore";
@@ -62,9 +59,8 @@ export function Canvas({
   const storeDoc = useDocumentStore((state) => state.doc);
   const doc = displayDoc ?? storeDoc;
   const execute = useDocumentStore((state) => state.execute);
-  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
+  const { visualDocument: viewDoc, activeView } = useActiveVisualState({ doc });
   const displayBounds = useMemo(() => layoutDisplayBounds(viewDoc), [viewDoc]);
-  const activeView = useMemo(() => activeVisualView(doc), [doc]);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
   const clearSelection = useUiStore((state) => state.clearSelection);
@@ -150,9 +146,7 @@ export function Canvas({
     ? viewDoc.nodesById[contextMenu.nodeId]
     : null;
   const contextViewState = contextMenu
-    ? doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[
-        contextMenu.nodeId
-      ]
+    ? activeView.nodeStatesById[contextMenu.nodeId]
     : undefined;
   const contextHasSourceChildren = contextMenu
     ? (doc.childrenByParentId[contextMenu.nodeId]?.length ?? 0) > 0
@@ -388,7 +382,7 @@ export function Canvas({
           }}
           onToggleCollapse={(nodeId) => {
             execute(
-              updateVisualNodeState(doc.visual.activeViewId, nodeId, {
+              updateVisualNodeState(activeView.id, nodeId, {
                 isCollapsed: !contextViewState?.isCollapsed,
               }),
             );

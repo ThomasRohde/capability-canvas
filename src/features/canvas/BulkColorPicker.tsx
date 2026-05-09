@@ -1,8 +1,8 @@
 import { Palette } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { updateNodeColors } from "../../domain/commands/operations";
 import type { CapabilityColor, NodeId } from "../../domain/document/types";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 import { useMenuKeyboardNavigation } from "../shared/a11y";
@@ -17,7 +17,7 @@ export function BulkColorPicker({
   reason?: string;
 }) {
   const doc = useDocumentStore((state) => state.doc);
-  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
+  const { visualDocument: viewDoc } = useActiveVisualState({ doc });
   const execute = useDocumentStore((state) => state.execute);
   const [open, setOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);

@@ -15,7 +15,7 @@ import {
   StretchVertical,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   alignNodes,
   distributeNodes,
@@ -29,7 +29,7 @@ import {
   canDistribute,
   canMultiSelect,
 } from "../../domain/selection/rules";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { IconButton } from "../shared/IconButton";
 import { useMenuKeyboardNavigation } from "../shared/a11y";
@@ -38,7 +38,7 @@ import { BulkColorPicker } from "./BulkColorPicker";
 
 export function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const doc = useDocumentStore((state) => state.doc);
-  const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
+  const { visualDocument: viewDoc } = useActiveVisualState({ doc });
   const execute = useDocumentStore((state) => state.execute);
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);

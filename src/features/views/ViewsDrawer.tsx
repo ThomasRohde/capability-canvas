@@ -27,7 +27,6 @@ import type {
   CapabilityDocument,
   NodeId,
   VisualView,
-  VisualViewId,
 } from "../../domain/document/types";
 import {
   buildSafeChildrenByParentId,
@@ -40,11 +39,15 @@ import {
   templateById,
   type VisualTemplateId,
 } from "../../domain/visual/templates";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
 import {
   summarizeVisualView,
   type VisualViewSummary,
 } from "../../domain/visual/viewSummary";
+import {
+  switchActiveVisualView,
+  syncUiForVisualView,
+  useActiveVisualState,
+} from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CommitTextInput } from "../shared/CommitTextInput";
@@ -67,18 +70,10 @@ const VIEW_ROW_MENU_MAX_HEIGHT = 320;
 export function ViewsDrawer() {
   const doc = useDocumentStore((state) => state.doc);
   const execute = useDocumentStore((state) => state.execute);
-  const setActiveVisualView = useDocumentStore(
-    (state) => state.setActiveVisualView,
-  );
+  const { activeView } = useActiveVisualState({ doc });
   const open = useUiStore((state) => state.activeDrawer === "views");
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
-  const viewport = useUiStore((state) => state.viewport);
-  const setViewport = useUiStore((state) => state.setViewport);
   const selected = useUiStore((state) => state.selectedNodeIds);
-  const setSelection = useUiStore((state) => state.setSelection);
-  const showSelectionNotice = useUiStore(
-    (state) => state.showSelectionNotice,
-  );
   const [createName, setCreateName] = useState("");
   const [templateId, setTemplateId] =
     useState<VisualTemplateId>(DEFAULT_VISUAL_TEMPLATE_ID);
@@ -90,7 +85,6 @@ export function ViewsDrawer() {
     .map((viewId) => doc.visual.viewsById[viewId])
     .filter(Boolean);
   const hasMultipleViews = orderedViews.length > 1;
-  const activeView = doc.visual.viewsById[doc.visual.activeViewId];
   const selectedTemplate = templateById(templateId);
   const rootTargets = useMemo(() => orderedRootTargets(doc), [doc]);
   const defaultDeepDiveRootId =
@@ -120,25 +114,8 @@ export function ViewsDrawer() {
 
   if (!open) return null;
 
-  const syncUiForView = (nextDoc: CapabilityDocument, viewId: VisualViewId) => {
-    const nextView = nextDoc.visual.viewsById[viewId];
-    if (nextView?.viewport) setViewport(nextView.viewport);
-    const resolved = resolveVisualDocument(nextDoc, viewId);
-    const nextSelection = selected.filter(
-      (nodeId) => resolved.nodesById[nodeId]?.isOnCanvas,
-    );
-    if (nextSelection.length !== selected.length) {
-      setSelection(nextSelection);
-      showSelectionNotice(
-        "Selection adjusted because selected capabilities are hidden in this view.",
-      );
-    }
-  };
-
   const switchToView = (viewId: string) => {
-    setActiveVisualView(viewId, { previousViewport: viewport });
-    const nextDoc = useDocumentStore.getState().doc;
-    syncUiForView(nextDoc, viewId);
+    switchActiveVisualView(viewId);
   };
 
   const createAndSwitch = () => {
@@ -153,8 +130,7 @@ export function ViewsDrawer() {
         rootId,
       }),
     );
-    const nextDoc = useDocumentStore.getState().doc;
-    syncUiForView(nextDoc, nextDoc.visual.activeViewId);
+    syncUiForVisualView(useDocumentStore.getState().doc);
     setCreateName("");
   };
 
@@ -290,13 +266,12 @@ export function ViewsDrawer() {
                 hasMultipleViews={hasMultipleViews}
                 index={index}
                 isDefault={view.id === doc.visual.defaultViewId}
-                isActive={view.id === doc.visual.activeViewId}
+                isActive={view.id === activeView.id}
                 moveView={moveView}
                 orderedViewsLength={orderedViews.length}
                 setConfirmRequest={setConfirmRequest}
                 syncUiForActiveView={() => {
-                  const nextDoc = useDocumentStore.getState().doc;
-                  syncUiForView(nextDoc, nextDoc.visual.activeViewId);
+                  syncUiForVisualView(useDocumentStore.getState().doc);
                 }}
                 switchToView={switchToView}
                 summary={summarizeVisualView(doc, view.id)}

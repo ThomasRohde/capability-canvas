@@ -17,10 +17,11 @@ import {
   isNodeOnCanvas,
   type CapabilityDocument,
   type CapabilityNode,
+  type VisualNodeState,
 } from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
 import { canMultiSelect } from "../../domain/selection/rules";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
@@ -35,7 +36,7 @@ export function Inspector({
 }) {
   const storeDoc = useDocumentStore((state) => state.doc);
   const doc = displayDoc ?? storeDoc;
-  const viewDoc = resolveVisualDocument(doc);
+  const { visualDocument: viewDoc, activeView } = useActiveVisualState({ doc });
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const tab = useUiStore((state) => state.inspectorTab);
@@ -92,7 +93,11 @@ export function Inspector({
         {selected.length === 0 && <EmptyInspector />}
         {viewNode && readonly && <ViewerDetails node={viewNode} />}
         {sourceNode && !readonly && tab === "inspector" && viewNode && (
-          <Properties node={sourceNode} viewNode={viewNode} />
+          <Properties
+            node={sourceNode}
+            viewNode={viewNode}
+            activeViewState={activeView.nodeStatesById[sourceNode.id]}
+          />
         )}
         {viewNode && !readonly && tab === "layout" && (
           <LayoutProperties node={viewNode} />
@@ -338,15 +343,21 @@ function BulkLayoutEditor({
 function Properties({
   node,
   viewNode,
+  activeViewState,
 }: {
   node: CapabilityNode;
   viewNode: CapabilityNode;
+  activeViewState?: VisualNodeState;
 }) {
   const execute = useDocumentStore((state) => state.execute);
   return (
     <>
       <Breadcrumb node={node} />
-      <SourceViewStatus node={node} viewNode={viewNode} />
+      <SourceViewStatus
+        node={node}
+        viewNode={viewNode}
+        activeViewState={activeViewState}
+      />
       <div className="cc-field">
         <label htmlFor="node-label">Label</label>
         <CommitTextInput
@@ -791,13 +802,13 @@ function Breadcrumb({ node }: { node: CapabilityNode }) {
 function SourceViewStatus({
   node,
   viewNode,
+  activeViewState,
 }: {
   node: CapabilityNode;
   viewNode: CapabilityNode;
+  activeViewState?: VisualNodeState;
 }) {
   const doc = useDocumentStore((state) => state.doc);
-  const activeView =
-    doc.visual.viewsById[doc.visual.activeViewId]?.nodeStatesById[node.id];
   const sourceId =
     typeof node.metadata.id === "string" ||
     typeof node.metadata.id === "number"
@@ -828,7 +839,7 @@ function SourceViewStatus({
         <FragmentRow
           label="Collapse"
           value={
-            activeView?.isCollapsed
+            activeViewState?.isCollapsed
               ? "Collapsed in active view"
               : "Expanded in active view"
           }

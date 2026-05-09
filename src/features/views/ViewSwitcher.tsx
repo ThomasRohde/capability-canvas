@@ -4,10 +4,12 @@ import {
   Star,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
 import type { VisualViewId } from "../../domain/document/types";
 import { summarizeVisualView } from "../../domain/visual/viewSummary";
-import { useDocumentStore } from "../../app/stores/documentStore";
+import {
+  switchActiveVisualView,
+  useActiveVisualState,
+} from "../../app/activeVisualState";
 import { useUiStore } from "../../app/stores/uiStore";
 import { useMenuKeyboardNavigation } from "../shared/a11y";
 
@@ -22,25 +24,17 @@ export function ViewSwitcher({
   activeViewId,
   onReadonlyViewChange,
 }: ViewSwitcherProps) {
-  const doc = useDocumentStore((state) => state.doc);
-  const setActiveVisualView = useDocumentStore(
-    (state) => state.setActiveVisualView,
-  );
-  const viewport = useUiStore((state) => state.viewport);
-  const setViewport = useUiStore((state) => state.setViewport);
-  const selected = useUiStore((state) => state.selectedNodeIds);
-  const setSelection = useUiStore((state) => state.setSelection);
-  const showSelectionNotice = useUiStore(
-    (state) => state.showSelectionNotice,
-  );
+  const {
+    sourceDocument: doc,
+    activeView,
+    activeViewId: effectiveActiveViewId,
+  } = useActiveVisualState({ viewId: activeViewId });
   const activeDrawer = useUiStore((state) => state.activeDrawer);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const effectiveActiveViewId = activeViewId ?? doc.visual.activeViewId;
-  const activeView = doc.visual.viewsById[effectiveActiveViewId];
   const activeSummary = summarizeVisualView(doc, effectiveActiveViewId);
   const orderedViews = doc.visual.viewOrder
     .map((viewId) => doc.visual.viewsById[viewId])
@@ -79,24 +73,9 @@ export function ViewSwitcher({
       setOpen(false);
       return;
     }
-    setActiveVisualView(viewId, { previousViewport: viewport });
-    const nextDoc = useDocumentStore.getState().doc;
-    const nextView = nextDoc.visual.viewsById[viewId];
-    if (nextView?.viewport) setViewport(nextView.viewport);
-    const resolved = resolveVisualDocument(nextDoc, viewId);
-    const nextSelection = selected.filter(
-      (nodeId) => resolved.nodesById[nodeId]?.isOnCanvas,
-    );
-    if (nextSelection.length !== selected.length) {
-      setSelection(nextSelection);
-      showSelectionNotice(
-        "Selection adjusted because selected capabilities are hidden in this view.",
-      );
-    }
+    switchActiveVisualView(viewId);
     setOpen(false);
   };
-
-  if (!activeView) return null;
 
   return (
     <div ref={rootRef} className="cc-view-switcher">
