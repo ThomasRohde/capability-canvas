@@ -5,6 +5,7 @@ export interface EditorCommandActions {
   addRoot: () => void;
   addChild: () => void;
   renameSelected: () => void;
+  duplicateSelected: () => void;
   fitView: () => void;
   autoLayout: () => void;
   toggleOutline: () => void;
@@ -15,8 +16,14 @@ export interface EditorCommandActions {
   importFile: () => void;
   importPastedJson: () => void;
   toggleHeatmap: () => void;
+  selectAllVisible: () => void;
   removeFromActiveView: () => void;
   deleteFromModel: () => void;
+  moveSelectedByKeyboard: (
+    direction: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown",
+    largeStep: boolean,
+  ) => void;
+  cancelTransientPreview: () => void;
   undo: () => void;
   redo: () => void;
 }
@@ -24,6 +31,7 @@ export interface EditorCommandActions {
 export interface EditorCommandContext {
   selectedNodeIds: NodeId[];
   selectedCanvasNodeIds: NodeId[];
+  visibleSelectableNodeIds: NodeId[];
   selectedNode: CapabilityNode | null;
   hasFitBounds: boolean;
   importBusy: boolean;
@@ -74,6 +82,18 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       run: ({ actions }) => actions.renameSelected(),
     },
     {
+      id: "model.duplicate-selected",
+      group: "Model",
+      label: "Duplicate",
+      keywords: ["copy", "clone"],
+      shortcut: "Ctrl/Cmd+D",
+      canRun: ({ selectedNodeIds }) =>
+        selectedNodeIds.length > 0
+          ? available()
+          : unavailable("Select at least one capability first."),
+      run: ({ actions }) => actions.duplicateSelected(),
+    },
+    {
       id: "model.remove-from-view",
       group: "Model",
       label: "Remove from active view",
@@ -112,10 +132,23 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       group: "History",
       label: "Redo",
       shortcut: "Ctrl/Cmd+Y",
+      shortcutAliases: ["Ctrl/Cmd+Shift+Z"],
       keywords: ["repeat"],
       canRun: ({ canRedo }) =>
         canRedo ? available() : unavailable("There is nothing to redo."),
       run: ({ actions }) => actions.redo(),
+    },
+    {
+      id: "selection.select-visible",
+      group: "Selection",
+      label: "Select visible capabilities",
+      shortcut: "Ctrl/Cmd+A",
+      keywords: ["all", "canvas"],
+      canRun: ({ visibleSelectableNodeIds }) =>
+        visibleSelectableNodeIds.length > 0
+          ? available()
+          : unavailable("There are no visible capabilities to select."),
+      run: ({ actions }) => actions.selectAllVisible(),
     },
     {
       id: "layout.fit-view",
@@ -205,4 +238,30 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       run: ({ actions }) => actions.openExport(),
     },
   ];
+}
+
+export function getEditorCommand(
+  commands: CommandDefinition<EditorCommandContext>[],
+  commandId: string,
+): CommandDefinition<EditorCommandContext> | undefined {
+  return commands.find((command) => command.id === commandId);
+}
+
+export function getEditorCommandAvailability(
+  commands: CommandDefinition<EditorCommandContext>[],
+  commandId: string,
+  context: EditorCommandContext,
+) {
+  return getEditorCommand(commands, commandId)?.canRun(context);
+}
+
+export function runEditorCommand(
+  commands: CommandDefinition<EditorCommandContext>[],
+  commandId: string,
+  context: EditorCommandContext,
+): boolean {
+  const command = getEditorCommand(commands, commandId);
+  if (!command || !command.canRun(context).valid) return false;
+  command.run(context);
+  return true;
 }

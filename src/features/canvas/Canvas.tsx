@@ -12,7 +12,6 @@ import {
   addChild,
   duplicateNodes,
   fitParentToChildren,
-  moveNodes,
   removeNodesFromCanvas,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
@@ -23,18 +22,16 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
-import { gridSizeFor } from "../../domain/layout/grid";
 import {
   activeVisualView,
   resolveVisualDocument,
 } from "../../domain/visual/workspace";
-import { resolveSelectAllSelection } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { type ViewportState, useUiStore } from "../../app/stores/uiStore";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { useMenuKeyboardNavigation } from "../shared/a11y";
-import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
+import { useEditorActions } from "../commands/useEditorActions";
 import { BulkToolbar } from "./BulkToolbar";
 import {
   CanvasContextMenu,
@@ -85,8 +82,6 @@ export function Canvas({
   const [contextMenu, setContextMenu] = useState<CanvasContextMenuState | null>(
     null,
   );
-  const { requestDeleteFromModel, deleteFromModelDialog } =
-    useModelDeleteConfirmation(doc);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const {
     viewport,
@@ -101,6 +96,13 @@ export function Canvas({
     readonly,
     onViewportChange,
   });
+  const { requestDeleteFromModel, deleteFromModelDialog, dispatchShortcut } =
+    useEditorActions({
+      doc,
+      viewDoc,
+      displayBounds,
+      onFitView: fitView,
+    });
   const {
     editingNodeId,
     labelInputRef,
@@ -272,105 +274,11 @@ export function Canvas({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (readonly) return;
-      if (editingNodeId) return;
-      if (isEditableTarget(event.target)) {
-        if (event.key === "Escape") (event.target as HTMLElement).blur();
-        return;
-      }
-      if (
-        event.key === "Enter" &&
-        !event.altKey &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        selected.length === 1 &&
-        canvasSelected.length === 1 &&
-        !isInteractiveTarget(event.target)
-      ) {
-        event.preventDefault();
-        startLabelEdit(selected[0]!);
-        return;
-      }
-      if (event.key === "Delete" && event.shiftKey && selected.length > 0) {
-        event.preventDefault();
-        requestDeleteFromModel(selected);
-        return;
-      }
-      if (event.key === "Delete" && canvasSelected.length > 0) {
-        event.preventDefault();
-        execute(removeNodesFromCanvas(canvasSelected));
-        return;
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        if (event.shiftKey) useDocumentStore.getState().redo();
-        else useDocumentStore.getState().undo();
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
-        event.preventDefault();
-        useDocumentStore.getState().redo();
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
-        event.preventDefault();
-        const ids = Object.values(viewDoc.nodesById)
-          .filter(
-            (node) =>
-              isNodeOnCanvas(node) && !node.isTextLabel && node.type !== "text",
-          )
-          .map((node) => node.id);
-        const resolution = resolveSelectAllSelection(viewDoc, ids, selected);
-        useUiStore.getState().setSelection(resolution.nodeIds);
-        if (resolution.reason) showSelectionNotice(resolution.reason);
-      }
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key.toLowerCase() === "d" &&
-        selected.length > 0
-      ) {
-        event.preventDefault();
-        execute(duplicateNodes(selected));
-      }
-      if (event.key === "Escape") useTransientStore.getState().cancel();
-      if (
-        ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
-          event.key,
-        ) &&
-        selected.length > 0
-      ) {
-        event.preventDefault();
-        const baseStep = viewDoc.settings.gridEnabled
-          ? gridSizeFor(viewDoc)
-          : 1;
-        const step = event.shiftKey ? baseStep * 4 : baseStep;
-        const dx =
-          event.key === "ArrowLeft"
-            ? -step
-            : event.key === "ArrowRight"
-              ? step
-              : 0;
-        const dy =
-          event.key === "ArrowUp"
-            ? -step
-            : event.key === "ArrowDown"
-              ? step
-              : 0;
-        execute(moveNodes(selected, dx, dy));
-      }
-      if (event.key.toLowerCase() === "f") fitView();
+      dispatchShortcut(event, { editingNodeId });
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    canvasSelected,
-    editingNodeId,
-    execute,
-    fitView,
-    readonly,
-    requestDeleteFromModel,
-    selected,
-    showSelectionNotice,
-    startLabelEdit,
-    viewDoc,
-  ]);
+  }, [dispatchShortcut, editingNodeId, readonly]);
 
   return (
     <main
@@ -546,20 +454,5 @@ export function Canvas({
       />
       {deleteFromModelDialog}
     </main>
-  );
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-  return target.isContentEditable;
-}
-
-function isInteractiveTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target === document.body) return false;
-  return !!target.closest(
-    'button, a, input, textarea, select, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="dialog"]',
   );
 }

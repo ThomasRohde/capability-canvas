@@ -20,76 +20,41 @@ import {
 import {
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
   type ComponentType,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
-import {
-  addChild,
-  addRoot,
-  duplicateNodes,
-  mergePromptCapabilities,
-  removeNodesFromCanvas,
-  updateActiveViewHeatmapSettings,
-} from "../../domain/commands/operations";
+import { mergePromptCapabilities } from "../../domain/commands/operations";
 import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
-import { isNodeOnCanvas } from "../../domain/document/types";
-import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { buildBcmPrompt } from "../../domain/promptMerge/bcmPrompt";
 import {
   isPromptMergePayloadShape,
   parsePromptMergePayload,
 } from "../../domain/promptMerge/payload";
 import { error, warning } from "../../domain/validation/diagnostics";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { openDocumentFile, saveDocumentFile } from "../../app/fileSystem";
 import { applyImportedDocument } from "../../app/importDocument";
 import { createImportReview, type ImportReview } from "../../app/importReview";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CommandPalette } from "../commands/CommandPalette";
-import {
-  createEditorCommandRegistry,
-  type EditorCommandContext,
-} from "../commands/editorCommands";
+import { getEditorCommandAvailability } from "../commands/editorCommands";
 import { ShortcutHelp } from "../commands/ShortcutHelp";
+import { useEditorActions } from "../commands/useEditorActions";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
 import { useFocusTrap, useMenuKeyboardNavigation } from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
-import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { ViewSwitcher } from "../views/ViewSwitcher";
-import { fitViewportToBounds } from "../canvas/viewport";
 
 export function Toolbar() {
   const doc = useDocumentStore((state) => state.doc);
-  const viewDoc = resolveVisualDocument(doc);
-  const displayBounds = layoutDisplayBounds(viewDoc);
   const execute = useDocumentStore((state) => state.execute);
-  const undo = useDocumentStore((state) => state.undo);
-  const redo = useDocumentStore((state) => state.redo);
-  const past = useDocumentStore((state) => state.past);
-  const future = useDocumentStore((state) => state.future);
-  const autoLayout = useDocumentStore((state) => state.autoLayout);
   const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
-  const setActiveViewViewport = useDocumentStore(
-    (state) => state.setActiveViewViewport,
-  );
   const dirty = useDocumentStore((state) => state.dirty);
-  const isAutoLayoutRunning = useDocumentStore(
-    (state) => state.isAutoLayoutRunning,
-  );
-  const selected = useUiStore((state) => state.selectedNodeIds);
   const viewport = useUiStore((state) => state.viewport);
-  const canvasSize = useUiStore((state) => state.canvasSize);
   const setViewport = useUiStore((state) => state.setViewport);
-  const toggleOutline = useUiStore((state) => state.toggleOutline);
-  const toggleInspector = useUiStore((state) => state.toggleInspector);
-  const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
-  const requestLabelEdit = useUiStore((state) => state.requestLabelEdit);
-  const commandRegistry = useMemo(() => createEditorCommandRegistry(), []);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteDraft, setPasteDraft] = useState("");
   const [importReview, setImportReview] = useState<ImportReview | null>(null);
@@ -99,16 +64,47 @@ export function Toolbar() {
   const pasteDialogRef = useRef<HTMLElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const promptCopyNoticeTimeout = useRef<number | null>(null);
-  const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
+  const {
+    commands: commandRegistry,
+    context: commandContext,
+    actions: editorActions,
+    selectedNodeIds: selected,
+    deleteFromModelDialog,
+  } = useEditorActions({
+    doc,
+    importBusy,
+    onImportFile: importDocument,
+    onImportPastedJson: openPastedJsonImport,
+  });
+  const addChildAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "model.add-child",
+    commandContext,
+  );
+  const duplicateAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "model.duplicate-selected",
+    commandContext,
+  );
+  const removeFromViewAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "model.remove-from-view",
+    commandContext,
+  );
+  const deleteFromModelAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "model.delete-from-model",
+    commandContext,
+  );
+  const autoLayoutAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "layout.auto-layout",
+    commandContext,
+  );
   const promptNode =
     selected.length === 1 && selected[0] ? doc.nodesById[selected[0]] : null;
   const canCopyPrompt =
     !!promptNode && !promptNode.isTextLabel && promptNode.type !== "text";
-  const selectedCanvasNodeIds = selected.filter((nodeId) =>
-    isNodeOnCanvas(viewDoc.nodesById[nodeId]),
-  );
-  const { requestDeleteFromModel, deleteFromModelDialog } =
-    useModelDeleteConfirmation(doc);
 
   useEffect(() => {
     return () => {
@@ -141,7 +137,7 @@ export function Toolbar() {
     }, 2400);
   };
 
-  const importDocument = () => {
+  function importDocument() {
     setImportBusy(true);
     void openDocumentFile()
       .then((result) => {
@@ -167,7 +163,7 @@ export function Toolbar() {
         ]);
       })
       .finally(() => setImportBusy(false));
-  };
+  }
 
   const importPastedJson = () => {
     if (pasteDraft.trim().length === 0) return;
@@ -254,26 +250,6 @@ export function Toolbar() {
     }
   };
 
-  const addRootCapability = () => execute(addRoot());
-
-  const addSelectedChild = () => {
-    if (selectedNode) execute(addChild(selectedNode.id));
-  };
-
-  const duplicateSelection = () => execute(duplicateNodes(selected));
-
-  const removeSelectionFromActiveView = () =>
-    execute(removeNodesFromCanvas(selectedCanvasNodeIds));
-
-  const deleteSelectionFromModel = () => requestDeleteFromModel(selected);
-
-  const fitViewport = () => {
-    const nextViewport = fitViewportToBounds(displayBounds, canvasSize);
-    if (!nextViewport) return;
-    setViewport(nextViewport);
-    setActiveViewViewport(nextViewport);
-  };
-
   const zoomOut = () =>
     setViewport({
       ...viewport,
@@ -283,56 +259,11 @@ export function Toolbar() {
   const zoomIn = () =>
     setViewport({ ...viewport, zoom: Math.min(2.5, viewport.zoom + 0.1) });
 
-  const runAutoLayout = () => {
-    void autoLayout(true);
-  };
+  function openPastedJsonImport() {
+    setPasteOpen(true);
+  }
 
-  const toggleHeatmap = () =>
-    execute(
-      updateActiveViewHeatmapSettings({
-        enabled: !viewDoc.heatmap.enabled,
-      }),
-    );
-
-  const openSettings = () => setActiveDrawer("settings");
-  const openExport = () => setActiveDrawer("export");
-  const openViews = () => setActiveDrawer("views");
-  const openPastedJsonImport = () => setPasteOpen(true);
   const closePastedJsonImport = () => setPasteOpen(false);
-  const renameSelected = () => {
-    if (selected.length !== 1 || !selected[0]) return;
-    requestLabelEdit(selected[0]);
-  };
-  const commandContext: EditorCommandContext = {
-    selectedNodeIds: selected,
-    selectedCanvasNodeIds,
-    selectedNode,
-    hasFitBounds:
-      displayBounds.w > 0 && displayBounds.h > 0,
-    importBusy,
-    isAutoLayoutRunning,
-    canUndo: past.length > 0,
-    canRedo: future.length > 0,
-    actions: {
-      addRoot: addRootCapability,
-      addChild: addSelectedChild,
-      renameSelected,
-      fitView: fitViewport,
-      autoLayout: runAutoLayout,
-      toggleOutline,
-      toggleInspector,
-      openViews,
-      openSettings,
-      openExport,
-      importFile: importDocument,
-      importPastedJson: openPastedJsonImport,
-      toggleHeatmap,
-      removeFromActiveView: removeSelectionFromActiveView,
-      deleteFromModel: deleteSelectionFromModel,
-      undo,
-      redo,
-    },
-  };
 
   useFocusTrap({
     active: pasteOpen,
@@ -363,7 +294,7 @@ export function Toolbar() {
             className="cc-btn"
             type="button"
             aria-label="Add root"
-            onClick={addRootCapability}
+            onClick={editorActions.addRoot}
           >
             <Plus />
             <span className="cc-btn-label">Add root</span>
@@ -372,8 +303,8 @@ export function Toolbar() {
             className="cc-btn cc-btn-primary"
             type="button"
             aria-label="Add child"
-            disabled={!selectedNode || selectedNode.isTextLabel}
-            onClick={addSelectedChild}
+            disabled={!addChildAvailable?.valid}
+            onClick={editorActions.addChild}
           >
             <Plus />
             <span className="cc-btn-label">Add child</span>
@@ -384,24 +315,24 @@ export function Toolbar() {
                 <ToolbarMenuItem
                   icon={Copy}
                   label="Duplicate"
-                  disabled={selected.length === 0}
+                  disabled={!duplicateAvailable?.valid}
                   closeMenu={closeMenu}
-                  onSelect={duplicateSelection}
+                  onSelect={editorActions.duplicateSelected}
                 />
                 <ToolbarMenuItem
                   icon={EyeOff}
                   label="Remove from active view"
-                  disabled={selectedCanvasNodeIds.length === 0}
+                  disabled={!removeFromViewAvailable?.valid}
                   closeMenu={closeMenu}
-                  onSelect={removeSelectionFromActiveView}
+                  onSelect={editorActions.removeFromActiveView}
                 />
                 <ToolbarMenuItem
                   icon={Trash2}
                   label="Delete from model"
-                  disabled={selected.length === 0}
+                  disabled={!deleteFromModelAvailable?.valid}
                   tone="danger"
                   closeMenu={closeMenu}
-                  onSelect={deleteSelectionFromModel}
+                  onSelect={editorActions.deleteFromModel}
                 />
                 <div className="cc-menu-separator" role="separator" />
                 <ToolbarMenuItem
@@ -417,8 +348,8 @@ export function Toolbar() {
         </div>
         <span className="cc-divider" />
         <div className="cc-toolbar-group" aria-label="History commands">
-          <IconButton icon={Undo2} label="Undo" onClick={undo} />
-          <IconButton icon={Redo2} label="Redo" onClick={redo} />
+          <IconButton icon={Undo2} label="Undo" onClick={editorActions.undo} />
+          <IconButton icon={Redo2} label="Redo" onClick={editorActions.redo} />
         </div>
         <span className="cc-divider" />
         <div className="cc-toolbar-group" aria-label="Layout commands">
@@ -426,7 +357,8 @@ export function Toolbar() {
             className="cc-btn"
             type="button"
             aria-label="Fit"
-            onClick={fitViewport}
+            disabled={!commandContext.hasFitBounds}
+            onClick={editorActions.fitView}
           >
             <ZoomIn />
             <span className="cc-btn-label">Fit</span>
@@ -440,8 +372,8 @@ export function Toolbar() {
             className="cc-btn cc-btn-primary"
             type="button"
             aria-label="Auto layout"
-            disabled={isAutoLayoutRunning}
-            onClick={runAutoLayout}
+            disabled={!autoLayoutAvailable?.valid}
+            onClick={editorActions.autoLayout}
           >
             <LayoutTemplate />
             <span className="cc-btn-label">Auto layout</span>
@@ -457,14 +389,14 @@ export function Toolbar() {
                   label="Import JSON file"
                   disabled={importBusy}
                   closeMenu={closeMenu}
-                  onSelect={importDocument}
+                  onSelect={editorActions.importFile}
                 />
                 <ToolbarMenuItem
                   icon={FileJson}
                   label="Import pasted JSON"
                   disabled={importBusy}
                   closeMenu={closeMenu}
-                  onSelect={openPastedJsonImport}
+                  onSelect={editorActions.importPastedJson}
                 />
               </>
             )}
@@ -473,7 +405,7 @@ export function Toolbar() {
             className="cc-btn"
             type="button"
             aria-label="Export"
-            onClick={openExport}
+            onClick={editorActions.openExport}
           >
             <Download />
             <span className="cc-btn-label">Export</span>

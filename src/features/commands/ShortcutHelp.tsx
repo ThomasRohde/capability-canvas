@@ -64,7 +64,9 @@ export function ShortcutHelp<TContext>({
           id: command.id,
           group: command.group,
           label: command.label,
-          shortcut: command.shortcut!,
+          shortcut: [command.shortcut!, ...(command.shortcutAliases ?? [])].join(
+            ", ",
+          ),
         })),
     [commands, context],
   );

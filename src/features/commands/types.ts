@@ -10,6 +10,7 @@ export interface CommandDefinition<TContext> {
   label: string;
   keywords?: string[];
   shortcut?: string;
+  shortcutAliases?: string[];
   tone?: "default" | "danger";
   canRun: (context: TContext) => CommandAvailability;
   run: (context: TContext) => void;
@@ -37,6 +38,7 @@ export function commandMatchesSearch<TContext>(
     command.label,
     command.group,
     command.shortcut ?? "",
+    ...(command.shortcutAliases ?? []),
     ...(command.keywords ?? []),
   ]
     .map(normalizeCommandText)
@@ -51,6 +53,14 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   const tag = target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   return target.isContentEditable;
+}
+
+export function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target === document.body) return false;
+  return !!target.closest(
+    'button, a, input, textarea, select, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="dialog"]',
+  );
 }
 
 function normalizeCommandText(value: string): string {
