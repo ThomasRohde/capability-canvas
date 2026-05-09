@@ -7,6 +7,13 @@ import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { Canvas } from "../canvas/Canvas";
+import { fitViewportToBounds } from "../canvas/viewport";
+import { CommandPalette } from "../commands/CommandPalette";
+import { ShortcutHelp } from "../commands/ShortcutHelp";
+import {
+  createViewerCommandRegistry,
+  type ViewerCommandContext,
+} from "../commands/viewerCommands";
 import { adapterFor, saveExportResult } from "../import-export";
 import { Inspector } from "../inspector/Inspector";
 import { Outline } from "../outline/Outline";
@@ -27,9 +34,13 @@ export function ViewerRoute() {
     useState<Record<VisualViewId, boolean>>({});
   const setViewport = useUiStore((state) => state.setViewport);
   const setSelection = useUiStore((state) => state.setSelection);
+  const canvasSize = useUiStore((state) => state.canvasSize);
   const outlineOpen = useUiStore((state) => state.outlineOpen);
   const outlineWidth = useUiStore((state) => state.outlineWidth);
   const inspectorOpen = useUiStore((state) => state.inspectorOpen);
+  const toggleOutline = useUiStore((state) => state.toggleOutline);
+  const toggleInspector = useUiStore((state) => state.toggleInspector);
+  const commandRegistry = useMemo(() => createViewerCommandRegistry(), []);
   const displayDoc = useMemo(
     () =>
       resolveViewerDocument(doc, {
@@ -96,6 +107,48 @@ export function ViewerRoute() {
     ],
   );
 
+  const fitViewerViewport = useCallback(() => {
+    const nextViewport = fitViewportToBounds(viewDoc.layout.boundingBox, canvasSize);
+    if (nextViewport) commitViewerViewport(nextViewport);
+  }, [canvasSize, commitViewerViewport, viewDoc.layout.boundingBox]);
+
+  const toggleViewerHeatmap = useCallback(() => {
+    setViewerHeatmapEnabledByViewId((previous) => ({
+      ...previous,
+      [viewerActiveViewId]: !viewDoc.heatmap.enabled,
+    }));
+  }, [viewDoc.heatmap.enabled, viewerActiveViewId]);
+
+  const exportVisual = useCallback(() => {
+    void Promise.resolve(adapterFor("svg").exportDocument(displayDoc)).then(
+      saveExportResult,
+    );
+  }, [displayDoc]);
+
+  const importIntoEditor = useCallback(() => {
+    const importDoc = resolveViewerDocument(doc, {
+      activeViewId: viewerActiveViewId,
+    });
+    localStorage.setItem(
+      "capability-canvas.import",
+      JSON.stringify(serializeDocument(importDoc)),
+    );
+    window.location.href = import.meta.env.BASE_URL;
+  }, [doc, viewerActiveViewId]);
+
+  const commandContext: ViewerCommandContext = {
+    hasFitBounds:
+      viewDoc.layout.boundingBox.w > 0 && viewDoc.layout.boundingBox.h > 0,
+    actions: {
+      fitView: fitViewerViewport,
+      toggleHeatmap: toggleViewerHeatmap,
+      exportVisual,
+      importIntoEditor,
+      toggleOutline,
+      toggleInspector,
+    },
+  };
+
   return (
     <div className="cc-app cc-viewer">
       <header className="cc-toolbar">
@@ -114,33 +167,22 @@ export function ViewerRoute() {
           activeViewId={viewerActiveViewId}
           onReadonlyViewChange={switchViewerView}
         />
+        <div className="cc-toolbar-group" aria-label="Command tools">
+          <CommandPalette commands={commandRegistry} context={commandContext} />
+          <ShortcutHelp commands={commandRegistry} context={commandContext} />
+        </div>
         <span className="cc-spacer" />
         <button
           className="cc-btn"
           type="button"
-          onClick={() => {
-            const bounds = viewDoc.layout.boundingBox;
-            if (bounds.w > 0) {
-              const nextViewport = {
-                zoom: 1,
-                x: 40 - bounds.x,
-                y: 40 - bounds.y,
-              };
-              commitViewerViewport(nextViewport);
-            }
-          }}
+          onClick={fitViewerViewport}
         >
           Fit
         </button>
         <button
           className="cc-btn"
           type="button"
-          onClick={() =>
-            setViewerHeatmapEnabledByViewId((previous) => ({
-              ...previous,
-              [viewerActiveViewId]: !viewDoc.heatmap.enabled,
-            }))
-          }
+          onClick={toggleViewerHeatmap}
         >
           Heatmap{" "}
           <span className={`cc-toggle ${viewDoc.heatmap.enabled ? "on" : ""}`} />
@@ -148,27 +190,14 @@ export function ViewerRoute() {
         <button
           className="cc-btn"
           type="button"
-          onClick={() =>
-            void Promise.resolve(
-              adapterFor("svg").exportDocument(displayDoc),
-            ).then(saveExportResult)
-          }
+          onClick={exportVisual}
         >
           <Download /> Export visual
         </button>
         <button
           className="cc-btn cc-btn-primary"
           type="button"
-          onClick={() => {
-            const importDoc = resolveViewerDocument(doc, {
-              activeViewId: viewerActiveViewId,
-            });
-            localStorage.setItem(
-              "capability-canvas.import",
-              JSON.stringify(serializeDocument(importDoc)),
-            );
-            window.location.href = import.meta.env.BASE_URL;
-          }}
+          onClick={importIntoEditor}
         >
           Import into editor <ExternalLink size={14} />
         </button>

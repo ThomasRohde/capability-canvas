@@ -23,6 +23,7 @@ import {
 import {
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type ComponentType,
@@ -51,10 +52,17 @@ import { applyImportedDocument } from "../../app/importDocument";
 import { createImportReview, type ImportReview } from "../../app/importReview";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { CommandPalette } from "../commands/CommandPalette";
+import {
+  createEditorCommandRegistry,
+  type EditorCommandContext,
+} from "../commands/editorCommands";
+import { ShortcutHelp } from "../commands/ShortcutHelp";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
 import { IconButton } from "../shared/IconButton";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { ViewSwitcher } from "../views/ViewSwitcher";
+import { fitViewportToBounds } from "../canvas/viewport";
 
 type ToolbarMenuFocusTarget = "first" | "last";
 
@@ -64,6 +72,8 @@ export function Toolbar() {
   const execute = useDocumentStore((state) => state.execute);
   const undo = useDocumentStore((state) => state.undo);
   const redo = useDocumentStore((state) => state.redo);
+  const past = useDocumentStore((state) => state.past);
+  const future = useDocumentStore((state) => state.future);
   const autoLayout = useDocumentStore((state) => state.autoLayout);
   const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const setActiveViewViewport = useDocumentStore(
@@ -75,8 +85,13 @@ export function Toolbar() {
   );
   const selected = useUiStore((state) => state.selectedNodeIds);
   const viewport = useUiStore((state) => state.viewport);
+  const canvasSize = useUiStore((state) => state.canvasSize);
   const setViewport = useUiStore((state) => state.setViewport);
+  const toggleOutline = useUiStore((state) => state.toggleOutline);
+  const toggleInspector = useUiStore((state) => state.toggleInspector);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const requestLabelEdit = useUiStore((state) => state.requestLabelEdit);
+  const commandRegistry = useMemo(() => createEditorCommandRegistry(), []);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteDraft, setPasteDraft] = useState("");
   const [importReview, setImportReview] = useState<ImportReview | null>(null);
@@ -253,13 +268,8 @@ export function Toolbar() {
   const deleteSelectionFromModel = () => requestDeleteFromModel(selected);
 
   const fitViewport = () => {
-    const bounds = viewDoc.layout.boundingBox;
-    if (bounds.w <= 0) return;
-    const nextViewport = {
-      zoom: 1,
-      x: 280 - bounds.x,
-      y: 60 - bounds.y,
-    };
+    const nextViewport = fitViewportToBounds(viewDoc.layout.boundingBox, canvasSize);
+    if (!nextViewport) return;
     setViewport(nextViewport);
     setActiveViewViewport(nextViewport);
   };
@@ -286,7 +296,42 @@ export function Toolbar() {
 
   const openSettings = () => setActiveDrawer("settings");
   const openExport = () => setActiveDrawer("export");
+  const openViews = () => setActiveDrawer("views");
   const openPastedJsonImport = () => setPasteOpen(true);
+  const renameSelected = () => {
+    if (selected.length !== 1 || !selected[0]) return;
+    requestLabelEdit(selected[0]);
+  };
+  const commandContext: EditorCommandContext = {
+    selectedNodeIds: selected,
+    selectedCanvasNodeIds,
+    selectedNode,
+    hasFitBounds:
+      viewDoc.layout.boundingBox.w > 0 && viewDoc.layout.boundingBox.h > 0,
+    importBusy,
+    isAutoLayoutRunning,
+    canUndo: past.length > 0,
+    canRedo: future.length > 0,
+    actions: {
+      addRoot: addRootCapability,
+      addChild: addSelectedChild,
+      renameSelected,
+      fitView: fitViewport,
+      autoLayout: runAutoLayout,
+      toggleOutline,
+      toggleInspector,
+      openViews,
+      openSettings,
+      openExport,
+      importFile: importDocument,
+      importPastedJson: openPastedJsonImport,
+      toggleHeatmap,
+      removeFromActiveView: removeSelectionFromActiveView,
+      deleteFromModel: deleteSelectionFromModel,
+      undo,
+      redo,
+    },
+  };
 
   return (
     <>
@@ -300,6 +345,10 @@ export function Toolbar() {
           <span className="cc-brand-name">Capability Canvas</span>
         </div>
         <ViewSwitcher />
+        <div className="cc-toolbar-group" aria-label="Command tools">
+          <CommandPalette commands={commandRegistry} context={commandContext} />
+          <ShortcutHelp commands={commandRegistry} context={commandContext} />
+        </div>
         <ToolbarMenu label="View options" icon={SlidersHorizontal} compact>
           {({ closeMenu }) => (
             <>

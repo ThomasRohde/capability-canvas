@@ -67,6 +67,38 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
   }
 });
 
+test('runs common actions from the command palette', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  await page.getByRole('button', { name: 'Open command palette' }).click();
+  let palette = page.getByRole('dialog', { name: 'Command palette' });
+  await expect(palette).toBeVisible();
+  await palette.getByLabel('Search commands').fill('Add child');
+  await expect(palette.getByText('Select a capability first.')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  const canvas = page.getByTestId('canvas');
+  await canvas.getByText('Digital Onboarding').click();
+
+  await page.getByRole('button', { name: 'Open command palette' }).click();
+  palette = page.getByRole('dialog', { name: 'Command palette' });
+  await palette.getByLabel('Search commands').fill('Add child');
+  await page.keyboard.press('Enter');
+  await expect(canvas.getByText('New capability')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Open command palette' }).click();
+  palette = page.getByRole('dialog', { name: 'Command palette' });
+  await palette.getByLabel('Search commands').fill('Fit view');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Open command palette' }).click();
+  palette = page.getByRole('dialog', { name: 'Command palette' });
+  await palette.getByLabel('Search commands').fill('Export');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('complementary', { name: 'Export' })).toBeVisible();
+});
+
 test('cancels pasted import review without replacing the document', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const before = await page.evaluate(() => {

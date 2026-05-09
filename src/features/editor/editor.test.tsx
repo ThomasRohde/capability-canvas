@@ -61,6 +61,7 @@ describe("editor shell", () => {
       inspectorTab: "inspector",
       searchQuery: "",
       selectionNotice: null,
+      labelEditRequest: null,
       viewport: { x: 0, y: 0, zoom: 1 },
       canvasSize: { w: 1200, h: 800 },
     });
@@ -242,6 +243,96 @@ describe("editor shell", () => {
     ]) {
       expect(within(menu).getByRole("menuitem", { name: label })).toBeDisabled();
     }
+  });
+
+  it("opens the command palette by keyboard and explains disabled commands", async () => {
+    useUiStore.setState({ selectedNodeIds: [] });
+    render(<EditorRoute />);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const palette = screen.getByRole("dialog", { name: "Command palette" });
+    await waitFor(() =>
+      expect(within(palette).getByLabelText("Search commands")).toHaveFocus(),
+    );
+
+    await userEvent.type(within(palette).getByLabelText("Search commands"), "Add child");
+    expect(within(palette).getByRole("option", { name: /Add child/ }))
+      .toHaveAttribute("aria-disabled", "true");
+    expect(within(palette).getByText(/Select a capability first/))
+      .toBeInTheDocument();
+  });
+
+  it("does not open the command palette while typing in inputs", async () => {
+    render(<EditorRoute />);
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const textarea = within(dialog).getByRole("textbox");
+    textarea.focus();
+
+    fireEvent.keyDown(textarea, { key: "k", ctrlKey: true, bubbles: true });
+
+    expect(
+      screen.queryByRole("dialog", { name: "Command palette" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("runs add child through the command palette", async () => {
+    render(<EditorRoute />);
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const palette = screen.getByRole("dialog", { name: "Command palette" });
+    await userEvent.type(within(palette).getByLabelText("Search commands"), "Add child");
+    await userEvent.keyboard("{Enter}");
+
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore + 1);
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Add child capability",
+    );
+    expect(
+      within(screen.getByTestId("canvas")).getByText("New capability"),
+    ).toBeInTheDocument();
+  });
+
+  it("starts selected label rename through the command palette", async () => {
+    render(<EditorRoute />);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const palette = screen.getByRole("dialog", { name: "Command palette" });
+    await userEvent.type(
+      within(palette).getByLabelText("Search commands"),
+      "Rename selected",
+    );
+    await userEvent.keyboard("{Enter}");
+
+    expect(
+      await screen.findByRole("textbox", {
+        name: "Edit label for Digital Onboarding",
+      }),
+    ).toHaveFocus();
+  });
+
+  it("opens and closes shortcut help by keyboard", async () => {
+    render(<EditorRoute />);
+
+    fireEvent.keyDown(window, { key: "?" });
+    expect(
+      screen.getByRole("dialog", { name: "Keyboard shortcuts" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Pan and zoom")).toBeInTheDocument();
+    expect(screen.getByText("Commands")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Keyboard shortcuts" }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("clears selection when the empty canvas background is clicked", () => {
@@ -2654,6 +2745,29 @@ describe("editor shell", () => {
     expect(within(screen.getByTestId("canvas")).getByText("0.72")).toHaveClass(
       "leaf-score",
     );
+  });
+
+  it("keeps viewer command palette read-only", async () => {
+    render(<ViewerRoute />);
+    const before = stringifyDocument(useDocumentStore.getState().doc);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    let palette = screen.getByRole("dialog", { name: "Command palette" });
+    await userEvent.type(within(palette).getByLabelText("Search commands"), "Delete");
+    expect(within(palette).getByText("No matching commands")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    palette = screen.getByRole("dialog", { name: "Command palette" });
+    await userEvent.type(within(palette).getByLabelText("Search commands"), "Heatmap");
+    await userEvent.keyboard("{Enter}");
+    expect(stringifyDocument(useDocumentStore.getState().doc)).toBe(before);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    palette = screen.getByRole("dialog", { name: "Command palette" });
+    await userEvent.type(within(palette).getByLabelText("Search commands"), "Fit view");
+    await userEvent.keyboard("{Enter}");
+    expect(stringifyDocument(useDocumentStore.getState().doc)).toBe(before);
   });
 
   it("switches viewer visual views without mutating the stored document", async () => {

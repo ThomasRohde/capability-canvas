@@ -89,6 +89,7 @@ import {
   descendantIds,
   viewportToDocumentBounds,
 } from "./selectors";
+import { fitViewportToBounds } from "./viewport";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2.5;
@@ -120,6 +121,10 @@ export function Canvas({
   const viewport = useUiStore((state) => state.viewport);
   const setViewport = useUiStore((state) => state.setViewport);
   const setCanvasSize = useUiStore((state) => state.setCanvasSize);
+  const labelEditRequest = useUiStore((state) => state.labelEditRequest);
+  const clearLabelEditRequest = useUiStore(
+    (state) => state.clearLabelEditRequest,
+  );
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const setInspectorTab = useUiStore((state) => state.setInspectorTab);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
@@ -202,6 +207,12 @@ export function Canvas({
     },
     [doc.nodesById, readonly, setSelection, viewDoc.nodesById],
   );
+
+  useEffect(() => {
+    if (!labelEditRequest) return;
+    clearLabelEditRequest();
+    startLabelEdit(labelEditRequest.nodeId);
+  }, [clearLabelEditRequest, labelEditRequest, startLabelEdit]);
 
   const commitLabelEdit = useCallback(() => {
     if (skipNextLabelCommitRef.current) {
@@ -344,16 +355,16 @@ export function Canvas({
   };
 
   const fitView = useCallback(() => {
-    const bounds = viewDoc.layout.boundingBox;
-    if (bounds.w === 0 || bounds.h === 0) return;
-    const zoom = Math.max(
-      MIN_ZOOM,
-      Math.min(
-        1.5,
-        Math.min((size.w - 80) / bounds.w, (size.h - 80) / bounds.h),
-      ),
+    const nextViewport = fitViewportToBounds(
+      viewDoc.layout.boundingBox,
+      { w: size.w, h: size.h },
+      {
+        minZoom: MIN_ZOOM,
+        maxZoom: 1.5,
+        padding: 40,
+      },
     );
-    const nextViewport = { zoom, x: 40 - bounds.x * zoom, y: 40 - bounds.y * zoom };
+    if (!nextViewport) return;
     setViewport(nextViewport);
     commitViewport(nextViewport);
   }, [commitViewport, setViewport, size.h, size.w, viewDoc.layout.boundingBox]);

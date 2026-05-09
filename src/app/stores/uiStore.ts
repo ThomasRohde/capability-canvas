@@ -18,6 +18,11 @@ export interface SelectionNotice {
   createdAt: number;
 }
 
+export interface LabelEditRequest {
+  nodeId: NodeId;
+  requestedAt: number;
+}
+
 export type ActiveDrawer = "settings" | "export" | "views" | null;
 
 export const DEFAULT_OUTLINE_WIDTH = 260;
@@ -122,6 +127,7 @@ interface UiState {
   inspectorTab: "inspector" | "layout" | "data";
   searchQuery: string;
   selectionNotice: SelectionNotice | null;
+  labelEditRequest: LabelEditRequest | null;
   setSelection: (ids: NodeId[]) => void;
   toggleSelection: (id: NodeId) => void;
   clearSelection: () => void;
@@ -138,6 +144,8 @@ interface UiState {
   setSearchQuery: (query: string) => void;
   showSelectionNotice: (message: string) => void;
   clearSelectionNotice: () => void;
+  requestLabelEdit: (nodeId: NodeId) => void;
+  clearLabelEditRequest: () => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
@@ -152,6 +160,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   inspectorTab: "inspector",
   searchQuery: "",
   selectionNotice: null,
+  labelEditRequest: null,
   setSelection: (ids) => set({ selectedNodeIds: ids }),
   toggleSelection: (id) => {
     const existing = get().selectedNodeIds;
@@ -197,4 +206,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   showSelectionNotice: (message) =>
     set({ selectionNotice: { message, createdAt: Date.now() } }),
   clearSelectionNotice: () => set({ selectionNotice: null }),
+  requestLabelEdit: (nodeId) =>
+    set({ labelEditRequest: { nodeId, requestedAt: Date.now() } }),
+  clearLabelEditRequest: () => set({ labelEditRequest: null }),
 }));
