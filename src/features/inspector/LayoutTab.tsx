@@ -1,0 +1,181 @@
+import { Info, Lock } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  lockSubtree,
+  moveNodes,
+  resizeNode,
+  setManualPositioning,
+} from "../../domain/commands/operations";
+import type { CapabilityNode } from "../../domain/document/types";
+import { snapCoordinate } from "../../domain/layout/grid";
+import { useDocumentStore } from "../../app/stores/documentStore";
+
+export function LayoutTab({ node }: { node: CapabilityNode }) {
+  const doc = useDocumentStore((state) => state.doc);
+  const execute = useDocumentStore((state) => state.execute);
+  const snap = (value: number) => snapCoordinate(doc, value);
+  return (
+    <>
+      <div className="cc-field">
+        <span className="cc-section-title">Layout behavior</span>
+        <div className="cc-seg">
+          <button
+            className={
+              !node.isManualPositioningEnabled && !node.isLockedAsIs ? "on" : ""
+            }
+            onClick={() => execute(setManualPositioning(node.id, false))}
+          >
+            Auto layout
+          </button>
+          <button
+            className={node.isManualPositioningEnabled ? "on" : ""}
+            onClick={() => execute(setManualPositioning(node.id, true))}
+          >
+            Manual
+          </button>
+          <button
+            className={node.isLockedAsIs ? "on" : ""}
+            aria-label="Preserve from auto layout"
+            title="Preserve from auto layout"
+            onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
+          >
+            Preserve
+          </button>
+        </div>
+      </div>
+      <div className="cc-info-card">
+        <Info size={16} />
+        <span>
+          Preserved nodes are skipped by auto layout and cannot be resized, but
+          can still be moved manually.
+        </span>
+      </div>
+      <div className="cc-field-row">
+        <NumberField
+          key={`x-${node.id}-${node.x}`}
+          label="X"
+          value={node.x}
+          onCommit={(x) => {
+            const delta = snap(x) - node.x;
+            if (delta !== 0) execute(moveNodes([node.id], delta, 0));
+          }}
+        />
+        <NumberField
+          key={`y-${node.id}-${node.y}`}
+          label="Y"
+          value={node.y}
+          onCommit={(y) => {
+            const delta = snap(y) - node.y;
+            if (delta !== 0) execute(moveNodes([node.id], 0, delta));
+          }}
+        />
+        <NumberField
+          key={`w-${node.id}-${node.w}`}
+          label="W"
+          value={node.w}
+          disabled={node.isLockedAsIs}
+          title={
+            node.isLockedAsIs ? "Preserved nodes cannot be resized." : undefined
+          }
+          onCommit={(w) => {
+            const next =
+              doc.settings.gridEnabled && doc.settings.resizeSnapToGrid
+                ? snap(node.x + w) - node.x
+                : w;
+            execute(resizeNode(node.id, Math.max(1, next), node.h));
+          }}
+        />
+        <NumberField
+          key={`h-${node.id}-${node.h}`}
+          label="H"
+          value={node.h}
+          disabled={node.isLockedAsIs}
+          title={
+            node.isLockedAsIs ? "Preserved nodes cannot be resized." : undefined
+          }
+          onCommit={(h) => {
+            const next =
+              doc.settings.gridEnabled && doc.settings.resizeSnapToGrid
+                ? snap(node.y + h) - node.y
+                : h;
+            execute(resizeNode(node.id, node.w, Math.max(1, next)));
+          }}
+        />
+      </div>
+      <button
+        className="cc-btn"
+        type="button"
+        onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
+      >
+        <Lock />{" "}
+        {node.isLockedAsIs
+          ? "Stop preserving layout"
+          : "Preserve from auto layout"}
+      </button>
+    </>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  disabled = false,
+  title,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  disabled?: boolean;
+  title?: string;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState(() => String(Math.round(value)));
+  const skipCommit = useRef(false);
+  const inputId = `layout-field-${label.toLowerCase()}`;
+
+  useEffect(() => {
+    setDraft(String(Math.round(value)));
+  }, [value]);
+
+  const commit = () => {
+    if (disabled) return;
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    const parsed = Number(draft);
+    if (!Number.isFinite(parsed)) {
+      setDraft(String(Math.round(value)));
+      return;
+    }
+    if (parsed === Math.round(value)) return;
+    onCommit(parsed);
+  };
+
+  return (
+    <div className="cc-field">
+      <label htmlFor={inputId}>{label}</label>
+      <input
+        id={inputId}
+        className="cc-input"
+        type="number"
+        disabled={disabled}
+        title={title}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            (event.target as HTMLInputElement).blur();
+          }
+          if (event.key === "Escape") {
+            skipCommit.current = true;
+            setDraft(String(Math.round(value)));
+            (event.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    </div>
+  );
+}
