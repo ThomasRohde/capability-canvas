@@ -1,0 +1,125 @@
+.cc-app {
+  display: grid;
+  grid-template-rows: var(--cc-toolbar-height) 1fr var(--cc-statusbar-height);
+  height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+  background: var(--cc-slate-50);
+}
+
+.cc-workspace {
+  display: grid;
+  grid-template-columns: var(--cc-outline-width) minmax(0, 1fr) var(
+      --cc-inspector-width
+    );
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cc-editor-workspace {
+  grid-template-columns:
+    var(--cc-rail-width) var(--cc-outline-width) minmax(0, 1fr)
+    var(--cc-inspector-width);
+  grid-template-areas: "rail outline canvas inspector";
+}
+
+.cc-editor-workspace.outline-closed {
+  grid-template-columns: var(--cc-rail-width) 0 minmax(0, 1fr) var(
+      --cc-inspector-width
+    );
+}
+
+.cc-editor-workspace.inspector-closed {
+  grid-template-columns:
+    var(--cc-rail-width) var(--cc-outline-width) minmax(0, 1fr)
+    0;
+}
+
+.cc-editor-workspace.outline-closed.inspector-closed {
+  grid-template-columns: var(--cc-rail-width) 0 minmax(0, 1fr) 0;
+}
+
+.cc-editor-workspace > .cc-panel-rail {
+  grid-area: rail;
+}
+
+.cc-editor-workspace > .cc-outline {
+  grid-area: outline;
+}
+
+.cc-editor-workspace > .cc-canvas {
+  grid-area: canvas;
+}
+
+.cc-editor-workspace > .cc-inspector {
+  grid-area: inspector;
+}
+
+.cc-toolbar,
+.cc-status,
+.cc-outline,
+.cc-inspector,
+.cc-panel-rail {
+  background: var(--cc-white);
+}
+
+.cc-panel-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 5px;
+  border-right: 1px solid var(--cc-slate-200);
+}
+
+.cc-rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cc-slate-600);
+}
+
+.cc-rail-btn:hover {
+  background: var(--cc-slate-50);
+}
+
+.cc-rail-btn.active {
+  border-color: var(--cc-brand-100);
+  background: var(--cc-brand-50);
+  color: var(--cc-brand-700);
+}
+
+.cc-rail-btn svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.6;
+}
+
+.cc-rail-separator {
+  width: 22px;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--cc-slate-200);
+}
+
+.cc-outline-header,
+.cc-inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+}
+
+.cc-panel-title {
+  font-size: 16px;
+  font-weight: 600;
+}

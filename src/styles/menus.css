@@ -1,0 +1,331 @@
+.cc-context-menu {
+  position: absolute;
+  z-index: 45;
+  display: grid;
+  min-width: 136px;
+  padding: 4px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-context-menu button {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cc-slate-700);
+  font-size: 12px;
+  text-align: left;
+}
+
+.cc-context-menu button:hover {
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-900);
+}
+
+.cc-context-menu button.danger {
+  color: var(--cc-danger);
+}
+
+.cc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.cc-modal {
+  display: grid;
+  gap: 12px;
+  width: min(680px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  padding: 14px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18px;
+  padding: 1px 6px;
+  border: 1px solid var(--cc-slate-300);
+  border-radius: 4px;
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-600);
+  font-family: var(--cc-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cc-command-backdrop,
+.cc-shortcut-backdrop {
+  z-index: 95;
+}
+
+.cc-command-palette {
+  width: min(640px, calc(100vw - 32px));
+  gap: 8px;
+  padding: 10px;
+}
+
+.cc-command-search {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--cc-slate-300);
+  border-radius: 8px;
+  background: var(--cc-white);
+}
+
+.cc-command-search > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--cc-slate-500);
+}
+
+.cc-command-search input {
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  outline: 0;
+  color: var(--cc-slate-900);
+  font-size: 14px;
+}
+
+.cc-command-results {
+  display: grid;
+  gap: 3px;
+  max-height: min(420px, calc(100vh - 180px));
+  overflow: auto;
+  padding: 2px;
+}
+
+.cc-command-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--cc-slate-900);
+  cursor: pointer;
+}
+
+.cc-command-result.active {
+  background: var(--cc-brand-50);
+  box-shadow: inset 0 0 0 1px var(--cc-brand-100);
+}
+
+.cc-command-result.disabled {
+  color: var(--cc-slate-500);
+  cursor: default;
+}
+
+.cc-command-result.danger strong {
+  color: var(--cc-danger);
+}
+
+.cc-command-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cc-command-copy strong,
+.cc-command-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-command-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cc-command-copy span {
+  color: var(--cc-slate-500);
+  font-size: 12px;
+}
+
+.cc-command-empty {
+  padding: 20px 10px;
+  color: var(--cc-slate-500);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cc-shortcut-help {
+  width: min(1040px, calc(100vw - 32px));
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 16px 18px 18px;
+}
+
+.cc-shortcut-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px 28px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.cc-shortcut-section {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.cc-shortcut-section h2 {
+  margin: 0;
+  color: var(--cc-slate-900);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cc-shortcut-section dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.cc-shortcut-section dl > div {
+  display: grid;
+  grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+}
+
+.cc-shortcut-section dt,
+.cc-shortcut-section dd {
+  margin: 0;
+}
+
+.cc-shortcut-section dd {
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cc-confirm-dialog {
+  width: min(460px, calc(100vw - 40px));
+  gap: 14px;
+  padding: 18px;
+}
+
+.cc-confirm-body {
+  margin: 0;
+  color: var(--cc-slate-700);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cc-import-review-dialog {
+  width: min(760px, calc(100vw - 40px));
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.cc-import-review-source {
+  margin-top: 3px;
+  color: var(--cc-slate-500);
+  font-size: 12px;
+}
+
+.cc-import-review-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.cc-import-summary-item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-slate-50);
+}
+
+.cc-import-summary-item span {
+  color: var(--cc-slate-500);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cc-import-summary-item strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cc-slate-900);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-import-review-note {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--cc-brand-50);
+  color: var(--cc-brand-700);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cc-import-review-note.invalid {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.cc-import-review-diagnostics {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+}
+
+.cc-import-diagnostic-section {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--cc-slate-200);
+}
+
+.cc-import-diagnostic-section:last-child {
+  border-bottom: 0;
+}
+
+.cc-import-diagnostic-list {
+  padding: 0;
+}
+
+.cc-modal-head,
+.cc-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cc-modal-actions {
+  justify-content: flex-end;
+}

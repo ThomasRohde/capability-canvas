@@ -1,0 +1,40 @@
+.cc-viewer-workspace {
+  grid-template-columns: var(--cc-outline-width) minmax(0, 1fr) var(
+      --cc-inspector-width
+    );
+  grid-template-areas: "outline canvas inspector";
+}
+
+.cc-viewer-workspace.outline-closed {
+  grid-template-columns: 0 minmax(0, 1fr) var(--cc-inspector-width);
+}
+
+.cc-viewer-workspace.inspector-closed {
+  grid-template-columns: var(--cc-outline-width) minmax(0, 1fr) 0;
+}
+
+.cc-viewer-workspace.outline-closed.inspector-closed {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.cc-viewer-workspace > .cc-outline {
+  grid-area: outline;
+}
+
+.cc-viewer-workspace > .cc-canvas {
+  grid-area: canvas;
+}
+
+.cc-viewer-workspace > .cc-inspector {
+  grid-area: inspector;
+}
+
+.cc-readonly-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--cc-brand-100);
+  border-radius: 9999px;
+  background: var(--cc-brand-50);
+  color: var(--cc-brand-700);
+  font-size: 11px;
+  font-weight: 500;
+}

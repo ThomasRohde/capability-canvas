@@ -1,0 +1,145 @@
+.cc-inspector {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--cc-slate-200);
+}
+
+.cc-tabs {
+  display: flex;
+  gap: 18px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--cc-slate-200);
+}
+
+.cc-tab {
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--cc-slate-600);
+  font-size: 13px;
+}
+
+.cc-tab.on {
+  color: var(--cc-brand-700);
+  border-bottom-color: var(--cc-brand-600);
+  font-weight: 500;
+}
+
+.cc-inspector-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding: 14px 16px 18px;
+}
+
+.cc-field {
+  display: grid;
+  gap: 6px;
+}
+
+.cc-field label,
+.cc-section-title {
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cc-field > span {
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cc-field-error {
+  color: var(--cc-danger);
+  font-size: 12px;
+}
+
+.cc-file-label {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.cc-file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.cc-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cc-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cc-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid currentColor;
+}
+
+.cc-color-swatch.on {
+  box-shadow: 0 0 0 2px var(--cc-brand-700);
+}
+
+.cc-info-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cc-brand-100);
+  border-radius: 8px;
+  background: var(--cc-brand-50);
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cc-info-card.warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.cc-bulk-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--cc-slate-500);
+  font-size: 12px;
+}
+
+.cc-field-hint {
+  color: var(--cc-slate-500);
+  font-size: 12px;
+}
+
+.cc-meta-list {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 6px 12px;
+  font-size: 12px;
+}
+
+.cc-meta-list dt {
+  color: var(--cc-slate-600);
+}
+
+.cc-meta-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

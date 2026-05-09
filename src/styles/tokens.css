@@ -1,0 +1,44 @@
+:root {
+  --cc-brand-50: #f0fdfa;
+  --cc-brand-100: #ccfbf1;
+  --cc-brand-500: #14b8a6;
+  --cc-brand-600: #0d9488;
+  --cc-brand-700: #0f766e;
+  --cc-brand-700-hover: #0b5e57;
+  --cc-slate-950: #020617;
+  --cc-slate-900: #0f172a;
+  --cc-slate-700: #334155;
+  --cc-slate-600: #475569;
+  --cc-slate-500: #64748b;
+  --cc-slate-400: #94a3b8;
+  --cc-slate-300: #cbd5e1;
+  --cc-slate-200: #e2e8f0;
+  --cc-slate-100: #f1f5f9;
+  --cc-slate-50: #f8fafc;
+  --cc-white: #fff;
+  --cc-success: #10b981;
+  --cc-warning: #f59e0b;
+  --cc-danger: #ef4444;
+  --cc-toolbar-height: 52px;
+  --cc-statusbar-height: 32px;
+  --cc-rail-width: 44px;
+  --cc-outline-width: 260px;
+  --cc-inspector-width: 360px;
+  --cc-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --cc-shadow-sm:
+    0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --cc-shadow-md:
+    0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --cc-ring-focus: 0 0 0 3px rgba(20, 184, 166, 0.2);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: var(--cc-slate-900);
+  background: var(--cc-slate-50);
+  font-feature-settings: "cv11", "ss01";
+}
