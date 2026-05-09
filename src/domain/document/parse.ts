@@ -41,7 +41,16 @@ export function parseDocument(input: unknown): ParseResult {
   doc.layout = {
     ...DEFAULT_LAYOUT,
     ...parsed.data.layout,
-    boundingBox: { ...DEFAULT_LAYOUT.boundingBox, ...parsed.data.layout.boundingBox }
+    boundingBox: {
+      ...DEFAULT_LAYOUT.boundingBox,
+      ...parsed.data.layout.boundingBox,
+    },
+    aspectRatioFrame: parsed.data.layout.aspectRatioFrame
+      ? { ...parsed.data.layout.aspectRatioFrame }
+      : undefined,
+    aspectRatioTarget: parsed.data.layout.aspectRatioTarget
+      ? { ...parsed.data.layout.aspectRatioTarget }
+      : undefined,
   };
   doc.heatmap = { ...DEFAULT_HEATMAP, ...parsed.data.heatmap };
   doc.timestamp = parsed.data.timestamp;

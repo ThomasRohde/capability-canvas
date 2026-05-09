@@ -106,10 +106,7 @@ export function runTransaction(
     doc: materializeActiveViewMetadata({
       ...reconciled,
       timestamp: now(),
-      layout: {
-        ...reconciled.layout,
-        boundingBox: computeDocumentBounds(reconciled),
-      },
+      layout: layoutMetadataAfterCommand(reconciled),
     }),
     diagnostics,
   };
@@ -917,6 +914,8 @@ export function updateVisualNodeState(
         nextView.layout = {
           ...nextView.layout,
           boundingBox: computeDocumentBounds(resolveVisualDocument(next, viewId)),
+          aspectRatioFrame: undefined,
+          aspectRatioTarget: undefined,
         };
         nextView.updatedAt = now();
         return ok(materializeActiveViewMetadata(next));
@@ -986,6 +985,12 @@ export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
             ...baseline.layout,
             boundingBox: baseline.layout.boundingBox
               ? { ...baseline.layout.boundingBox }
+              : undefined,
+            aspectRatioFrame: baseline.layout.aspectRatioFrame
+              ? { ...baseline.layout.aspectRatioFrame }
+              : undefined,
+            aspectRatioTarget: baseline.layout.aspectRatioTarget
+              ? { ...baseline.layout.aspectRatioTarget }
               : undefined,
           },
           updatedAt: now(),
@@ -1961,6 +1966,24 @@ function canvasRemovalRelayoutScope(
   return [...parents];
 }
 
+function layoutMetadataAfterCommand(
+  doc: CapabilityDocument,
+): CapabilityDocument["layout"] {
+  const boundingBox = computeDocumentBounds(doc);
+  const keepFrame =
+    doc.layout.mode === "balanced" &&
+    !doc.layout.isUserArranged &&
+    sameBounds(doc.layout.boundingBox, boundingBox);
+  return {
+    ...doc.layout,
+    boundingBox,
+    aspectRatioFrame: keepFrame ? cloneBounds(doc.layout.aspectRatioFrame) : undefined,
+    aspectRatioTarget: keepFrame
+      ? cloneAspectRatioTarget(doc.layout.aspectRatioTarget)
+      : undefined,
+  };
+}
+
 function readCollapsedVisibility(
   state: VisualNodeState,
 ): Record<NodeId, boolean> | null {
@@ -1983,26 +2006,56 @@ function updateView(
     return fail(doc, "missing-view", "Select a valid view.");
   const next = cloneDocument(doc);
   const visual = cloneVisualWorkspace(next.visual);
+  const currentView = visual.viewsById[viewId]!;
+  const nextLayout = {
+    ...currentView.layout,
+    ...(patch.layout ?? {}),
+  };
+  if (nextLayout.mode !== "balanced" || nextLayout.isUserArranged) {
+    nextLayout.aspectRatioFrame = undefined;
+    nextLayout.aspectRatioTarget = undefined;
+  }
   visual.viewsById[viewId] = {
-    ...visual.viewsById[viewId]!,
+    ...currentView,
     ...patch,
-    nodeStatesById:
-      patch.nodeStatesById ?? visual.viewsById[viewId]!.nodeStatesById,
-    layout: {
-      ...visual.viewsById[viewId]!.layout,
-      ...(patch.layout ?? {}),
-    },
+    nodeStatesById: patch.nodeStatesById ?? currentView.nodeStatesById,
+    layout: nextLayout,
     heatmap: {
-      ...visual.viewsById[viewId]!.heatmap,
+      ...currentView.heatmap,
       ...(patch.heatmap ?? {}),
     },
     export: {
-      ...visual.viewsById[viewId]!.export,
+      ...currentView.export,
       ...(patch.export ?? {}),
     },
   };
   next.visual = visual;
   return ok(materializeActiveViewMetadata(next));
+}
+
+function cloneBounds<TBounds extends { x: number; y: number; w: number; h: number }>(
+  bounds: TBounds | undefined,
+): TBounds | undefined {
+  return bounds ? { ...bounds } : undefined;
+}
+
+function cloneAspectRatioTarget(
+  target: CapabilityDocument["layout"]["aspectRatioTarget"] | undefined,
+): CapabilityDocument["layout"]["aspectRatioTarget"] | undefined {
+  return target ? { ...target } : undefined;
+}
+
+function sameBounds(
+  left: { x: number; y: number; w: number; h: number } | undefined,
+  right: { x: number; y: number; w: number; h: number } | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.w === right.w &&
+    left.h === right.h
+  );
 }
 
 function mergeLayoutNodeStates(

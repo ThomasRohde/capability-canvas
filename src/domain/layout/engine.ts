@@ -13,11 +13,20 @@ import {
   isNodeOnCanvas,
   type CapabilityDocument,
   type CapabilityNode,
+  type LayoutAspectRatioTarget,
   type LayoutMode,
   type NodeId,
 } from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 import { info, warning } from "../validation/diagnostics";
+import {
+  expandBoundsToAspectRatioFrame,
+  hasInvalidConfiguredAspectRatio,
+  localContainerRatio,
+  ratioNumber,
+  resolveLayoutAspectRatio,
+} from "./aspectRatio";
+import { balancedRatioDpPackRows } from "./balancedRatio";
 import {
   snapLayoutCoordinate,
   snapLayoutDelta,
@@ -79,6 +88,10 @@ export async function layoutDocument(
 ): Promise<LayoutResult> {
   const doc = request.doc;
   const mode = request.mode ?? doc.layout.mode ?? doc.settings.layoutMode;
+  const aspectRatioTarget =
+    mode === "balanced"
+      ? resolveLayoutAspectRatio(doc, request.targetAspectRatio)
+      : null;
   const rootOffset = snapLayoutSpacing(doc, ROOT_OFFSET);
   const rootGapY = snapLayoutSpacing(doc, ROOT_GAP_Y);
   if (mode === "free") {
@@ -121,6 +134,14 @@ export async function layoutDocument(
         diagnostics: [],
       };
   diagnostics.push(...scope.diagnostics);
+  if (mode === "balanced" && hasInvalidConfiguredAspectRatio(doc)) {
+    diagnostics.push(
+      warning(
+        "invalid-layout-aspect-ratio",
+        "Balanced layout used 16:9 because the configured aspect ratio was invalid.",
+      ),
+    );
+  }
   const roots = scope.rootIds;
   if (roots.length === 0) {
     return {
@@ -139,7 +160,7 @@ export async function layoutDocument(
     };
   }
   const measuredRoots = await Promise.all(
-    roots.map((rootId) => measureSubtree(doc, rootId, mode)),
+    roots.map((rootId) => measureSubtree(doc, rootId, mode, aspectRatioTarget)),
   );
   for (const measured of measuredRoots)
     diagnostics.push(...measured.diagnostics);
@@ -168,13 +189,40 @@ export async function layoutDocument(
     doc,
     measuredRoots,
     mode,
+    aspectRatioTarget,
     rootOffset,
     rootGapY,
   );
   patches.push(...placedRoots.patches);
   diagnostics.push(...placedRoots.diagnostics);
 
-  return finishLayoutResult(request, mode, patches, diagnostics, measuredRoots);
+  const frame =
+    mode === "balanced" && aspectRatioTarget
+      ? expandBoundsToAspectRatioFrame(
+          doc,
+          computePatchedDocumentBounds(doc, patches),
+          aspectRatioTarget,
+          ROOT_OFFSET,
+        )
+      : undefined;
+  if (frame && aspectRatioTarget) {
+    diagnostics.push(
+      info(
+        "layout-aspect-ratio-frame",
+        `Balanced layout framed the document to ${aspectRatioTarget.w}:${aspectRatioTarget.h}.`,
+      ),
+    );
+  }
+
+  return finishLayoutResult(
+    request,
+    mode,
+    patches,
+    diagnostics,
+    measuredRoots,
+    frame,
+    frame ? aspectRatioTarget ?? undefined : undefined,
+  );
 }
 
 function normalizeScopedLayoutRoots(
@@ -244,6 +292,7 @@ async function placeMeasuredDocumentRoots(
   doc: CapabilityDocument,
   measuredRoots: MeasuredSubtree[],
   mode: LayoutMode,
+  aspectRatioTarget: LayoutAspectRatioTarget | null,
   rootOffset: number,
   rootGapY: number,
 ): Promise<{ patches: LayoutPatch[]; diagnostics: Diagnostic[] }> {
@@ -275,6 +324,7 @@ async function placeMeasuredDocumentRoots(
         snapLayoutSpacing(doc, doc.settings.childGapX),
         rootGapY,
         mode,
+        aspectRatioTarget,
         "document-roots",
         doc,
       );
@@ -311,6 +361,7 @@ async function placeMeasuredDocumentRoots(
     snapLayoutSpacing(doc, doc.settings.childGapX),
     rootGapY,
     mode,
+    aspectRatioTarget,
     "document-roots",
     doc,
   );
@@ -379,8 +430,45 @@ export function applyLayoutPatches(
       ...doc.layout,
       isUserArranged: false,
       boundingBox: bounds,
+      aspectRatioFrame: undefined,
+      aspectRatioTarget: undefined,
     },
     timestamp: Date.now(),
+  };
+}
+
+export function applyLayoutMetadata(
+  doc: CapabilityDocument,
+  result: LayoutResult,
+): CapabilityDocument {
+  const boundingBox = computeDocumentBounds(doc);
+  const aspectRatioFrame = result.aspectRatioTarget
+    ? expandBoundsToAspectRatioFrame(
+        doc,
+        boundingBox,
+        result.aspectRatioTarget,
+        ROOT_OFFSET,
+      )
+    : undefined;
+  const aspectRatioTarget = result.aspectRatioTarget
+    ? { ...result.aspectRatioTarget }
+    : undefined;
+  if (
+    sameBounds(doc.layout.boundingBox, boundingBox) &&
+    sameBounds(doc.layout.aspectRatioFrame, aspectRatioFrame) &&
+    sameAspectRatioTarget(doc.layout.aspectRatioTarget, aspectRatioTarget)
+  ) {
+    return doc;
+  }
+
+  return {
+    ...doc,
+    layout: {
+      ...doc.layout,
+      boundingBox,
+      aspectRatioFrame,
+      aspectRatioTarget,
+    },
   };
 }
 
@@ -492,10 +580,22 @@ export function computeDocumentBounds(doc: CapabilityDocument) {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
+function computePatchedDocumentBounds(
+  doc: CapabilityDocument,
+  patches: LayoutPatch[],
+) {
+  const patchById = new Map(patches.map((patch) => [patch.id, patch]));
+  const boxes = Object.values(doc.nodesById)
+    .filter(isNodeOnCanvas)
+    .map((node) => patchById.get(node.id) ?? node);
+  return boundsForBoxes(boxes) ?? { x: 0, y: 0, w: 0, h: 0 };
+}
+
 async function measureSubtree(
   doc: CapabilityDocument,
   nodeId: NodeId,
   mode: LayoutMode,
+  aspectRatioTarget: LayoutAspectRatioTarget | null,
   activePath = new Set<NodeId>(),
 ): Promise<MeasuredSubtree> {
   if (activePath.has(nodeId)) {
@@ -567,7 +667,7 @@ async function measureSubtree(
   const localMode = node.layoutPreferences?.mode ?? mode;
   const measuredChildren = await Promise.all(
     childIds.map((childId) =>
-      measureSubtree(doc, childId, localMode, nextPath),
+      measureSubtree(doc, childId, localMode, aspectRatioTarget, nextPath),
     ),
   );
   const diagnostics = measuredChildren.flatMap((child) => child.diagnostics);
@@ -581,6 +681,7 @@ async function measureSubtree(
       gapX,
       gapY,
       localMode,
+      aspectRatioTarget,
       diagnostics,
     );
   }
@@ -590,6 +691,7 @@ async function measureSubtree(
     gapX,
     gapY,
     localMode,
+    aspectRatioTarget,
     node.id,
     doc,
   );
@@ -753,6 +855,7 @@ async function measureAnchoredSubtree(
   gapX: number,
   gapY: number,
   mode: LayoutMode,
+  aspectRatioTarget: LayoutAspectRatioTarget | null,
   diagnostics: Diagnostic[],
 ): Promise<MeasuredSubtree> {
   const childPatches: LayoutPatch[] = [];
@@ -776,6 +879,7 @@ async function measureAnchoredSubtree(
       gapX,
       gapY,
       mode,
+      aspectRatioTarget,
       node.id,
       doc,
     );
@@ -885,6 +989,8 @@ function finishLayoutResult(
   patches: LayoutPatch[],
   diagnostics: Diagnostic[],
   measuredRoots: MeasuredSubtree[],
+  aspectRatioFrame?: LayoutResult["aspectRatioFrame"],
+  aspectRatioTarget?: LayoutResult["aspectRatioTarget"],
 ): LayoutResult {
   const stable = stablePatches(patches);
   if (measuredRoots.some((measured) => measured.blocked)) {
@@ -901,7 +1007,7 @@ function finishLayoutResult(
       layoutOutcomeMessage(request, mode, stable.length),
     ),
   );
-  return { patches: stable, diagnostics };
+  return { patches: stable, diagnostics, aspectRatioFrame, aspectRatioTarget };
 }
 
 function layoutOutcomeMessage(
@@ -923,6 +1029,7 @@ async function packBoxes(
   gapX: number,
   gapY: number,
   mode: LayoutMode,
+  aspectRatioTarget: LayoutAspectRatioTarget | null,
   scopeId: string,
   doc: CapabilityDocument,
 ): Promise<PackedBoxes> {
@@ -933,6 +1040,26 @@ async function packBoxes(
       boxes: [{ ...only, x: 0, y: 0 }],
       w: only.w,
       h: only.h,
+      diagnostics: [],
+    };
+  }
+
+  if (mode === "balanced") {
+    const targetRatio =
+      scopeId === "document-roots" && aspectRatioTarget
+        ? ratioNumber(aspectRatioTarget)
+        : localContainerRatio(aspectRatioTarget);
+    const packed = balancedRatioDpPackRows(
+      boxes,
+      gapX,
+      gapY,
+      targetRatio,
+      doc,
+    );
+    return {
+      boxes: packed.boxes,
+      w: packed.w,
+      h: packed.h,
       diagnostics: [],
     };
   }
@@ -1353,6 +1480,27 @@ function boundsForBoxes(
   const maxX = Math.max(...boxes.map((box) => box.x + box.w));
   const maxY = Math.max(...boxes.map((box) => box.y + box.h));
   return { x, y, w: maxX - x, h: maxY - y };
+}
+
+function sameBounds(
+  left: { x: number; y: number; w: number; h: number } | undefined,
+  right: { x: number; y: number; w: number; h: number } | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.w === right.w &&
+    left.h === right.h
+  );
+}
+
+function sameAspectRatioTarget(
+  left: LayoutAspectRatioTarget | undefined,
+  right: LayoutAspectRatioTarget | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return left.w === right.w && left.h === right.h;
 }
 
 function translatePatches(

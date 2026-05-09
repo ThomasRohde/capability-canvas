@@ -37,6 +37,7 @@ import {
 } from "../../domain/commands/operations";
 import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
 import { isNodeOnCanvas } from "../../domain/document/types";
+import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { buildBcmPrompt } from "../../domain/promptMerge/bcmPrompt";
 import {
   isPromptMergePayloadShape,
@@ -65,6 +66,7 @@ import { fitViewportToBounds } from "../canvas/viewport";
 export function Toolbar() {
   const doc = useDocumentStore((state) => state.doc);
   const viewDoc = resolveVisualDocument(doc);
+  const displayBounds = layoutDisplayBounds(viewDoc);
   const execute = useDocumentStore((state) => state.execute);
   const undo = useDocumentStore((state) => state.undo);
   const redo = useDocumentStore((state) => state.redo);
@@ -266,7 +268,7 @@ export function Toolbar() {
   const deleteSelectionFromModel = () => requestDeleteFromModel(selected);
 
   const fitViewport = () => {
-    const nextViewport = fitViewportToBounds(viewDoc.layout.boundingBox, canvasSize);
+    const nextViewport = fitViewportToBounds(displayBounds, canvasSize);
     if (!nextViewport) return;
     setViewport(nextViewport);
     setActiveViewViewport(nextViewport);
@@ -306,7 +308,7 @@ export function Toolbar() {
     selectedCanvasNodeIds,
     selectedNode,
     hasFitBounds:
-      viewDoc.layout.boundingBox.w > 0 && viewDoc.layout.boundingBox.h > 0,
+      displayBounds.w > 0 && displayBounds.h > 0,
     importBusy,
     isAutoLayoutRunning,
     canUndo: past.length > 0,

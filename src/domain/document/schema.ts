@@ -5,6 +5,20 @@ import { DOCUMENT_SCHEMA, DOCUMENT_VERSION } from "./types";
 const finiteNumber = z.number().finite();
 const positiveNumber = finiteNumber.positive();
 const spacingNumber = finiteNumber.nonnegative();
+const layoutModeSchema = z.enum([
+  "uniform",
+  "flow",
+  "adaptive",
+  "balanced",
+  "free",
+]);
+const layoutAspectRatioPresetSchema = z.enum([
+  "auto",
+  "16:9",
+  "4:3",
+  "1:1",
+  "custom",
+]);
 
 export const LayoutPreferencesSchema = z
   .object({
@@ -14,7 +28,7 @@ export const LayoutPreferencesSchema = z
     marginLeft: finiteNumber.optional(),
     gapX: finiteNumber.optional(),
     gapY: finiteNumber.optional(),
-    mode: z.enum(["uniform", "flow", "adaptive", "free"]).optional(),
+    mode: layoutModeSchema.optional(),
   })
   .passthrough();
 
@@ -118,21 +132,39 @@ export const SettingsSchema = z
     childGapY: spacingNumber.default(DEFAULT_SETTINGS.childGapY),
     fontFamily: z.string(),
     borderRadius: finiteNumber,
-    layoutMode: z.enum(["uniform", "flow", "adaptive", "free"]),
+    layoutMode: layoutModeSchema,
+    layoutAspectRatioPreset: layoutAspectRatioPresetSchema.default(
+      DEFAULT_SETTINGS.layoutAspectRatioPreset,
+    ),
+    customLayoutAspectRatioWidth: positiveNumber.default(
+      DEFAULT_SETTINGS.customLayoutAspectRatioWidth,
+    ),
+    customLayoutAspectRatioHeight: positiveNumber.default(
+      DEFAULT_SETTINGS.customLayoutAspectRatioHeight,
+    ),
   })
   .passthrough();
 
+const BoundsSchema = z.object({
+  x: finiteNumber,
+  y: finiteNumber,
+  w: finiteNumber,
+  h: finiteNumber,
+});
+
+const AspectRatioTargetSchema = z.object({
+  w: positiveNumber,
+  h: positiveNumber,
+});
+
 export const LayoutSchema = z
   .object({
-    mode: z.enum(["uniform", "flow", "adaptive", "free"]),
+    mode: layoutModeSchema,
     isUserArranged: z.boolean(),
     preservePositions: z.boolean(),
-    boundingBox: z.object({
-      x: finiteNumber,
-      y: finiteNumber,
-      w: finiteNumber,
-      h: finiteNumber,
-    }),
+    boundingBox: BoundsSchema,
+    aspectRatioFrame: BoundsSchema.optional(),
+    aspectRatioTarget: AspectRatioTargetSchema.optional(),
   })
   .passthrough();
 
@@ -191,12 +223,7 @@ export const VisualNodeStateSchema = z
   })
   .passthrough();
 
-const VisualBoundsSchema = z.object({
-  x: finiteNumber,
-  y: finiteNumber,
-  w: finiteNumber,
-  h: finiteNumber,
-});
+const VisualBoundsSchema = BoundsSchema;
 
 export const VisualViewSchema = z
   .object({
@@ -229,8 +256,10 @@ export const VisualViewSchema = z
       .optional(),
     layout: z
       .object({
-        mode: z.enum(["uniform", "flow", "adaptive", "free"]),
+        mode: layoutModeSchema,
         boundingBox: VisualBoundsSchema.optional(),
+        aspectRatioFrame: VisualBoundsSchema.optional(),
+        aspectRatioTarget: AspectRatioTargetSchema.optional(),
         isUserArranged: z.boolean().optional(),
         preservePositions: z.boolean(),
       })
@@ -277,7 +306,11 @@ export const VisualWorkspaceSchema = z
 export const WireDocumentSchema = z
   .object({
     schema: z.literal(DOCUMENT_SCHEMA),
-    version: z.union([z.literal("1.0"), z.literal(DOCUMENT_VERSION)]),
+    version: z.union([
+      z.literal("1.0"),
+      z.literal("1.1"),
+      z.literal(DOCUMENT_VERSION),
+    ]),
     nodes: z.array(NodeSchema),
     settings: SettingsSchema,
     layout: LayoutSchema,

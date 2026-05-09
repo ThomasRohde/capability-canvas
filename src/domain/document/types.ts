@@ -1,5 +1,5 @@
 export const DOCUMENT_SCHEMA = "capability-canvas.document";
-export const DOCUMENT_VERSION = "1.1";
+export const DOCUMENT_VERSION = "1.2";
 export const ROOT_PARENT_ID = "__root__";
 
 export type NodeId = string;
@@ -15,11 +15,22 @@ export type CapabilityColor =
   | "teal"
   | "slate"
   | "stone";
-export type LayoutMode = "uniform" | "flow" | "adaptive" | "free";
+export type LayoutMode = "uniform" | "flow" | "adaptive" | "balanced" | "free";
+export type LayoutAspectRatioPreset =
+  | "auto"
+  | "16:9"
+  | "4:3"
+  | "1:1"
+  | "custom";
 
 export interface Bounds {
   x: number;
   y: number;
+  w: number;
+  h: number;
+}
+
+export interface LayoutAspectRatioTarget {
   w: number;
   h: number;
 }
@@ -79,6 +90,9 @@ export interface DiagramSettings {
   fontFamily: string;
   borderRadius: number;
   layoutMode: LayoutMode;
+  layoutAspectRatioPreset: LayoutAspectRatioPreset;
+  customLayoutAspectRatioWidth: number;
+  customLayoutAspectRatioHeight: number;
 }
 
 export interface LayoutMetadata {
@@ -86,6 +100,8 @@ export interface LayoutMetadata {
   isUserArranged: boolean;
   preservePositions: boolean;
   boundingBox: Bounds;
+  aspectRatioFrame?: Bounds;
+  aspectRatioTarget?: LayoutAspectRatioTarget;
 }
 
 export interface HeatmapState {
@@ -142,6 +158,8 @@ export interface VisualView {
   layout: {
     mode: LayoutMode;
     boundingBox?: Bounds;
+    aspectRatioFrame?: Bounds;
+    aspectRatioTarget?: LayoutAspectRatioTarget;
     isUserArranged: boolean;
     preservePositions: boolean;
   };

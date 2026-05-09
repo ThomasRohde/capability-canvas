@@ -27,6 +27,7 @@ import {
 } from "../../domain/visual/workspace";
 import { attachViewBaseline } from "../../domain/visual/viewChanges";
 import {
+  applyLayoutMetadata,
   applyLayoutPatches,
   computeDocumentBounds,
   layoutDocument,
@@ -163,6 +164,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
               ...view.layout,
               boundingBox: view.layout.boundingBox
                 ? { ...view.layout.boundingBox }
+                : undefined,
+              aspectRatioFrame: view.layout.aspectRatioFrame
+                ? { ...view.layout.aspectRatioFrame }
+                : undefined,
+              aspectRatioTarget: view.layout.aspectRatioTarget
+                ? { ...view.layout.aspectRatioTarget }
                 : undefined,
             },
             heatmap: {
@@ -693,10 +700,11 @@ async function layoutAndRepair(
   });
   const laidOut = applyLayoutPatches(resolved, result.patches);
   const repaired = ensureParentContainment(laidOut);
+  const withMetadata = applyLayoutMetadata(repaired.doc, result);
   const nextDoc =
-    repaired.doc === resolved
+    withMetadata === resolved
       ? doc
-      : applyResolvedVisualDocument(doc, repaired.doc, viewId);
+      : applyResolvedVisualDocument(doc, withMetadata, viewId);
   return {
     doc: nextDoc,
     diagnostics:
@@ -719,11 +727,17 @@ function settingsLabel(patch: Partial<CapabilityDocument["settings"]>) {
 
 function ensureLayoutBounds(doc: CapabilityDocument): CapabilityDocument {
   const boundingBox = computeDocumentBounds(resolveVisualDocument(doc));
+  const keepFrame =
+    doc.layout.mode === "balanced" &&
+    !doc.layout.isUserArranged &&
+    sameBounds(doc.layout.boundingBox, boundingBox);
   if (
     doc.layout.boundingBox.x === boundingBox.x &&
     doc.layout.boundingBox.y === boundingBox.y &&
     doc.layout.boundingBox.w === boundingBox.w &&
-    doc.layout.boundingBox.h === boundingBox.h
+    doc.layout.boundingBox.h === boundingBox.h &&
+    (keepFrame ||
+      (!doc.layout.aspectRatioFrame && !doc.layout.aspectRatioTarget))
   )
     return doc;
   return {
@@ -731,8 +745,23 @@ function ensureLayoutBounds(doc: CapabilityDocument): CapabilityDocument {
     layout: {
       ...doc.layout,
       boundingBox,
+      aspectRatioFrame: keepFrame ? doc.layout.aspectRatioFrame : undefined,
+      aspectRatioTarget: keepFrame ? doc.layout.aspectRatioTarget : undefined,
     },
   };
+}
+
+function sameBounds(
+  left: { x: number; y: number; w: number; h: number } | undefined,
+  right: { x: number; y: number; w: number; h: number } | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.w === right.w &&
+    left.h === right.h
+  );
 }
 
 export function executeMany(

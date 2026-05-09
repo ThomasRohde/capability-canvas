@@ -17,7 +17,11 @@ import {
   updateDocumentTitle,
   updateHeatmapSettings,
 } from "../../domain/commands/operations";
-import type { CapabilityColor, LayoutMode } from "../../domain/document/types";
+import type {
+  CapabilityColor,
+  LayoutAspectRatioPreset,
+  LayoutMode,
+} from "../../domain/document/types";
 import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
 import {
   MAX_OUTLINE_WIDTH,
@@ -37,6 +41,11 @@ const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = 
     help: "Balances compact placement with parent containment.",
   },
   {
+    value: "balanced",
+    label: "Balanced",
+    help: "Creates calm, centered rows with export-ready framing.",
+  },
+  {
     value: "flow",
     label: "Flow",
     help: "Arranges capabilities in a left-to-right reading flow.",
@@ -51,6 +60,17 @@ const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = 
     label: "Freeform",
     help: "Preserves manual placement unless layout is forced.",
   },
+];
+
+const LAYOUT_ASPECT_RATIO_PRESETS: Array<{
+  value: LayoutAspectRatioPreset;
+  label: string;
+}> = [
+  { value: "auto", label: "Auto" },
+  { value: "16:9", label: "16:9" },
+  { value: "4:3", label: "4:3" },
+  { value: "1:1", label: "1:1" },
+  { value: "custom", label: "Custom" },
 ];
 
 const EXPORT_FORMATS: Array<{ value: ExportFormat; label: string }> = [
@@ -211,6 +231,65 @@ export function SettingsDrawer() {
               ))}
             </select>
           </SettingField>
+          <SettingField
+            id="layout-aspect-ratio"
+            label="Aspect ratio"
+            hint="Used by Balanced layout and export framing."
+          >
+            <select
+              id="layout-aspect-ratio"
+              className="cc-select"
+              value={doc.settings.layoutAspectRatioPreset}
+              disabled={isAutoLayoutRunning}
+              onChange={(event) =>
+                void updateSettings(
+                  {
+                    layoutAspectRatioPreset: event.target
+                      .value as LayoutAspectRatioPreset,
+                  },
+                  { autoLayout: doc.settings.layoutMode === "balanced" },
+                )
+              }
+            >
+              {LAYOUT_ASPECT_RATIO_PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </SettingField>
+          {doc.settings.layoutAspectRatioPreset === "custom" && (
+            <div className="cc-field-row">
+              <NumberSetting
+                id="layout-aspect-ratio-width"
+                label="Width ratio"
+                value={doc.settings.customLayoutAspectRatioWidth}
+                min={0.01}
+                step="any"
+                disabled={isAutoLayoutRunning}
+                onChange={(customLayoutAspectRatioWidth) =>
+                  void updateSettings(
+                    { customLayoutAspectRatioWidth },
+                    { autoLayout: doc.settings.layoutMode === "balanced" },
+                  )
+                }
+              />
+              <NumberSetting
+                id="layout-aspect-ratio-height"
+                label="Height ratio"
+                value={doc.settings.customLayoutAspectRatioHeight}
+                min={0.01}
+                step="any"
+                disabled={isAutoLayoutRunning}
+                onChange={(customLayoutAspectRatioHeight) =>
+                  void updateSettings(
+                    { customLayoutAspectRatioHeight },
+                    { autoLayout: doc.settings.layoutMode === "balanced" },
+                  )
+                }
+              />
+            </div>
+          )}
           <div className="cc-settings-warning">
             Layout changes may move unlocked nodes in the active view.
           </div>

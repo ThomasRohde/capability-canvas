@@ -1,4 +1,10 @@
-import type { Bounds, CapabilityDocument, LayoutMode, NodeId } from '../document/types';
+import type {
+  Bounds,
+  CapabilityDocument,
+  LayoutAspectRatioTarget,
+  LayoutMode,
+  NodeId,
+} from '../document/types';
 import type { Diagnostic } from '../validation/diagnostics';
 
 export interface LayoutRequest {
@@ -6,6 +12,7 @@ export interface LayoutRequest {
   mode?: LayoutMode;
   affectedNodeIds?: NodeId[];
   force?: boolean;
+  targetAspectRatio?: LayoutAspectRatioTarget;
 }
 
 export interface LayoutPatch extends Bounds {
@@ -15,5 +22,6 @@ export interface LayoutPatch extends Bounds {
 export interface LayoutResult {
   patches: LayoutPatch[];
   diagnostics: Diagnostic[];
+  aspectRatioFrame?: Bounds;
+  aspectRatioTarget?: LayoutAspectRatioTarget;
 }
-

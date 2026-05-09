@@ -27,7 +27,16 @@ export function cloneDocument(doc: CapabilityDocument): CapabilityDocument {
       Object.entries(doc.childrenByParentId).map(([id, children]) => [id, [...children]])
     ),
     settings: { ...doc.settings },
-    layout: { ...doc.layout, boundingBox: { ...doc.layout.boundingBox } },
+    layout: {
+      ...doc.layout,
+      boundingBox: { ...doc.layout.boundingBox },
+      aspectRatioFrame: doc.layout.aspectRatioFrame
+        ? { ...doc.layout.aspectRatioFrame }
+        : undefined,
+      aspectRatioTarget: doc.layout.aspectRatioTarget
+        ? { ...doc.layout.aspectRatioTarget }
+        : undefined,
+    },
     heatmap: { ...doc.heatmap },
     visual: cloneVisualWorkspace(doc.visual)
   };

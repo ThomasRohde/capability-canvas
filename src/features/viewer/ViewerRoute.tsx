@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { serializeDocument } from "../../domain/document/serialize";
 import type { VisualViewId, VisualViewport } from "../../domain/document/types";
+import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -50,6 +51,7 @@ export function ViewerRoute() {
     [doc, viewerActiveViewId, viewerHeatmapEnabledByViewId],
   );
   const viewDoc = useMemo(() => resolveVisualDocument(displayDoc), [displayDoc]);
+  const displayBounds = useMemo(() => layoutDisplayBounds(viewDoc), [viewDoc]);
   const workspaceStyle = {
     "--cc-outline-width": `${outlineWidth}px`,
   } as CSSProperties;
@@ -108,9 +110,9 @@ export function ViewerRoute() {
   );
 
   const fitViewerViewport = useCallback(() => {
-    const nextViewport = fitViewportToBounds(viewDoc.layout.boundingBox, canvasSize);
+    const nextViewport = fitViewportToBounds(displayBounds, canvasSize);
     if (nextViewport) commitViewerViewport(nextViewport);
-  }, [canvasSize, commitViewerViewport, viewDoc.layout.boundingBox]);
+  }, [canvasSize, commitViewerViewport, displayBounds]);
 
   const toggleViewerHeatmap = useCallback(() => {
     setViewerHeatmapEnabledByViewId((previous) => ({
@@ -137,8 +139,7 @@ export function ViewerRoute() {
   }, [doc, viewerActiveViewId]);
 
   const commandContext: ViewerCommandContext = {
-    hasFitBounds:
-      viewDoc.layout.boundingBox.w > 0 && viewDoc.layout.boundingBox.h > 0,
+    hasFitBounds: displayBounds.w > 0 && displayBounds.h > 0,
     actions: {
       fitView: fitViewerViewport,
       toggleHeatmap: toggleViewerHeatmap,

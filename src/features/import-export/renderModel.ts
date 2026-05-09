@@ -11,6 +11,7 @@ import {
   activeVisualView,
   resolveVisualDocument,
 } from '../../domain/visual/workspace';
+import { layoutDisplayBounds } from '../../domain/layout/displayBounds';
 import {
   heatmapPaletteStops,
   resolveNodeFill,
@@ -305,8 +306,9 @@ function legendBoundsForPosition(
 }
 
 function resolveDocumentBounds(doc: CapabilityDocument): Bounds {
-  if (isUsableBounds(doc.layout.boundingBox)) {
-    return { ...doc.layout.boundingBox };
+  const displayBounds = layoutDisplayBounds(doc);
+  if (isUsableBounds(displayBounds)) {
+    return { ...displayBounds };
   }
   return { x: 0, y: 0, w: 1200, h: 800 };
 }

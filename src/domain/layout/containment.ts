@@ -97,6 +97,8 @@ export function ensureParentContainment(
       layout: {
         ...next.layout,
         boundingBox: computeBounds(next),
+        aspectRatioFrame: undefined,
+        aspectRatioTarget: undefined,
       },
     },
     changedNodeIds,

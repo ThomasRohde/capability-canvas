@@ -186,6 +186,57 @@ describe("document store layout settings", () => {
     ).toEqual(before);
   });
 
+  it("stores balanced aspect-ratio frame metadata after auto layout", async () => {
+    await useDocumentStore
+      .getState()
+      .updateSettings({ layoutMode: "balanced" }, { autoLayout: true });
+
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+    const activeView = doc.visual.viewsById[doc.visual.activeViewId]!;
+
+    expect(doc.layout.aspectRatioFrame).toBeDefined();
+    expect(doc.layout.aspectRatioTarget).toEqual({ w: 16, h: 9 });
+    expect(activeView.layout.aspectRatioFrame).toBeDefined();
+    expect(activeView.layout.aspectRatioTarget).toEqual({ w: 16, h: 9 });
+  });
+
+  it("clears balanced frame metadata when manual movement marks layout user-arranged", async () => {
+    await useDocumentStore
+      .getState()
+      .updateSettings({ layoutMode: "balanced" }, { autoLayout: true });
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).layout
+        .aspectRatioFrame,
+    ).toBeDefined();
+
+    useDocumentStore.getState().execute(moveNodes(["servicing"], 8, 0));
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+
+    expect(doc.layout.isUserArranged).toBe(true);
+    expect(doc.layout.aspectRatioFrame).toBeUndefined();
+    expect(doc.layout.aspectRatioTarget).toBeUndefined();
+  });
+
+  it("parses old documents with default balanced aspect-ratio settings", () => {
+    const wire = serializeDocument(createSampleDocument());
+    const legacyWire = {
+      ...wire,
+      version: "1.1",
+      settings: {
+        ...wire.settings,
+        layoutAspectRatioPreset: undefined,
+        customLayoutAspectRatioWidth: undefined,
+        customLayoutAspectRatioHeight: undefined,
+      },
+    };
+
+    const parsed = parseDocument(legacyWire);
+
+    expect(parsed.doc?.settings.layoutAspectRatioPreset).toBe("16:9");
+    expect(parsed.doc?.settings.customLayoutAspectRatioWidth).toBe(16);
+    expect(parsed.doc?.settings.customLayoutAspectRatioHeight).toBe(9);
+  });
+
   it("undoes a bulk size edit in one step", () => {
     useDocumentStore.setState({
       doc: createSampleDocument(),

@@ -38,6 +38,9 @@ export const DEFAULT_SETTINGS = {
   fontFamily: "Inter",
   borderRadius: 8,
   layoutMode: "uniform" as const,
+  layoutAspectRatioPreset: "16:9" as const,
+  customLayoutAspectRatioWidth: 16,
+  customLayoutAspectRatioHeight: 9,
 };
 
 export const DEFAULT_LAYOUT = {

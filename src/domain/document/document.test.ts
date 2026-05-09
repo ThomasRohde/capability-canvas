@@ -13,7 +13,7 @@ import {
 } from "../commands/operations";
 import { createSampleDocument } from "../fixtures/sample";
 import { resolveVisualDocument } from "../visual/workspace";
-import { ROOT_PARENT_ID } from "./types";
+import { DOCUMENT_VERSION, ROOT_PARENT_ID } from "./types";
 
 describe("document JSON adapter", () => {
   it("round-trips sample documents through the wire format", () => {
@@ -439,7 +439,7 @@ describe("document JSON adapter", () => {
     const parsed = parseDocument(wire);
 
     expect(parsed.doc).not.toBeNull();
-    expect(parsed.doc!.version).toBe("1.1");
+    expect(parsed.doc!.version).toBe(DOCUMENT_VERSION);
     expect(parsed.doc!.visual.viewOrder).toHaveLength(1);
     const view = parsed.doc!.visual.viewsById[parsed.doc!.visual.activeViewId]!;
     expect(view.nodeStatesById["digital-onboarding"]).toMatchObject({

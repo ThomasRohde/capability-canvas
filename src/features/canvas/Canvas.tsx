@@ -58,6 +58,7 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { normalizeNodeLabel } from "../../domain/document/labels";
+import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { gridSizeFor, snapToGrid } from "../../domain/layout/grid";
 import {
   activeVisualView,
@@ -117,6 +118,7 @@ export function Canvas({
     (state) => state.setActiveViewViewport,
   );
   const viewDoc = useMemo(() => resolveVisualDocument(doc), [doc]);
+  const displayBounds = useMemo(() => layoutDisplayBounds(viewDoc), [viewDoc]);
   const activeView = useMemo(() => activeVisualView(doc), [doc]);
   const selected = useUiStore((state) => state.selectedNodeIds);
   const setSelection = useUiStore((state) => state.setSelection);
@@ -396,7 +398,7 @@ export function Canvas({
 
   const fitView = useCallback(() => {
     const nextViewport = fitViewportToBounds(
-      viewDoc.layout.boundingBox,
+      displayBounds,
       { w: size.w, h: size.h },
       {
         minZoom: MIN_ZOOM,
@@ -407,7 +409,7 @@ export function Canvas({
     if (!nextViewport) return;
     setViewport(nextViewport);
     commitViewport(nextViewport);
-  }, [commitViewport, setViewport, size.h, size.w, viewDoc.layout.boundingBox]);
+  }, [commitViewport, displayBounds, setViewport, size.h, size.w]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1156,7 +1158,7 @@ export function Canvas({
         />
       )}
       <Minimap
-        bounds={viewDoc.layout.boundingBox}
+        bounds={displayBounds}
         viewport={docViewport}
         nodes={viewModels.map((vm) => ({
           ...vm.bounds,

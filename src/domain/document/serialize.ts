@@ -8,7 +8,16 @@ export function serializeDocument(doc: CapabilityDocument): WireDocument {
     title: doc.title,
     nodes: sortedNodes(doc).map((node) => ({ ...node, metadata: { ...node.metadata } })),
     settings: { ...doc.settings },
-    layout: { ...doc.layout, boundingBox: { ...doc.layout.boundingBox } },
+    layout: {
+      ...doc.layout,
+      boundingBox: { ...doc.layout.boundingBox },
+      aspectRatioFrame: doc.layout.aspectRatioFrame
+        ? { ...doc.layout.aspectRatioFrame }
+        : undefined,
+      aspectRatioTarget: doc.layout.aspectRatioTarget
+        ? { ...doc.layout.aspectRatioTarget }
+        : undefined,
+    },
     heatmap: { ...doc.heatmap },
     visual: doc.visual,
     timestamp: doc.timestamp

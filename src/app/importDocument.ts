@@ -1,7 +1,11 @@
 import type { ParseResult } from "../domain/document/parse";
 import { hasCanvasNodes, type CapabilityDocument } from "../domain/document/types";
 import { ensureParentContainment } from "../domain/layout/containment";
-import { applyLayoutPatches, layoutDocument } from "../domain/layout/engine";
+import {
+  applyLayoutMetadata,
+  applyLayoutPatches,
+  layoutDocument,
+} from "../domain/layout/engine";
 import { warning, type Diagnostic } from "../domain/validation/diagnostics";
 import {
   applyResolvedVisualDocument,
@@ -46,10 +50,11 @@ async function prepareImportedDocument(
     });
     const laidOut = applyLayoutPatches(resolved, result.patches);
     const repaired = ensureParentContainment(laidOut);
+    const withMetadata = applyLayoutMetadata(repaired.doc, result);
     const nextDoc =
-      repaired.doc === resolved
+      withMetadata === resolved
         ? doc
-        : applyResolvedVisualDocument(doc, repaired.doc);
+        : applyResolvedVisualDocument(doc, withMetadata);
     return {
       doc: nextDoc,
       diagnostics:

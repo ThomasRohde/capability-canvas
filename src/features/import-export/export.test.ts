@@ -81,6 +81,26 @@ describe('exports', () => {
     expect(buildVisualExportModel(doc)).toMatchSnapshot();
   });
 
+  it('uses the balanced aspect-ratio frame as visual export bounds', () => {
+    const doc = createExportFixture();
+    const view = doc.visual.viewsById[doc.visual.activeViewId]!;
+    view.layout = {
+      ...view.layout,
+      mode: 'balanced',
+      isUserArranged: false,
+      boundingBox: { x: 0, y: 0, w: 260, h: 140 },
+      aspectRatioFrame: { x: -24, y: -40, w: 320, h: 180 },
+      aspectRatioTarget: { w: 16, h: 9 },
+    };
+
+    expect(buildVisualExportModel(doc).documentBounds).toEqual({
+      x: -24,
+      y: -40,
+      w: 320,
+      h: 180,
+    });
+  });
+
   it('resolves heatmap fills consistently', () => {
     const doc = createSampleDocument();
     doc.visual.viewsById[doc.visual.activeViewId]!.heatmap.enabled = true;

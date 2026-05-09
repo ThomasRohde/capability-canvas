@@ -20,12 +20,14 @@ import {
 import { evaluateAdaptiveLayoutQuality } from "./layoutQuality";
 
 describe("layout engine", () => {
-  it("does not patch locked nodes, even when force bypasses document position preservation", async () => {
+  it.each(["adaptive", "balanced"] as const)(
+    "does not patch locked nodes in %s layout, even when force bypasses document position preservation",
+    async (mode) => {
     const doc = runTransaction(
       createSampleDocument(),
       updateNode("risk", { isLockedAsIs: true }),
     ).doc;
-    const result = await layoutDocument({ doc, force: true, mode: "adaptive" });
+      const result = await layoutDocument({ doc, force: true, mode });
     expect(result.patches.find((patch) => patch.id === "risk")).toBeUndefined();
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
@@ -38,14 +40,17 @@ describe("layout engine", () => {
         severity: "info",
       }),
     );
-  });
+    },
+  );
 
-  it("preserves manual child positions under manual parents", async () => {
+  it.each(["adaptive", "balanced"] as const)(
+    "preserves manual child positions under manual parents in %s layout",
+    async (mode) => {
     const doc = runTransaction(
       createSampleDocument(),
       updateNode("risk", { isManualPositioningEnabled: true }),
     ).doc;
-    const result = await layoutDocument({ doc, force: true, mode: "adaptive" });
+      const result = await layoutDocument({ doc, force: true, mode });
     const after = applyLayoutPatches(doc, result.patches);
     expect(after.nodesById["credit-risk"]!.x - after.nodesById.risk!.x).toBe(
       doc.nodesById["credit-risk"]!.x - doc.nodesById.risk!.x,
@@ -60,9 +65,12 @@ describe("layout engine", () => {
         nodeId: "risk",
       }),
     );
-  });
+    },
+  );
 
-  it("does not scoped-layout inside a locked ancestor", async () => {
+  it.each(["adaptive", "balanced"] as const)(
+    "does not scoped-layout inside a locked ancestor in %s layout",
+    async (mode) => {
     const doc = runTransaction(
       createSampleDocument(),
       updateNode("risk", { isLockedAsIs: true }),
@@ -72,7 +80,7 @@ describe("layout engine", () => {
       doc,
       affectedNodeIds: ["credit-risk"],
       force: true,
-      mode: "adaptive",
+        mode,
     });
 
     expect(
@@ -85,9 +93,12 @@ describe("layout engine", () => {
         nodeId: "credit-risk",
       }),
     );
-  });
+    },
+  );
 
-  it("preserves descendants inside a manual ancestor during scoped layout", async () => {
+  it.each(["adaptive", "balanced"] as const)(
+    "preserves descendants inside a manual ancestor during scoped %s layout",
+    async (mode) => {
     const doc = runTransaction(
       createSampleDocument(),
       updateNode("risk", { isManualPositioningEnabled: true }),
@@ -101,7 +112,7 @@ describe("layout engine", () => {
       doc,
       affectedNodeIds: ["credit-risk"],
       force: true,
-      mode: "adaptive",
+        mode,
     });
     const after = applyLayoutPatches(doc, result.patches);
 
@@ -117,12 +128,15 @@ describe("layout engine", () => {
         nodeId: "risk",
       }),
     );
-  });
+    },
+  );
 
-  it("lays out full and scoped large fixtures within explicit budgets", async () => {
+  it.each(["adaptive", "balanced"] as const)(
+    "lays out full and scoped large fixtures within explicit budgets in %s mode",
+    async (mode) => {
     const doc = createThousandNodeDocument();
     const start = performance.now();
-    const result = await layoutDocument({ doc, force: true, mode: "adaptive" });
+      const result = await layoutDocument({ doc, force: true, mode });
     const elapsed = performance.now() - start;
     expect(result.patches.length).toBeGreaterThan(900);
     expect(elapsed).toBeLessThan(2500);
@@ -132,7 +146,7 @@ describe("layout engine", () => {
       doc,
       affectedNodeIds: ["root-0-parent-0"],
       force: true,
-      mode: "adaptive",
+        mode,
     });
     const scopedElapsed = performance.now() - scopedStart;
     const scopedPatchIds = scoped.patches.map((patch) => patch.id).sort();
@@ -141,25 +155,29 @@ describe("layout engine", () => {
     expect(scopedPatchIds).toContain("root-0-parent-8-leaf-9");
     expect(scopedPatchIds.some((id) => id.startsWith("root-1"))).toBe(false);
     expect(scopedElapsed).toBeLessThan(1000);
-  });
+    },
+  );
 
-  it("uses exact global padding and gap settings when grid snapping is disabled", async () => {
+  it.each(["uniform", "balanced"] as const)(
+    "uses exact global padding and gap settings when grid snapping is disabled in %s mode",
+    async (mode) => {
     const doc = twoChildDocument();
     doc.settings.gridEnabled = false;
     doc.settings.containerPaddingLeft = 48;
     doc.settings.containerPaddingTop = 40;
     doc.settings.childGapX = 24;
 
-    const result = await layoutDocument({ doc, force: true, mode: "uniform" });
+      const result = await layoutDocument({ doc, force: true, mode });
     expect(
       result.patches.find((patch) => patch.id === "child-a"),
     ).toMatchObject({ x: 72, y: 92 });
     expect(
       result.patches.find((patch) => patch.id === "child-b"),
     ).toMatchObject({ x: 271, y: 92 });
-  });
+    },
+  );
 
-  it.each(["uniform", "flow", "adaptive"] as const)(
+  it.each(["uniform", "flow", "adaptive", "balanced"] as const)(
     "snaps generated %s auto-layout geometry to the configured grid",
     async (mode) => {
       const doc = twoChildDocument();
@@ -189,7 +207,7 @@ describe("layout engine", () => {
     },
   );
 
-  it.each(["uniform", "adaptive"] as const)(
+  it.each(["uniform", "adaptive", "balanced"] as const)(
     "ignores hidden canvas nodes in %s layout patches and document bounds",
     async (mode) => {
       const doc = twoChildDocument();
@@ -211,6 +229,34 @@ describe("layout engine", () => {
       expect(bounds.y + bounds.h).toBeLessThan(1000);
     },
   );
+
+  it("returns exact-ratio frame metadata for full-document balanced layout", async () => {
+    const doc = nestedBrowserCase();
+    doc.settings.layoutMode = "balanced";
+    doc.settings.layoutAspectRatioPreset = "16:9";
+
+    const result = await layoutDocument({ doc, force: true, mode: "balanced" });
+
+    expect(result.aspectRatioFrame).toBeDefined();
+    expect(result.aspectRatioTarget).toEqual({ w: 16, h: 9 });
+    const frame = result.aspectRatioFrame!;
+    const ratioError = Math.abs(Math.log((frame.w / frame.h) / (16 / 9)));
+    expect(ratioError).toBeLessThan(0.02);
+  });
+
+  it("does not return frame metadata for scoped balanced layout", async () => {
+    const doc = twoRootScopedDocument();
+
+    const result = await layoutDocument({
+      doc,
+      affectedNodeIds: ["a-group"],
+      force: true,
+      mode: "balanced",
+    });
+
+    expect(result.aspectRatioFrame).toBeUndefined();
+    expect(result.aspectRatioTarget).toBeUndefined();
+  });
 
   it("snaps configured edge padding when grid is enabled", async () => {
     const doc = twoChildDocument();
@@ -394,7 +440,7 @@ describe("layout engine", () => {
     );
   });
 
-  it.each(["uniform", "flow", "adaptive"] as const)(
+  it.each(["uniform", "flow", "adaptive", "balanced"] as const)(
     "uses ELK packing for the nested browser scenario without containment violations or sibling overlaps in %s mode",
     async (mode) => {
       const doc = nestedBrowserCase();
@@ -406,7 +452,7 @@ describe("layout engine", () => {
     },
   );
 
-  it.each(["uniform", "flow", "adaptive"] as const)(
+  it.each(["uniform", "flow", "adaptive", "balanced"] as const)(
     "sizes parents from actual placed child rectangles in %s mode",
     async (mode) => {
       const doc = wideRootSiblingDocument();
@@ -514,7 +560,7 @@ describe("layout engine", () => {
     });
   });
 
-  it.each(["uniform", "flow", "adaptive"] as const)(
+  it.each(["uniform", "flow", "adaptive", "balanced"] as const)(
     "produces deterministic %s patches",
     async (mode) => {
       const doc = nestedBrowserCase();
@@ -524,7 +570,7 @@ describe("layout engine", () => {
     },
   );
 
-  it.each(["uniform", "flow", "adaptive"] as const)(
+  it.each(["uniform", "flow", "adaptive", "balanced"] as const)(
     "is idempotent after applying %s layout",
     async (mode) => {
       const doc = nestedBrowserCase();

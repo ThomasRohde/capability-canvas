@@ -85,6 +85,7 @@ export function createVisualViewFromDocument(
   },
 ): VisualView {
   const timestamp = options.timestamp ?? now();
+  const layoutMode = options.layoutMode ?? doc.layout.mode ?? doc.settings.layoutMode;
   const nodeStatesById: Record<NodeId, VisualNodeState> = {};
   for (const node of Object.values(doc.nodesById)) {
     nodeStatesById[node.id] = visualStateFromNode(node, {
@@ -105,8 +106,16 @@ export function createVisualViewFromDocument(
     nodeStatesById,
     viewport: { x: 0, y: 0, zoom: 1 },
     layout: {
-      mode: options.layoutMode ?? doc.layout.mode ?? doc.settings.layoutMode,
+      mode: layoutMode,
       boundingBox: computeVisualBounds(doc, nodeStatesById),
+      aspectRatioFrame:
+        layoutMode === "balanced" && !doc.layout.isUserArranged
+          ? cloneBounds(doc.layout.aspectRatioFrame)
+          : undefined,
+      aspectRatioTarget:
+        layoutMode === "balanced" && !doc.layout.isUserArranged
+          ? cloneAspectRatioTarget(doc.layout.aspectRatioTarget)
+          : undefined,
       isUserArranged: doc.layout.isUserArranged,
       preservePositions: doc.layout.preservePositions,
     },
@@ -166,6 +175,10 @@ export function normalizeVisualWorkspace(
       }
       nodeStatesById[nodeId] = cloneVisualNodeState(state);
     }
+    const layoutMode = rawView.layout?.mode ?? doc.layout.mode;
+    const layoutIsUserArranged =
+      rawView.layout?.isUserArranged ?? doc.layout.isUserArranged;
+    const useFrame = layoutMode === "balanced" && !layoutIsUserArranged;
 
     viewsById[viewId] = {
       ...rawView,
@@ -178,10 +191,15 @@ export function normalizeVisualWorkspace(
       viewport: cloneViewport(rawView.viewport),
       layout: {
         ...rawView.layout,
-        mode: rawView.layout?.mode ?? doc.layout.mode,
+        mode: layoutMode,
         boundingBox: cloneBounds(rawView.layout?.boundingBox),
-        isUserArranged:
-          rawView.layout?.isUserArranged ?? doc.layout.isUserArranged,
+        aspectRatioFrame: useFrame
+          ? cloneBounds(rawView.layout?.aspectRatioFrame)
+          : undefined,
+        aspectRatioTarget: useFrame
+          ? cloneAspectRatioTarget(rawView.layout?.aspectRatioTarget)
+          : undefined,
+        isUserArranged: layoutIsUserArranged,
         preservePositions:
           rawView.layout?.preservePositions ?? doc.layout.preservePositions,
       },
@@ -255,6 +273,8 @@ export function reconcileVisualWorkspaceWithNodes(
       view.layout = {
         ...view.layout,
         boundingBox: computeVisualBounds(after, view.nodeStatesById),
+        aspectRatioFrame: undefined,
+        aspectRatioTarget: undefined,
       };
     }
   }
@@ -267,12 +287,25 @@ export function reconcileVisualWorkspaceWithNodes(
       isUserArranged: after.layout.isUserArranged,
       preservePositions: after.layout.preservePositions,
       boundingBox: computeVisualBounds(after, activeView.nodeStatesById),
+      aspectRatioFrame:
+        after.layout.mode === "balanced" && !after.layout.isUserArranged
+          ? cloneBounds(after.layout.aspectRatioFrame)
+          : undefined,
+      aspectRatioTarget:
+        after.layout.mode === "balanced" && !after.layout.isUserArranged
+          ? cloneAspectRatioTarget(after.layout.aspectRatioTarget)
+          : undefined,
     };
     if (
       activeView.layout.mode !== nextLayout.mode ||
       activeView.layout.isUserArranged !== nextLayout.isUserArranged ||
       activeView.layout.preservePositions !== nextLayout.preservePositions ||
-      !sameBounds(activeView.layout.boundingBox, nextLayout.boundingBox)
+      !sameBounds(activeView.layout.boundingBox, nextLayout.boundingBox) ||
+      !sameBounds(activeView.layout.aspectRatioFrame, nextLayout.aspectRatioFrame) ||
+      !sameAspectRatioTarget(
+        activeView.layout.aspectRatioTarget,
+        nextLayout.aspectRatioTarget,
+      )
     ) {
       activeView.layout = nextLayout;
       activeView.updatedAt = now();
@@ -313,6 +346,8 @@ export function cloneVisualView(view: VisualView): VisualView {
     layout: {
       ...view.layout,
       boundingBox: cloneBounds(view.layout.boundingBox),
+      aspectRatioFrame: cloneBounds(view.layout.aspectRatioFrame),
+      aspectRatioTarget: cloneAspectRatioTarget(view.layout.aspectRatioTarget),
     },
     heatmap: {
       ...view.heatmap,
@@ -449,6 +484,14 @@ export function applyResolvedVisualDocument(
     isUserArranged: resolved.layout.isUserArranged,
     preservePositions: resolved.layout.preservePositions,
     boundingBox: cloneBounds(resolved.layout.boundingBox),
+    aspectRatioFrame:
+      resolved.layout.mode === "balanced" && !resolved.layout.isUserArranged
+        ? cloneBounds(resolved.layout.aspectRatioFrame)
+        : undefined,
+    aspectRatioTarget:
+      resolved.layout.mode === "balanced" && !resolved.layout.isUserArranged
+        ? cloneAspectRatioTarget(resolved.layout.aspectRatioTarget)
+        : undefined,
   };
   view.heatmap = {
     ...view.heatmap,
@@ -589,7 +632,23 @@ function resolveViewLayout(
     boundingBox: cloneBounds(view.layout.boundingBox) ?? {
       ...fallback.boundingBox,
     },
+    aspectRatioFrame: shouldUseViewFrame(fallback, view)
+      ? cloneBounds(view.layout.aspectRatioFrame)
+      : undefined,
+    aspectRatioTarget: shouldUseViewFrame(fallback, view)
+      ? cloneAspectRatioTarget(view.layout.aspectRatioTarget)
+      : undefined,
   };
+}
+
+function shouldUseViewFrame(
+  fallback: LayoutMetadata,
+  view: VisualView,
+): boolean {
+  return (
+    view.layout.mode === "balanced" &&
+    !(view.layout.isUserArranged ?? fallback.isUserArranged)
+  );
 }
 
 function resolveViewHeatmap(
@@ -667,6 +726,12 @@ function cloneBounds(bounds: Bounds | undefined): Bounds | undefined {
   return bounds ? { ...bounds } : undefined;
 }
 
+function cloneAspectRatioTarget(
+  target: VisualView["layout"]["aspectRatioTarget"] | undefined,
+): VisualView["layout"]["aspectRatioTarget"] | undefined {
+  return target ? { ...target } : undefined;
+}
+
 function sameBounds(
   left: Bounds | undefined,
   right: Bounds | undefined,
@@ -678,6 +743,14 @@ function sameBounds(
     left.w === right.w &&
     left.h === right.h
   );
+}
+
+function sameAspectRatioTarget(
+  left: VisualView["layout"]["aspectRatioTarget"] | undefined,
+  right: VisualView["layout"]["aspectRatioTarget"] | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return left.w === right.w && left.h === right.h;
 }
 
 function cloneViewport(
