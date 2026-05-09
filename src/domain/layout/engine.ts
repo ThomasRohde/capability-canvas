@@ -27,6 +27,7 @@ import {
   resolveLayoutAspectRatio,
 } from "./aspectRatio";
 import { balancedRatioDpPackRows } from "./balancedRatio";
+import { boundsForBoxes, boundsForCanvasNodes, emptyBounds } from "./bounds";
 import {
   snapLayoutCoordinate,
   snapLayoutDelta,
@@ -149,9 +150,7 @@ export async function layoutDocument(
       diagnostics: [
         ...diagnostics,
         info(
-          scopedRequest
-            ? "layout-scope-empty"
-            : "layout-document-empty",
+          scopedRequest ? "layout-scope-empty" : "layout-document-empty",
           scopedRequest
             ? "Auto layout skipped because no visible nodes matched the requested scope."
             : "Auto layout skipped because the document has no visible root capabilities.",
@@ -221,7 +220,7 @@ export async function layoutDocument(
     diagnostics,
     measuredRoots,
     frame,
-    frame ? aspectRatioTarget ?? undefined : undefined,
+    frame ? (aspectRatioTarget ?? undefined) : undefined,
   );
 }
 
@@ -544,8 +543,8 @@ function canvasAncestorsOf(
   doc: CapabilityDocument,
   nodeId: NodeId,
 ): CapabilityNode[] {
-  return collectAncestorIds(doc, nodeId, { canvasOnly: true }).ids
-    .map((ancestorId) => doc.nodesById[ancestorId])
+  return collectAncestorIds(doc, nodeId, { canvasOnly: true })
+    .ids.map((ancestorId) => doc.nodesById[ancestorId])
     .filter((ancestor): ancestor is CapabilityNode => !!ancestor);
 }
 
@@ -571,13 +570,7 @@ function isAncestorOf(
 }
 
 export function computeDocumentBounds(doc: CapabilityDocument) {
-  const nodes = Object.values(doc.nodesById).filter(isNodeOnCanvas);
-  if (nodes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
-  const minX = Math.min(...nodes.map((node) => node.x));
-  const minY = Math.min(...nodes.map((node) => node.y));
-  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  return boundsForCanvasNodes(doc);
 }
 
 function computePatchedDocumentBounds(
@@ -588,7 +581,7 @@ function computePatchedDocumentBounds(
   const boxes = Object.values(doc.nodesById)
     .filter(isNodeOnCanvas)
     .map((node) => patchById.get(node.id) ?? node);
-  return boundsForBoxes(boxes) ?? { x: 0, y: 0, w: 0, h: 0 };
+  return boundsForBoxes(boxes) ?? emptyBounds();
 }
 
 async function measureSubtree(
@@ -757,10 +750,7 @@ async function measureSubtree(
         ? childBounds.x + childBounds.w + margin.right
         : margin.left + packed.w + margin.right,
     ),
-    h: Math.max(
-      localMode === "flow" ? 1 : minSize.h,
-      contentHeight,
-    ),
+    h: Math.max(localMode === "flow" ? 1 : minSize.h, contentHeight),
   };
 
   return {
@@ -795,7 +785,9 @@ function uniformLeafGroupHeights(
   }
 
   for (const row of rows) {
-    const leafGroupBoxes = row.filter((box) => isLeafGroupContainer(doc, box.id));
+    const leafGroupBoxes = row.filter((box) =>
+      isLeafGroupContainer(doc, box.id),
+    );
     if (leafGroupBoxes.length < 2) continue;
     const rowHeight = Math.max(
       ...leafGroupBoxes.map((box) => measuredById.get(box.id)?.h ?? box.h),
@@ -957,8 +949,8 @@ function measureManualSubtree(
   collectCurrentSubtreePatches(doc, node.id, node.x, node.y, patches);
   const traversalDiagnostics = collectDescendantIds(doc, node.id, {
     canvasOnly: true,
-  }).issues
-    .filter((issue) => issue.code === "cycle")
+  })
+    .issues.filter((issue) => issue.code === "cycle")
     .map((issue) =>
       warning(
         "layout-cycle-skipped",
@@ -1049,13 +1041,7 @@ async function packBoxes(
       scopeId === "document-roots" && aspectRatioTarget
         ? ratioNumber(aspectRatioTarget)
         : localContainerRatio(aspectRatioTarget);
-    const packed = balancedRatioDpPackRows(
-      boxes,
-      gapX,
-      gapY,
-      targetRatio,
-      doc,
-    );
+    const packed = balancedRatioDpPackRows(boxes, gapX, gapY, targetRatio, doc);
     return {
       boxes: packed.boxes,
       w: packed.w,
@@ -1182,10 +1168,8 @@ function adaptiveRowCost(
   const rowWidths = rows.map((row) => rowWidth(row, gapX));
   const width = Math.max(...rowWidths);
   const height =
-    rows.reduce(
-      (sum, row) => sum + Math.max(...row.map((box) => box.h)),
-      0,
-    ) + Math.max(0, rows.length - 1) * gapY;
+    rows.reduce((sum, row) => sum + Math.max(...row.map((box) => box.h)), 0) +
+    Math.max(0, rows.length - 1) * gapY;
   const area = rows.flat().reduce((sum, box) => sum + box.w * box.h, 0);
   const efficiency = area / Math.max(1, width * height);
   const balancedWidths = rowWidthsForBalance(rows, rowWidths);
@@ -1193,7 +1177,8 @@ function adaptiveRowCost(
   const aspectRatio = width / Math.max(1, height);
   const targetAspect = 2.1;
   const aspectPenalty = Math.abs(Math.log(aspectRatio / targetAspect));
-  const targetPenalty = Math.abs(width - targetWidth) / Math.max(1, targetWidth);
+  const targetPenalty =
+    Math.abs(width - targetWidth) / Math.max(1, targetWidth);
   const singleChildRowPenalty = rows.reduce((sum, row, index) => {
     if (row.length !== 1 || rows.length === 1) return sum;
     return sum + (index === rows.length - 1 ? 0.08 : 0.2);
@@ -1224,8 +1209,7 @@ function coefficientOfVariation(values: number[]): number {
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
   if (mean === 0) return 0;
   const variance =
-    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
-    values.length;
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
   return Math.sqrt(variance) / mean;
 }
 
@@ -1400,12 +1384,10 @@ function nodeMargin(doc: CapabilityDocument, node: CapabilityNode) {
       doc,
       node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop,
     ),
-    right:
-      snapLayoutSpacing(
-        doc,
-        node.layoutPreferences?.marginRight ??
-          doc.settings.containerPaddingRight,
-      ),
+    right: snapLayoutSpacing(
+      doc,
+      node.layoutPreferences?.marginRight ?? doc.settings.containerPaddingRight,
+    ),
     bottom: snapLayoutSpacing(
       doc,
       node.layoutPreferences?.marginBottom ??
@@ -1463,23 +1445,7 @@ function boundsForIds(doc: CapabilityDocument, ids: NodeId[]) {
   const nodes = ids
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
-  if (nodes.length === 0) return null;
-  const x = Math.min(...nodes.map((node) => node.x));
-  const y = Math.min(...nodes.map((node) => node.y));
-  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
-  return { x, y, w: maxX - x, h: maxY - y };
-}
-
-function boundsForBoxes(
-  boxes: Array<{ x: number; y: number; w: number; h: number }>,
-) {
-  if (boxes.length === 0) return null;
-  const x = Math.min(...boxes.map((box) => box.x));
-  const y = Math.min(...boxes.map((box) => box.y));
-  const maxX = Math.max(...boxes.map((box) => box.x + box.w));
-  const maxY = Math.max(...boxes.map((box) => box.y + box.h));
-  return { x, y, w: maxX - x, h: maxY - y };
+  return boundsForBoxes(nodes);
 }
 
 function sameBounds(

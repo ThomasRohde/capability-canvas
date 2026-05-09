@@ -9,6 +9,7 @@ import {
   type CapabilityNode,
   type NodeId,
 } from "../document/types";
+import { boundsForBoxes, boundsForCanvasNodes } from "./bounds";
 
 export interface ContainmentResult {
   doc: CapabilityDocument;
@@ -96,7 +97,7 @@ export function ensureParentContainment(
       ...next,
       layout: {
         ...next.layout,
-        boundingBox: computeBounds(next),
+        boundingBox: boundsForCanvasNodes(next),
         aspectRatioFrame: undefined,
         aspectRatioTarget: undefined,
       },
@@ -133,20 +134,5 @@ function boundsForIds(doc: CapabilityDocument, ids: NodeId[]): Bounds | null {
   const nodes = ids
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
-  if (nodes.length === 0) return null;
-  const x = Math.min(...nodes.map((node) => node.x));
-  const y = Math.min(...nodes.map((node) => node.y));
-  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
-  return { x, y, w: maxX - x, h: maxY - y };
-}
-
-function computeBounds(doc: CapabilityDocument): Bounds {
-  const nodes = Object.values(doc.nodesById).filter(isNodeOnCanvas);
-  if (nodes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
-  const x = Math.min(...nodes.map((node) => node.x));
-  const y = Math.min(...nodes.map((node) => node.y));
-  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
-  return { x, y, w: maxX - x, h: maxY - y };
+  return boundsForBoxes(nodes);
 }

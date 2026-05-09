@@ -1,4 +1,4 @@
-import { sortedNodes } from '../../domain/document/normalize';
+import { sortedNodes } from "../../domain/document/normalize";
 import {
   isNodeOnCanvas,
   type Bounds,
@@ -6,17 +6,22 @@ import {
   type CapabilityNode,
   type LegendPosition,
   type VisualView,
-} from '../../domain/document/types';
+} from "../../domain/document/types";
 import {
   activeVisualView,
   resolveVisualDocument,
-} from '../../domain/visual/workspace';
-import { layoutDisplayBounds } from '../../domain/layout/displayBounds';
+} from "../../domain/visual/workspace";
+import {
+  boundsForBoxes,
+  expandBounds,
+  isUsableBounds,
+} from "../../domain/layout/bounds";
+import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import {
   heatmapPaletteStops,
   resolveNodeFill,
   type NodeFill,
-} from '../heatmap/resolveNodeFill';
+} from "../heatmap/resolveNodeFill";
 
 const EXPORT_PADDING = 48;
 const LEGEND_GAP = 24;
@@ -44,7 +49,7 @@ export interface VisualExportModel {
   surfaceBounds: Bounds;
   nodes: VisualExportNodeModel[];
   legend?: VisualExportLegendModel;
-  exportSettings: VisualView['export'];
+  exportSettings: VisualView["export"];
 }
 
 export interface VisualExportNodeModel {
@@ -70,7 +75,7 @@ export interface VisualExportLabelModel {
 
 export type VisualExportScoreModel =
   | {
-      kind: 'badge';
+      kind: "badge";
       value: string;
       bounds: Bounds;
       textX: number;
@@ -79,7 +84,7 @@ export type VisualExportScoreModel =
       fontWeight: number;
     }
   | {
-      kind: 'text';
+      kind: "text";
       value: string;
       x: number;
       y: number;
@@ -114,14 +119,15 @@ export function buildVisualExportModel(
     visualDoc.heatmap,
     activeView.heatmap,
   );
-  const contentBounds = unionBounds(
-    legend ? [documentBounds, legend.bounds] : [documentBounds],
-  );
+  const contentBounds =
+    boundsForBoxes(
+      legend ? [documentBounds, legend.bounds] : [documentBounds],
+    ) ?? documentBounds;
 
   return {
     title: visualDoc.title,
-    fontFamily: visualDoc.settings.fontFamily || 'Inter',
-    background: '#f1f5f9',
+    fontFamily: visualDoc.settings.fontFamily || "Inter",
+    background: "#f1f5f9",
     documentBounds,
     contentBounds,
     surfaceBounds: expandBounds(contentBounds, EXPORT_PADDING),
@@ -135,11 +141,13 @@ function buildNodeModel(
   doc: CapabilityDocument,
   node: CapabilityNode,
 ): VisualExportNodeModel {
-  const isContainer = node.type !== 'leaf' && !node.isTextLabel;
+  const isContainer = node.type !== "leaf" && !node.isTextLabel;
   const hasScore = doc.heatmap.enabled && node.heatmapValue !== undefined;
   const maxLines = resolveMaxLabelLines(node, isContainer, hasScore);
   const label = buildLabelModel(doc, node, isContainer, hasScore, maxLines);
-  const score = hasScore ? buildScoreModel(node, isContainer, label) : undefined;
+  const score = hasScore
+    ? buildScoreModel(node, isContainer, label)
+    : undefined;
 
   return {
     id: node.id,
@@ -190,7 +198,7 @@ function buildScoreModel(
   isContainer: boolean,
   label: VisualExportLabelModel,
 ): VisualExportScoreModel {
-  const value = node.heatmapValue?.toFixed(2) ?? '';
+  const value = node.heatmapValue?.toFixed(2) ?? "";
   if (isContainer) {
     const width = Math.max(28, value.length * 5.8 + 12);
     const bounds = {
@@ -200,7 +208,7 @@ function buildScoreModel(
       h: 16,
     };
     return {
-      kind: 'badge',
+      kind: "badge",
       value,
       bounds,
       textX: bounds.x + bounds.w / 2,
@@ -211,7 +219,7 @@ function buildScoreModel(
   }
 
   return {
-    kind: 'text',
+    kind: "text",
     value,
     x: node.x + node.w / 2,
     y:
@@ -226,19 +234,19 @@ function buildScoreModel(
 
 function buildLegendModel(
   documentBounds: Bounds,
-  heatmap: CapabilityDocument['heatmap'],
-  viewHeatmap: VisualView['heatmap'],
+  heatmap: CapabilityDocument["heatmap"],
+  viewHeatmap: VisualView["heatmap"],
 ): VisualExportLegendModel | undefined {
   if (!heatmap.enabled || !heatmap.showLegend) return undefined;
 
-  const position = viewHeatmap.legendPosition ?? 'bottom-left';
+  const position = viewHeatmap.legendPosition ?? "bottom-left";
   const bounds =
-    position === 'custom' && isUsableBounds(viewHeatmap.legendBounds)
+    position === "custom" && isUsableBounds(viewHeatmap.legendBounds)
       ? { ...viewHeatmap.legendBounds }
       : legendBoundsForPosition(documentBounds, position);
 
   return {
-    title: 'Heatmap',
+    title: "Heatmap",
     position,
     bounds,
     barBounds: {
@@ -250,8 +258,8 @@ function buildLegendModel(
     titleX: bounds.x + LEGEND_PADDING_X,
     titleY: bounds.y + LEGEND_TITLE_BASELINE,
     labelY: bounds.y + LEGEND_LABEL_BASELINE,
-    lowLabel: 'Low',
-    highLabel: 'High',
+    lowLabel: "Low",
+    highLabel: "High",
     stops: heatmapPaletteStops(heatmap.palette),
   };
 }
@@ -266,7 +274,10 @@ function resolveMaxLabelLines(
     ? LEAF_SCORE_FONT_SIZE + LEAF_SCORE_GAP + 4
     : 4;
   const availableHeight = Math.max(LEAF_LINE_HEIGHT, node.h - reservedForScore);
-  return Math.max(1, Math.min(3, Math.floor(availableHeight / LEAF_LINE_HEIGHT)));
+  return Math.max(
+    1,
+    Math.min(3, Math.floor(availableHeight / LEAF_LINE_HEIGHT)),
+  );
 }
 
 function leafLabelBaselineY(
@@ -292,14 +303,14 @@ function legendBoundsForPosition(
   const rightX = documentBounds.x + documentBounds.w - LEGEND_WIDTH;
 
   switch (position) {
-    case 'top-left':
+    case "top-left":
       return { x: leftX, y: topY, w: LEGEND_WIDTH, h: LEGEND_HEIGHT };
-    case 'top-right':
+    case "top-right":
       return { x: rightX, y: topY, w: LEGEND_WIDTH, h: LEGEND_HEIGHT };
-    case 'bottom-right':
+    case "bottom-right":
       return { x: rightX, y: bottomY, w: LEGEND_WIDTH, h: LEGEND_HEIGHT };
-    case 'custom':
-    case 'bottom-left':
+    case "custom":
+    case "bottom-left":
     default:
       return { x: leftX, y: bottomY, w: LEGEND_WIDTH, h: LEGEND_HEIGHT };
   }
@@ -313,55 +324,16 @@ function resolveDocumentBounds(doc: CapabilityDocument): Bounds {
   return { x: 0, y: 0, w: 1200, h: 800 };
 }
 
-function unionBounds(bounds: Bounds[]): Bounds {
-  const [first, ...rest] = bounds;
-  if (!first) return { x: 0, y: 0, w: 0, h: 0 };
-  let left = first.x;
-  let top = first.y;
-  let right = first.x + first.w;
-  let bottom = first.y + first.h;
-
-  for (const item of rest) {
-    left = Math.min(left, item.x);
-    top = Math.min(top, item.y);
-    right = Math.max(right, item.x + item.w);
-    bottom = Math.max(bottom, item.y + item.h);
-  }
-
-  return { x: left, y: top, w: right - left, h: bottom - top };
-}
-
-function expandBounds(bounds: Bounds, padding: number): Bounds {
-  return {
-    x: bounds.x - padding,
-    y: bounds.y - padding,
-    w: bounds.w + padding * 2,
-    h: bounds.h + padding * 2,
-  };
-}
-
-function isUsableBounds(bounds: Bounds | undefined): bounds is Bounds {
-  return (
-    !!bounds &&
-    Number.isFinite(bounds.x) &&
-    Number.isFinite(bounds.y) &&
-    Number.isFinite(bounds.w) &&
-    Number.isFinite(bounds.h) &&
-    bounds.w > 0 &&
-    bounds.h > 0
-  );
-}
-
 function wrapLabel(
   label: string,
   maxChars: number,
   maxLines: number,
 ): string[] {
   const words = label.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [''];
+  if (words.length === 0) return [""];
 
   const lines: string[] = [];
-  let current = '';
+  let current = "";
   let truncated = false;
 
   for (let index = 0; index < words.length; index += 1) {
@@ -398,7 +370,7 @@ function wrapLabel(
     lines[lastIndex] = appendEllipsis(lines[lastIndex]!, maxChars);
   }
 
-  return lines.length > 0 ? lines : [''];
+  return lines.length > 0 ? lines : [""];
 }
 
 function truncateLine(value: string, maxChars: number): string {
@@ -407,7 +379,7 @@ function truncateLine(value: string, maxChars: number): string {
 }
 
 function appendEllipsis(value: string, maxChars: number): string {
-  if (value.endsWith('...')) return value;
-  if (maxChars <= 3) return '.'.repeat(maxChars);
+  if (value.endsWith("...")) return value;
+  if (maxChars <= 3) return ".".repeat(maxChars);
   return `${value.slice(0, Math.max(1, maxChars - 3))}...`;
 }

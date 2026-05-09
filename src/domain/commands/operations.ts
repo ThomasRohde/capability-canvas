@@ -18,6 +18,7 @@ import {
   type VisualViewId,
 } from "../document/types";
 import { ensureParentContainment } from "../layout/containment";
+import { boundsForBoxes, rectanglesOverlap } from "../layout/bounds";
 import { computeDocumentBounds } from "../layout/engine";
 import { snapCoordinate, snapLayoutSpacing } from "../layout/grid";
 import type {
@@ -553,8 +554,7 @@ export function updateNodeSizes(
         if (
           (patch.w !== undefined &&
             (!Number.isFinite(patch.w) || patch.w <= 0)) ||
-          (patch.h !== undefined &&
-            (!Number.isFinite(patch.h) || patch.h <= 0))
+          (patch.h !== undefined && (!Number.isFinite(patch.h) || patch.h <= 0))
         ) {
           return fail(
             doc,
@@ -718,11 +718,13 @@ export function updateHeatmapSettings(
   ]);
 }
 
-export function createVisualView(args: {
-  name?: string;
-  templateId?: VisualTemplateId;
-  rootId?: NodeId;
-} = {}): Transaction {
+export function createVisualView(
+  args: {
+    name?: string;
+    templateId?: VisualTemplateId;
+    rootId?: NodeId;
+  } = {},
+): Transaction {
   const id = makeId("view");
   return transaction(
     "Create visual view",
@@ -746,7 +748,9 @@ export function createVisualView(args: {
         visual.viewOrder.push(id);
         visual.activeViewId = id;
         next.visual = visual;
-        return ok(attachViewBaseline(materializeActiveViewMetadata(next), id, "full"));
+        return ok(
+          attachViewBaseline(materializeActiveViewMetadata(next), id, "full"),
+        );
       }),
     ],
     {
@@ -763,7 +767,8 @@ export function duplicateVisualView(viewId?: VisualViewId): Transaction {
     command("duplicate-visual-view", { viewId }, (doc) => {
       const sourceId = viewId ?? doc.visual.activeViewId;
       const source = doc.visual.viewsById[sourceId];
-      if (!source) return fail(doc, "missing-view", "Select a valid view to duplicate.");
+      if (!source)
+        return fail(doc, "missing-view", "Select a valid view to duplicate.");
       const next = cloneDocument(doc);
       const visual = cloneVisualWorkspace(next.visual);
       const id = makeId("view");
@@ -785,7 +790,9 @@ export function duplicateVisualView(viewId?: VisualViewId): Transaction {
           : [...visual.viewOrder, id];
       visual.activeViewId = id;
       next.visual = visual;
-      return ok(attachViewBaseline(materializeActiveViewMetadata(next), id, "full"));
+      return ok(
+        attachViewBaseline(materializeActiveViewMetadata(next), id, "full"),
+      );
     }),
   ]);
 }
@@ -808,15 +815,21 @@ export function deleteVisualView(viewId: VisualViewId): Transaction {
   return transaction("Delete visual view", [
     command("delete-visual-view", { viewId }, (doc) => {
       if (doc.visual.viewOrder.length <= 1)
-        return fail(doc, "delete-last-view", "The last visual view cannot be deleted.");
+        return fail(
+          doc,
+          "delete-last-view",
+          "The last visual view cannot be deleted.",
+        );
       if (!doc.visual.viewsById[viewId])
         return fail(doc, "missing-view", "Select a valid view to delete.");
       const next = cloneDocument(doc);
       const visual = cloneVisualWorkspace(next.visual);
       delete visual.viewsById[viewId];
       visual.viewOrder = visual.viewOrder.filter((id) => id !== viewId);
-      if (visual.defaultViewId === viewId) visual.defaultViewId = visual.viewOrder[0]!;
-      if (visual.activeViewId === viewId) visual.activeViewId = visual.defaultViewId;
+      if (visual.defaultViewId === viewId)
+        visual.defaultViewId = visual.viewOrder[0]!;
+      if (visual.activeViewId === viewId)
+        visual.activeViewId = visual.defaultViewId;
       next.visual = visual;
       return ok(materializeActiveViewMetadata(next));
     }),
@@ -829,9 +842,16 @@ export function reorderVisualViews(viewOrder: VisualViewId[]): Transaction {
       const existing = new Set(doc.visual.viewOrder);
       const requested = viewOrder.filter((id) => existing.has(id));
       if (requested.length !== doc.visual.viewOrder.length)
-        return fail(doc, "invalid-view-order", "View order must include every view exactly once.");
+        return fail(
+          doc,
+          "invalid-view-order",
+          "View order must include every view exactly once.",
+        );
       const next = cloneDocument(doc);
-      next.visual = { ...cloneVisualWorkspace(next.visual), viewOrder: requested };
+      next.visual = {
+        ...cloneVisualWorkspace(next.visual),
+        viewOrder: requested,
+      };
       return ok(next);
     }),
   ]);
@@ -914,7 +934,9 @@ export function updateVisualNodeState(
         next.visual = visual;
         nextView.layout = {
           ...nextView.layout,
-          boundingBox: computeDocumentBounds(resolveVisualDocument(next, viewId)),
+          boundingBox: computeDocumentBounds(
+            resolveVisualDocument(next, viewId),
+          ),
           aspectRatioFrame: undefined,
           aspectRatioTarget: undefined,
         };
@@ -935,27 +957,37 @@ export function updateVisualNodeState(
 }
 
 export function resetVisualView(viewId: VisualViewId): Transaction {
-  return transaction("Reset visual view", [
-    command("reset-visual-view", { viewId }, (doc) => {
-      if (!doc.visual.viewsById[viewId])
-        return fail(doc, "missing-view", "Select a valid view.");
-      const next = cloneDocument(doc);
-      const visual = cloneVisualWorkspace(next.visual);
-      const previous = visual.viewsById[viewId]!;
-      visual.viewsById[viewId] = {
-        ...createVisualViewFromDocument(doc, {
-          id: viewId,
-          name: previous.name,
-          description: previous.description,
-          templateId: DEFAULT_VISUAL_TEMPLATE_ID,
-        }),
-        createdAt: previous.createdAt,
-        updatedAt: now(),
-      };
-      next.visual = visual;
-      return ok(attachViewBaseline(materializeActiveViewMetadata(next), viewId, "full"));
-    }),
-  ], { baseline: { viewId, mode: "full" } });
+  return transaction(
+    "Reset visual view",
+    [
+      command("reset-visual-view", { viewId }, (doc) => {
+        if (!doc.visual.viewsById[viewId])
+          return fail(doc, "missing-view", "Select a valid view.");
+        const next = cloneDocument(doc);
+        const visual = cloneVisualWorkspace(next.visual);
+        const previous = visual.viewsById[viewId]!;
+        visual.viewsById[viewId] = {
+          ...createVisualViewFromDocument(doc, {
+            id: viewId,
+            name: previous.name,
+            description: previous.description,
+            templateId: DEFAULT_VISUAL_TEMPLATE_ID,
+          }),
+          createdAt: previous.createdAt,
+          updatedAt: now(),
+        };
+        next.visual = visual;
+        return ok(
+          attachViewBaseline(
+            materializeActiveViewMetadata(next),
+            viewId,
+            "full",
+          ),
+        );
+      }),
+    ],
+    { baseline: { viewId, mode: "full" } },
+  );
 }
 
 export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
@@ -997,7 +1029,13 @@ export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
           updatedAt: now(),
         };
         next.visual = visual;
-        return ok(attachViewBaseline(materializeActiveViewMetadata(next), viewId, "layout"));
+        return ok(
+          attachViewBaseline(
+            materializeActiveViewMetadata(next),
+            viewId,
+            "layout",
+          ),
+        );
       }),
     ],
     {
@@ -1050,7 +1088,8 @@ export function resetVisualViewFromTemplate(
         { viewId, templateId, rootId },
         (doc) => {
           const existing = doc.visual.viewsById[viewId];
-          if (!existing) return fail(doc, "missing-view", "Select a valid view.");
+          if (!existing)
+            return fail(doc, "missing-view", "Select a valid view.");
           const contextRootId = rootId ?? existing.templateContext?.rootId;
           const next = cloneDocument(doc);
           const visual = cloneVisualWorkspace(next.visual);
@@ -1066,7 +1105,11 @@ export function resetVisualViewFromTemplate(
           };
           next.visual = visual;
           return ok(
-            attachViewBaseline(materializeActiveViewMetadata(next), viewId, "full"),
+            attachViewBaseline(
+              materializeActiveViewMetadata(next),
+              viewId,
+              "full",
+            ),
           );
         },
       ),
@@ -1084,7 +1127,10 @@ export function setDefaultVisualView(viewId: VisualViewId): Transaction {
       if (!doc.visual.viewsById[viewId])
         return fail(doc, "missing-view", "Select a valid view.");
       const next = cloneDocument(doc);
-      next.visual = { ...cloneVisualWorkspace(next.visual), defaultViewId: viewId };
+      next.visual = {
+        ...cloneVisualWorkspace(next.visual),
+        defaultViewId: viewId,
+      };
       return ok(next);
     }),
   ]);
@@ -1524,7 +1570,8 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
         ),
         left: snapLayoutSpacing(
           doc,
-          node.layoutPreferences?.marginLeft ?? doc.settings.containerPaddingLeft,
+          node.layoutPreferences?.marginLeft ??
+            doc.settings.containerPaddingLeft,
         ),
       };
       const x = bounds.x - margin.left;
@@ -1583,15 +1630,6 @@ export function repairSiblingOverlaps(parentId: NodeId): Transaction {
   ]);
 }
 
-function rectanglesOverlap(
-  a: { x: number; y: number; w: number; h: number },
-  b: { x: number; y: number; w: number; h: number },
-): boolean {
-  return (
-    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
-  );
-}
-
 export function lockSubtree(nodeId: NodeId, locked: boolean): Transaction {
   return transaction(locked ? "Lock subtree" : "Unlock subtree", [
     command("lock-subtree", { nodeId, locked }, (doc) => {
@@ -1610,10 +1648,7 @@ export function lockSubtree(nodeId: NodeId, locked: boolean): Transaction {
   ]);
 }
 
-export function lockSubtrees(
-  nodeIds: NodeId[],
-  locked: boolean,
-): Transaction {
+export function lockSubtrees(nodeIds: NodeId[], locked: boolean): Transaction {
   return transaction(
     locked ? "Preserve selected layouts" : "Stop preserving selected layouts",
     [
@@ -1907,7 +1942,10 @@ function stableCapabilityId(value: string): NodeId {
 }
 
 function normalizeCapabilityLabel(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
 }
 
 function canBulkEditNodes(doc: CapabilityDocument, nodeIds: NodeId[]) {
@@ -1978,7 +2016,9 @@ function layoutMetadataAfterCommand(
   return {
     ...doc.layout,
     boundingBox,
-    aspectRatioFrame: keepFrame ? cloneBounds(doc.layout.aspectRatioFrame) : undefined,
+    aspectRatioFrame: keepFrame
+      ? cloneBounds(doc.layout.aspectRatioFrame)
+      : undefined,
     aspectRatioTarget: keepFrame
       ? cloneAspectRatioTarget(doc.layout.aspectRatioTarget)
       : undefined,
@@ -1989,8 +2029,7 @@ function readCollapsedVisibility(
   state: VisualNodeState,
 ): Record<NodeId, boolean> | null {
   const value = state[COLLAPSED_VISIBILITY_KEY];
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const visibility: Record<NodeId, boolean> = {};
   for (const [nodeId, visible] of Object.entries(value)) {
     if (typeof visible === "boolean") visibility[nodeId] = visible;
@@ -2034,9 +2073,9 @@ function updateView(
   return ok(materializeActiveViewMetadata(next));
 }
 
-function cloneBounds<TBounds extends { x: number; y: number; w: number; h: number }>(
-  bounds: TBounds | undefined,
-): TBounds | undefined {
+function cloneBounds<
+  TBounds extends { x: number; y: number; w: number; h: number },
+>(bounds: TBounds | undefined): TBounds | undefined {
   return bounds ? { ...bounds } : undefined;
 }
 
@@ -2164,24 +2203,14 @@ function boundsForNodes(doc: CapabilityDocument, ids: NodeId[]) {
   const nodes = ids
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
-  if (nodes.length === 0) return null;
-  return boundsForNodeList(nodes);
+  return boundsForBoxes(nodes);
 }
 
 function boundsForNodesIncludingHidden(doc: CapabilityDocument, ids: NodeId[]) {
   const nodes = ids
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node);
-  if (nodes.length === 0) return null;
-  return boundsForNodeList(nodes);
-}
-
-function boundsForNodeList(nodes: CapabilityNode[]) {
-  const x = Math.min(...nodes.map((node) => node.x));
-  const y = Math.min(...nodes.map((node) => node.y));
-  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
-  return { x, y, w: maxX - x, h: maxY - y };
+  return boundsForBoxes(nodes);
 }
 
 export function deriveNodeType(

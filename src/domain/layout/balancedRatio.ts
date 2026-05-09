@@ -1,4 +1,5 @@
 import type { CapabilityDocument, NodeId } from "../document/types";
+import { boundsForBoxes } from "./bounds";
 import { snapLayoutDelta, snapLayoutSize } from "./grid";
 
 export interface BalancedInputBox {
@@ -148,7 +149,9 @@ export function candidateTargetWidths(
     .map((target) => snapLayoutSize(doc, target))
     .filter((target) => target >= minTarget && target <= maxTarget)
     .sort((a, b) => a - b)
-    .filter((target, index, sorted) => index === 0 || target !== sorted[index - 1]);
+    .filter(
+      (target, index, sorted) => index === 0 || target !== sorted[index - 1],
+    );
 
   return downsampleCandidateWidths(snapped, 24, areaTarget);
 }
@@ -194,7 +197,10 @@ function partitionRowsForTarget(
     }
   }
 
-  if (!Number.isFinite(dp[n]!.cost)) return [{ start: 0, end: n, w: rowWidth(boxes, gapX), h: rowHeight(boxes) }];
+  if (!Number.isFinite(dp[n]!.cost))
+    return [
+      { start: 0, end: n, w: rowWidth(boxes, gapX), h: rowHeight(boxes) },
+    ];
   const rows: RowSlice[] = [];
   for (let cursor = n; cursor > 0; ) {
     const cell = dp[cursor]!;
@@ -230,7 +236,8 @@ function placeRows(
   gapY: number,
   doc: CapabilityDocument,
 ): Pick<BalancedPackResult, "boxes" | "rows" | "w" | "h"> {
-  const layoutWidth = rows.length > 0 ? Math.max(...rows.map((row) => row.w)) : 0;
+  const layoutWidth =
+    rows.length > 0 ? Math.max(...rows.map((row) => row.w)) : 0;
   const packedRows: BalancedPackedBox[][] = [];
   const packed: BalancedPackedBox[] = [];
   let cursorY = 0;
@@ -254,7 +261,9 @@ function placeRows(
     boxes: packed,
     rows: packedRows,
     w: Math.max(layoutWidth, bounds ? bounds.x + bounds.w : 0),
-    h: rows.reduce((sum, row) => sum + row.h, 0) + Math.max(0, rows.length - 1) * gapY,
+    h:
+      rows.reduce((sum, row) => sum + row.h, 0) +
+      Math.max(0, rows.length - 1) * gapY,
   };
 }
 
@@ -318,7 +327,9 @@ function compareBalancedCandidates(
     return candidate.metrics.raggedness - current.metrics.raggedness;
   }
   if (candidate.metrics.adjacentRowDelta !== current.metrics.adjacentRowDelta) {
-    return candidate.metrics.adjacentRowDelta - current.metrics.adjacentRowDelta;
+    return (
+      candidate.metrics.adjacentRowDelta - current.metrics.adjacentRowDelta
+    );
   }
 
   const candidateArea = candidate.w * candidate.h;
@@ -337,7 +348,12 @@ function fallbackSingleRowPack(
   targetRatio: number,
   doc: CapabilityDocument,
 ): BalancedPackResult {
-  const row = { start: 0, end: boxes.length, w: rowWidth(boxes, gapX), h: rowHeight(boxes) };
+  const row = {
+    start: 0,
+    end: boxes.length,
+    w: rowWidth(boxes, gapX),
+    h: rowHeight(boxes),
+  };
   const placed = placeRows(boxes, [row], gapX, gapY, doc);
   return {
     ...placed,
@@ -396,7 +412,9 @@ function downsampleCandidateWidths(
   keep.add(areaIndex);
 
   for (let slot = 0; keep.size < limit && slot < limit; slot += 1) {
-    const index = Math.round((slot * (sorted.length - 1)) / Math.max(1, limit - 1));
+    const index = Math.round(
+      (slot * (sorted.length - 1)) / Math.max(1, limit - 1),
+    );
     keep.add(index);
   }
 
@@ -407,7 +425,9 @@ function downsampleCandidateWidths(
   return [...keep]
     .sort((a, b) => a - b)
     .map((index) => sorted[index]!)
-    .filter((target, index, values) => index === 0 || target !== values[index - 1]);
+    .filter(
+      (target, index, values) => index === 0 || target !== values[index - 1],
+    );
 }
 
 function widthBetween(
@@ -448,7 +468,9 @@ function rowWidthsForBalance(
   const previousMaxLength = Math.max(
     ...rows.slice(0, -1).map((row) => row.length),
   );
-  return finalRow.length < previousMaxLength ? rowWidths.slice(0, -1) : rowWidths;
+  return finalRow.length < previousMaxLength
+    ? rowWidths.slice(0, -1)
+    : rowWidths;
 }
 
 function meanAdjacentDelta(rowWidths: number[], width: number): number {
@@ -483,22 +505,13 @@ function coefficientOfVariation(values: number[]): number {
   if (values.length <= 1) return 0;
   const average = mean(values);
   if (average === 0) return 0;
-  return Math.sqrt(mean(values.map((value) => (value - average) ** 2))) / average;
+  return (
+    Math.sqrt(mean(values.map((value) => (value - average) ** 2))) / average
+  );
 }
 
 function mean(values: number[]): number {
   return values.length === 0
     ? 0
     : values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function boundsForBoxes(
-  boxes: Array<{ x: number; y: number; w: number; h: number }>,
-) {
-  if (boxes.length === 0) return null;
-  const x = Math.min(...boxes.map((box) => box.x));
-  const y = Math.min(...boxes.map((box) => box.y));
-  const maxX = Math.max(...boxes.map((box) => box.x + box.w));
-  const maxY = Math.max(...boxes.map((box) => box.y + box.h));
-  return { x, y, w: maxX - x, h: maxY - y };
 }

@@ -16,6 +16,7 @@ import {
   type VisualViewport,
   type VisualWorkspace,
 } from "../document/types";
+import { boundsForBoxes, emptyBounds } from "../layout/bounds";
 
 export const DEFAULT_VIEW_ID = "view-default";
 
@@ -85,7 +86,8 @@ export function createVisualViewFromDocument(
   },
 ): VisualView {
   const timestamp = options.timestamp ?? now();
-  const layoutMode = options.layoutMode ?? doc.layout.mode ?? doc.settings.layoutMode;
+  const layoutMode =
+    options.layoutMode ?? doc.layout.mode ?? doc.settings.layoutMode;
   const nodeStatesById: Record<NodeId, VisualNodeState> = {};
   for (const node of Object.values(doc.nodesById)) {
     nodeStatesById[node.id] = visualStateFromNode(node, {
@@ -223,12 +225,14 @@ export function normalizeVisualWorkspace(
     return { visual: fallback, diagnostics };
   }
 
-  const activeViewId = visual.activeViewId && viewsById[visual.activeViewId]
-    ? visual.activeViewId
-    : firstViewId;
-  const defaultViewId = visual.defaultViewId && viewsById[visual.defaultViewId]
-    ? visual.defaultViewId
-    : activeViewId;
+  const activeViewId =
+    visual.activeViewId && viewsById[visual.activeViewId]
+      ? visual.activeViewId
+      : firstViewId;
+  const defaultViewId =
+    visual.defaultViewId && viewsById[visual.defaultViewId]
+      ? visual.defaultViewId
+      : activeViewId;
 
   return {
     visual: {
@@ -301,7 +305,10 @@ export function reconcileVisualWorkspaceWithNodes(
       activeView.layout.isUserArranged !== nextLayout.isUserArranged ||
       activeView.layout.preservePositions !== nextLayout.preservePositions ||
       !sameBounds(activeView.layout.boundingBox, nextLayout.boundingBox) ||
-      !sameBounds(activeView.layout.aspectRatioFrame, nextLayout.aspectRatioFrame) ||
+      !sameBounds(
+        activeView.layout.aspectRatioFrame,
+        nextLayout.aspectRatioFrame,
+      ) ||
       !sameAspectRatioTarget(
         activeView.layout.aspectRatioTarget,
         nextLayout.aspectRatioTarget,
@@ -316,9 +323,7 @@ export function reconcileVisualWorkspaceWithNodes(
   return changed ? materializeActiveViewMetadata({ ...after, visual }) : after;
 }
 
-export function cloneVisualWorkspace(
-  visual: VisualWorkspace,
-): VisualWorkspace {
+export function cloneVisualWorkspace(visual: VisualWorkspace): VisualWorkspace {
   return {
     ...visual,
     viewOrder: [...visual.viewOrder],
@@ -357,9 +362,7 @@ export function cloneVisualView(view: VisualView): VisualView {
   };
 }
 
-export function cloneVisualNodeState(
-  state: VisualNodeState,
-): VisualNodeState {
+export function cloneVisualNodeState(state: VisualNodeState): VisualNodeState {
   return {
     ...state,
     textStyleOverride:
@@ -570,12 +573,7 @@ export function computeVisualBounds(
       h: state?.h ?? node.h,
     });
   }
-  if (boxes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
-  const x = Math.min(...boxes.map((box) => box.x));
-  const y = Math.min(...boxes.map((box) => box.y));
-  const maxX = Math.max(...boxes.map((box) => box.x + box.w));
-  const maxY = Math.max(...boxes.map((box) => box.y + box.h));
-  return { x, y, w: maxX - x, h: maxY - y };
+  return boundsForBoxes(boxes) ?? emptyBounds();
 }
 
 function resolveVisualNode(
@@ -711,9 +709,7 @@ function finiteOrNow(value: unknown): number {
 }
 
 function numberOr(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : fallback;
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
 function positiveOr(value: unknown, fallback: number): number {

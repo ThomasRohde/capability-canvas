@@ -6,6 +6,7 @@ import {
   type CapabilityNode,
   type NodeId,
 } from "../document/types";
+import { boundsForBoxes, rectanglesOverlap } from "./bounds";
 import { gridSizeFor, snapLengthUpToGrid } from "./grid";
 
 const ROW_ALIGNMENT_TOLERANCE = 1;
@@ -214,7 +215,9 @@ function metricViolations(
     });
   }
 
-  if (metrics.contentPaddingDifference > metrics.contentPaddingDifferenceLimit) {
+  if (
+    metrics.contentPaddingDifference > metrics.contentPaddingDifferenceLimit
+  ) {
     violations.push({
       code: "content-centering",
       parentId: metrics.parentId,
@@ -518,19 +521,17 @@ function effectiveLayoutSize(doc: CapabilityDocument, value: number): number {
   return Math.max(1, snapLengthUpToGrid(rounded, gridSizeFor(doc)));
 }
 
-function effectiveLayoutSpacing(doc: CapabilityDocument, value: number): number {
+function effectiveLayoutSpacing(
+  doc: CapabilityDocument,
+  value: number,
+): number {
   const rounded = Math.round(value);
   if (!doc.settings.gridEnabled) return Math.max(0, rounded);
   return snapLengthUpToGrid(rounded, gridSizeFor(doc));
 }
 
 function boundsForNodes(nodes: CapabilityNode[]): Bounds | null {
-  if (nodes.length === 0) return null;
-  const x = Math.min(...nodes.map((node) => node.x));
-  const y = Math.min(...nodes.map((node) => node.y));
-  const maxX = Math.max(...nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...nodes.map((node) => node.y + node.h));
-  return { x, y, w: maxX - x, h: maxY - y };
+  return boundsForBoxes(nodes);
 }
 
 function totalArea(nodes: CapabilityNode[]): number {
@@ -553,32 +554,19 @@ function coefficientOfVariation(values: number[]): number {
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
   if (mean === 0) return 0;
   const variance =
-    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
-    values.length;
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
   return Math.sqrt(variance) / mean;
 }
 
 function percentile(values: number[], percentileValue: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.max(
-    0,
-    Math.ceil(sorted.length * percentileValue) - 1,
-  );
+  const index = Math.max(0, Math.ceil(sorted.length * percentileValue) - 1);
   return sorted[Math.min(index, sorted.length - 1)]!;
 }
 
 function max(values: number[]): number {
   return values.length === 0 ? 0 : Math.max(...values);
-}
-
-function rectanglesOverlap(left: Bounds, right: Bounds): boolean {
-  return (
-    left.x < right.x + right.w &&
-    left.x + left.w > right.x &&
-    left.y < right.y + right.h &&
-    left.y + left.h > right.y
-  );
 }
 
 function clamp(value: number, min: number, maxValue: number): number {
