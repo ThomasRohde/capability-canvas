@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import { forwardRef, type ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
 
 interface IconButtonProps {
@@ -11,9 +11,14 @@ interface IconButtonProps {
   tooltip?: string;
 }
 
-export function IconButton({ icon: Icon, label, onClick, active, disabled, className, tooltip }: IconButtonProps) {
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton(
+    { icon: Icon, label, onClick, active, disabled, className, tooltip },
+    ref,
+  ) {
   return (
     <button
+      ref={ref}
       type="button"
       className={`cc-icon-btn ${active ? 'active' : ''} ${className ?? ''}`}
       aria-label={label}
@@ -25,4 +30,5 @@ export function IconButton({ icon: Icon, label, onClick, active, disabled, class
       <Icon aria-hidden="true" />
     </button>
   );
-}
+  },
+);

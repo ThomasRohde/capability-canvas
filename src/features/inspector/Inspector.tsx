@@ -200,6 +200,7 @@ function BulkColorEditor({
             key={color}
             type="button"
             aria-label={`Set selected color ${color}`}
+            aria-pressed={activeColor === color}
             className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
             style={{
               color: CATEGORY_STYLES[color].border,
@@ -638,6 +639,7 @@ function ColorEditor({
             key={color}
             type="button"
             aria-label={`Set color ${color}`}
+            aria-pressed={activeColor === color}
             className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
             style={{
               color: CATEGORY_STYLES[color].border,

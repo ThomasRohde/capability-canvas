@@ -9,6 +9,7 @@ import type { VisualViewId } from "../../domain/document/types";
 import { summarizeVisualView } from "../../domain/visual/viewSummary";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { useMenuKeyboardNavigation } from "../shared/a11y";
 
 interface ViewSwitcherProps {
   readonly?: boolean;
@@ -36,6 +37,8 @@ export function ViewSwitcher({
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const effectiveActiveViewId = activeViewId ?? doc.visual.activeViewId;
   const activeView = doc.visual.viewsById[effectiveActiveViewId];
   const activeSummary = summarizeVisualView(doc, effectiveActiveViewId);
@@ -53,16 +56,18 @@ export function ViewSwitcher({
         return;
       setOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
     window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
+    open,
+    menuRef,
+    triggerRef,
+    onClose: () => setOpen(false),
+  });
 
   const switchToView = (viewId: string) => {
     if (readonly && onReadonlyViewChange) {
@@ -96,6 +101,7 @@ export function ViewSwitcher({
   return (
     <div ref={rootRef} className="cc-view-switcher">
       <button
+        ref={triggerRef}
         className="cc-view-trigger"
         type="button"
         aria-label={readonly ? "Switch visual view" : "Open active view"}
@@ -117,7 +123,13 @@ export function ViewSwitcher({
         {readonly ? <ChevronDown /> : null}
       </button>
       {readonly && open && (
-        <div className="cc-view-menu" role="menu" aria-label="Visual views">
+        <div
+          ref={menuRef}
+          className="cc-view-menu"
+          role="menu"
+          aria-label="Visual views"
+          onKeyDown={handleMenuKeyDown}
+        >
           {orderedViews.map((view) => (
             <button
               key={view.id}

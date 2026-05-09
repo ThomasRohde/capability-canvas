@@ -18,7 +18,9 @@ import {
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
+  RefObject,
   ReactNode,
+  KeyboardEventHandler,
 } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -60,6 +62,7 @@ import {
 } from "../../app/stores/uiStore";
 import { focusNodeInViewport } from "../canvas/viewport";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import { useMenuKeyboardNavigation } from "../shared/a11y";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 
 export function Outline({
@@ -91,6 +94,8 @@ export function Outline({
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
   const [filterToSelection, setFilterToSelection] = useState(false);
   const searchCursorIndexRef = useRef(-1);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLElement | null>(null);
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
   const safeChildrenByParentId = useMemo(
@@ -198,6 +203,14 @@ export function Outline({
   useEffect(() => {
     if (selected.length === 0 && filterToSelection) setFilterToSelection(false);
   }, [filterToSelection, selected.length]);
+
+  const { handleMenuKeyDown: handleOutlineMenuKeyDown } =
+    useMenuKeyboardNavigation({
+      open: menuNodeId !== null,
+      menuRef,
+      triggerRef: menuTriggerRef,
+      onClose: () => setMenuNodeId(null),
+    });
 
   const startOutlineResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 && event.button !== undefined) return;
@@ -420,6 +433,14 @@ export function Outline({
                 className={`cc-tree-row ${active ? "active" : ""} ${
                   isSearchMatch ? "search-match" : ""
                 } ${searchActive && !isSearchMatch ? "search-context" : ""}`}
+                aria-label={outlineRowAriaLabel(
+                  node.label,
+                  active,
+                  viewDoc.heatmap.enabled,
+                  node.heatmapValue,
+                  visibilityLabel(viewContext, collapsedAncestor?.label),
+                )}
+                aria-selected={active}
                 style={{
                   paddingLeft: `${8 + item.getItemMeta().level * 14}px`,
                 }}
@@ -494,7 +515,10 @@ export function Outline({
                   />
                 )}
                 {viewDoc.heatmap.enabled && node.heatmapValue !== undefined && (
-                  <span className="cc-tree-score">
+                  <span
+                    className="cc-tree-score"
+                    aria-label={`Heatmap score ${node.heatmapValue.toFixed(2)}`}
+                  >
                     {node.heatmapValue.toFixed(2)}
                   </span>
                 )}
@@ -507,6 +531,7 @@ export function Outline({
                     aria-expanded={menuNodeId === node.id}
                     onClick={(event) => {
                       event.stopPropagation();
+                      menuTriggerRef.current = event.currentTarget;
                       setMenuNodeId(menuNodeId === node.id ? null : node.id);
                     }}
                   >
@@ -526,6 +551,8 @@ export function Outline({
                       canvasChildrenOf(viewDoc, node.id).length > 0
                     }
                     canvasTargetCenter={canvasTargetCenter}
+                    menuRef={menuRef}
+                    onMenuKeyDown={handleOutlineMenuKeyDown}
                     requestDeleteFromModel={requestDeleteFromModel}
                     onClose={() => setMenuNodeId(null)}
                   />
@@ -693,6 +720,23 @@ function visibilityLabel(
   return "Hidden in active view";
 }
 
+function outlineRowAriaLabel(
+  label: string,
+  selected: boolean,
+  heatmapEnabled: boolean,
+  heatmapValue: number | undefined,
+  visibility: string,
+): string {
+  const score = heatmapEnabled
+    ? heatmapValue === undefined
+      ? "No score"
+      : `Score ${heatmapValue.toFixed(2)}`
+    : null;
+  return [label, selected ? "selected" : "not selected", visibility, score]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function SearchResultAction({
   nodeId,
   nodeLabel,
@@ -759,6 +803,8 @@ function OutlineActionsMenu({
   isCollapsed,
   canFitParent,
   canvasTargetCenter,
+  menuRef,
+  onMenuKeyDown,
   requestDeleteFromModel,
   onClose,
 }: {
@@ -770,6 +816,8 @@ function OutlineActionsMenu({
   isCollapsed: boolean;
   canFitParent: boolean;
   canvasTargetCenter: { x: number; y: number };
+  menuRef: RefObject<HTMLDivElement | null>;
+  onMenuKeyDown: KeyboardEventHandler<HTMLDivElement>;
   requestDeleteFromModel: (nodeIds: NodeId[]) => void;
   onClose: () => void;
 }) {
@@ -781,10 +829,12 @@ function OutlineActionsMenu({
 
   return (
     <div
+      ref={menuRef}
       className="cc-outline-menu"
       role="menu"
       aria-label="Capability actions"
       onClick={(event) => event.stopPropagation()}
+      onKeyDown={onMenuKeyDown}
     >
       {canAddChild && (
         <button

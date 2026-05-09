@@ -27,6 +27,7 @@ import {
 import { importHeatmapCsv } from "../heatmap/csvImport";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 import type { ExportFormat } from "../import-export/types";
+import { useFocusReturn } from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
 
 const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = [
@@ -87,10 +88,23 @@ export function SettingsDrawer() {
   const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const exportFormat = useUiStore((state) => state.exportFormat);
   const setExportFormat = useUiStore((state) => state.setExportFormat);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const activeView = doc.visual.viewsById[doc.visual.activeViewId];
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
     "";
+
+  useFocusReturn({ active: open, initialFocusRef: closeRef });
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector("[aria-modal='true']"))
+        setActiveDrawer(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, setActiveDrawer]);
 
   if (!open) return null;
 
@@ -99,6 +113,7 @@ export function SettingsDrawer() {
       <div className="cc-export-head">
         <div className="cc-panel-title">Settings</div>
         <IconButton
+          ref={closeRef}
           icon={X}
           label="Close settings"
           onClick={() => setActiveDrawer(null)}
@@ -589,6 +604,7 @@ function ColorSetting({
             key={color}
             type="button"
             aria-label={`Set ${label.toLowerCase()} ${color}`}
+            aria-pressed={value === color}
             className={`cc-color-swatch ${value === color ? "on" : ""}`}
             style={{
               color: CATEGORY_STYLES[color].border,

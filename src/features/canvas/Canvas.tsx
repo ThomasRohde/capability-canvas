@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import {
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
@@ -52,6 +53,7 @@ import {
   type Bounds,
   type CapabilityColor,
   type CapabilityDocument,
+  type CapabilityNode,
   type LegendPosition,
   type NodeId,
 } from "../../domain/document/types";
@@ -83,6 +85,7 @@ import {
   resolveNodeFill,
 } from "../heatmap/resolveNodeFill";
 import { IconButton } from "../shared/IconButton";
+import { useMenuKeyboardNavigation } from "../shared/a11y";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import {
   createNodeViewModels,
@@ -136,6 +139,9 @@ export function Canvas({
   const reparentTargetId = useTransientStore((state) => state.reparentTargetId);
   const selectionRect = useTransientStore((state) => state.selectionRect);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const nodeRefs = useRef(new Map<NodeId, HTMLDivElement>());
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const contextMenuTriggerRef = useRef<HTMLElement | null>(null);
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [contextMenu, setContextMenu] = useState<{
     nodeId: NodeId;
@@ -187,10 +193,17 @@ export function Canvas({
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
 
-  const closeLabelEditor = useCallback(() => {
+  const focusCanvasNode = useCallback((nodeId: NodeId) => {
+    window.requestAnimationFrame(() => {
+      nodeRefs.current.get(nodeId)?.focus();
+    });
+  }, []);
+
+  const closeLabelEditor = useCallback((returnFocusNodeId?: NodeId) => {
     setEditingNodeId(null);
     setLabelDraft("");
-  }, []);
+    if (returnFocusNodeId) focusCanvasNode(returnFocusNodeId);
+  }, [focusCanvasNode]);
 
   const startLabelEdit = useCallback(
     (nodeId: NodeId) => {
@@ -217,7 +230,8 @@ export function Canvas({
   const commitLabelEdit = useCallback(() => {
     if (skipNextLabelCommitRef.current) {
       skipNextLabelCommitRef.current = false;
-      closeLabelEditor();
+      if (editingNodeId) closeLabelEditor(editingNodeId);
+      else closeLabelEditor();
       return;
     }
     if (!editingNodeId) return;
@@ -230,13 +244,14 @@ export function Canvas({
     if (normalizedDraft !== normalizeNodeLabel(node.label)) {
       execute(updateNode(editingNodeId, { label: normalizedDraft }));
     }
-    closeLabelEditor();
+    closeLabelEditor(editingNodeId);
   }, [closeLabelEditor, doc.nodesById, editingNodeId, execute, labelDraft]);
 
   const cancelLabelEdit = useCallback(() => {
     skipNextLabelCommitRef.current = true;
-    closeLabelEditor();
-  }, [closeLabelEditor]);
+    if (editingNodeId) closeLabelEditor(editingNodeId);
+    else closeLabelEditor();
+  }, [closeLabelEditor, editingNodeId]);
 
   const commitViewport = useCallback(
     (nextViewport: ViewportState) => {
@@ -281,14 +296,9 @@ export function Canvas({
 
   useEffect(() => {
     if (!contextMenu) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setContextMenu(null);
-    };
     const onPointerDown = () => setContextMenu(null);
-    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("pointerdown", onPointerDown);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("pointerdown", onPointerDown);
     };
   }, [contextMenu]);
@@ -353,6 +363,36 @@ export function Canvas({
     setActiveDrawer(null);
     setContextMenu(null);
   };
+
+  const openNodeContextMenu = (
+    nodeId: NodeId,
+    trigger: HTMLElement,
+    clientPoint?: { x: number; y: number },
+  ) => {
+    if (readonly) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    contextMenuTriggerRef.current = trigger;
+    setSelection([nodeId]);
+    setActiveDrawer(null);
+    setContextMenu({
+      nodeId,
+      x:
+        (clientPoint?.x ?? triggerRect.left + Math.min(24, triggerRect.width / 2)) -
+        (rect?.left ?? 0),
+      y:
+        (clientPoint?.y ?? triggerRect.top + Math.min(24, triggerRect.height / 2)) -
+        (rect?.top ?? 0),
+    });
+  };
+
+  const { handleMenuKeyDown: handleContextMenuKeyDown } =
+    useMenuKeyboardNavigation({
+      open: !!contextMenu,
+      menuRef: contextMenuRef,
+      triggerRef: contextMenuTriggerRef,
+      onClose: () => setContextMenu(null),
+    });
 
   const fitView = useCallback(() => {
     const nextViewport = fitViewportToBounds(
@@ -585,6 +625,9 @@ export function Canvas({
             : "selection-multi"
       }`}
       data-testid="canvas"
+      role="region"
+      aria-label="Capability canvas"
+      tabIndex={0}
       style={
         {
           "--cc-grid-size": `${Math.max(4, viewDoc.settings.gridSize * viewport.zoom)}px`,
@@ -665,7 +708,20 @@ export function Canvas({
             return (
               <div
                 key={vm.node.id}
+                ref={(element) => {
+                  if (element) nodeRefs.current.set(vm.node.id, element);
+                  else nodeRefs.current.delete(vm.node.id);
+                }}
                 className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${selectionModeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(vm.node.id) ? "dragging" : ""} ${reparentTargetId === vm.node.id ? "drop-target" : ""}`}
+                role="button"
+                tabIndex={selectedState ? 0 : -1}
+                aria-label={canvasNodeAriaLabel(
+                  vm.node,
+                  selectedState,
+                  selected.length,
+                  viewDoc.heatmap.enabled,
+                )}
+                aria-pressed={selectedState}
                 style={
                   {
                     left: vm.node.x + dragDelta.x,
@@ -684,6 +740,17 @@ export function Canvas({
                     )}px`,
                   } as React.CSSProperties
                 }
+                onKeyDown={(event) => {
+                  handleCanvasNodeKeyDown({
+                    event,
+                    nodeId: vm.node.id,
+                    readonly,
+                    setSelection,
+                    startLabelEdit,
+                    openContextMenu: openNodeContextMenu,
+                    inspectNode,
+                  });
+                }}
                 onPointerDown={(event) => {
                   setContextMenu(null);
                   event.stopPropagation();
@@ -819,13 +886,9 @@ export function Canvas({
                 onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  const rect = canvasRef.current?.getBoundingClientRect();
-                  setSelection([vm.node.id]);
-                  setActiveDrawer(null);
-                  setContextMenu({
-                    nodeId: vm.node.id,
-                    x: event.clientX - (rect?.left ?? 0),
-                    y: event.clientY - (rect?.top ?? 0),
+                  openNodeContextMenu(vm.node.id, event.currentTarget, {
+                    x: event.clientX,
+                    y: event.clientY,
                   });
                 }}
               >
@@ -859,6 +922,7 @@ export function Canvas({
                 {viewDoc.heatmap.enabled && vm.node.heatmapValue !== undefined && (
                   <span
                     className={`cc-node-score ${isContainer ? "container-score" : "leaf-score"}`}
+                    aria-label={`Heatmap score ${vm.node.heatmapValue.toFixed(2)}`}
                   >
                     {vm.node.heatmapValue.toFixed(2)}
                   </span>
@@ -958,9 +1022,11 @@ export function Canvas({
       </div>
       {contextMenu && contextNode && !readonly && (
         <div
+          ref={contextMenuRef}
           className="cc-context-menu"
           role="menu"
           aria-label="Capability context menu"
+          onKeyDown={handleContextMenuKeyDown}
           style={{
             left: contextMenu.x,
             top: contextMenu.y,
@@ -1182,6 +1248,67 @@ function NodeLabel({
   );
 }
 
+function canvasNodeAriaLabel(
+  node: CapabilityNode,
+  selected: boolean,
+  selectionCount: number,
+  heatmapEnabled: boolean,
+): string {
+  const nodeType =
+    node.isTextLabel || node.type === "text"
+      ? "text label"
+      : node.type === "leaf"
+        ? "leaf capability"
+        : "parent capability";
+  const selectedCopy = selected
+    ? selectionCount > 1
+      ? `selected, ${selectionCount} capabilities selected`
+      : "selected"
+    : "not selected";
+  const scoreCopy = heatmapEnabled
+    ? node.heatmapValue === undefined
+      ? "No score"
+      : `Score ${node.heatmapValue.toFixed(2)}`
+    : null;
+  return [node.label, nodeType, selectedCopy, scoreCopy]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function handleCanvasNodeKeyDown({
+  event,
+  nodeId,
+  readonly,
+  setSelection,
+  startLabelEdit,
+  openContextMenu,
+  inspectNode,
+}: {
+  event: ReactKeyboardEvent<HTMLDivElement>;
+  nodeId: NodeId;
+  readonly: boolean;
+  setSelection: (ids: NodeId[]) => void;
+  startLabelEdit: (nodeId: NodeId) => void;
+  openContextMenu: (nodeId: NodeId, trigger: HTMLElement) => void;
+  inspectNode: (nodeId: NodeId) => void;
+}) {
+  if (event.key === " " && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault();
+    setSelection([nodeId]);
+    return;
+  }
+  if (event.key === "Enter" && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault();
+    if (readonly) inspectNode(nodeId);
+    else startLabelEdit(nodeId);
+    return;
+  }
+  if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+    event.preventDefault();
+    openContextMenu(nodeId, event.currentTarget);
+  }
+}
+
 function toggleSelectionWithRules(doc: CapabilityDocument, nodeId: NodeId) {
   const ui = useUiStore.getState();
   const resolution = resolveToggleSelection(doc, ui.selectedNodeIds, nodeId);
@@ -1221,6 +1348,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
     useModelDeleteConfirmation(doc);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const bulkAllowed = canMultiSelect(viewDoc, selected);
   const alignAllowed = canAlign(viewDoc, selected);
   const distributeAllowed = canDistribute(viewDoc, selected);
@@ -1238,16 +1366,19 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         return;
       setMoreOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMoreOpen(false);
-    };
     window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, [moreOpen]);
+
+  const { handleMenuKeyDown: handleBulkMenuKeyDown } =
+    useMenuKeyboardNavigation({
+      open: moreOpen,
+      menuRef: moreRef,
+      triggerRef: moreTriggerRef,
+      onClose: () => setMoreOpen(false),
+    });
 
   return (
     <div className="cc-bulk-toolbar">
@@ -1354,6 +1485,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
         onPointerDown={(event) => event.stopPropagation()}
       >
         <IconButton
+          ref={moreTriggerRef}
           icon={MoreHorizontal}
           label="More bulk actions"
           active={moreOpen}
@@ -1364,6 +1496,7 @@ function BulkToolbar({ selected }: { selected: NodeId[] }) {
             className="cc-bulk-more-menu"
             role="menu"
             aria-label="Bulk actions"
+            onKeyDown={handleBulkMenuKeyDown}
           >
             <button
               type="button"
@@ -1410,6 +1543,8 @@ function BulkColorPicker({
   const execute = useDocumentStore((state) => state.execute);
   const [open, setOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const selectedNodes = selected
     .map((nodeId) => viewDoc.nodesById[nodeId])
     .filter(Boolean);
@@ -1438,16 +1573,20 @@ function BulkColorPicker({
         return;
       setOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
     window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  const { handleMenuKeyDown: handleColorMenuKeyDown } =
+    useMenuKeyboardNavigation({
+      open,
+      menuRef: popoverRef,
+      triggerRef,
+      onClose: () => setOpen(false),
+      itemSelector: "button:not([disabled])",
+    });
 
   const applyColor = (color: CapabilityColor) => {
     if (disabled) return;
@@ -1462,9 +1601,11 @@ function BulkColorPicker({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <button
+        ref={triggerRef}
         type="button"
         className={`cc-icon-btn ${open ? "active" : ""}`}
         aria-label="Change selected color"
+        aria-haspopup="menu"
         aria-expanded={open}
         title={reason ?? "Change selected color"}
         disabled={disabled}
@@ -1474,7 +1615,13 @@ function BulkColorPicker({
         <span className="cc-bulk-color-preview" style={previewStyle} />
       </button>
       {open && (
-        <div className="cc-bulk-color-popover" aria-label="Color picker">
+        <div
+          ref={popoverRef}
+          className="cc-bulk-color-popover"
+          role="menu"
+          aria-label="Color picker"
+          onKeyDown={handleColorMenuKeyDown}
+        >
           {CAPABILITY_COLORS.map((color) => {
             const style = CATEGORY_STYLES[color];
             return (

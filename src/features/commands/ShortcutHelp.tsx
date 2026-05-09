@@ -1,5 +1,6 @@
 import { Keyboard, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "../shared/a11y";
 import {
   isEditableTarget,
   type CommandDefinition,
@@ -26,6 +27,7 @@ const STATIC_SECTIONS = [
       ["Shift/Ctrl/Cmd+click", "Extend selection within valid sibling sets"],
       ["Shift/Ctrl/Cmd+drag", "Marquee select visible capabilities"],
       ["Ctrl/Cmd+A", "Select visible capabilities from the current context"],
+      ["Shift+F10 / ContextMenu", "Open the selected capability context menu"],
     ],
   },
   {
@@ -52,6 +54,8 @@ export function ShortcutHelp<TContext>({
   context,
 }: ShortcutHelpProps<TContext>) {
   const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const commandShortcuts = useMemo(
     () =>
       commands
@@ -78,14 +82,12 @@ export function ShortcutHelp<TContext>({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  useFocusTrap({
+    active: open,
+    containerRef: dialogRef,
+    initialFocusRef: closeRef,
+    onEscape: () => setOpen(false),
+  });
 
   return (
     <>
@@ -107,6 +109,7 @@ export function ShortcutHelp<TContext>({
           }}
         >
           <section
+            ref={dialogRef}
             className="cc-modal cc-shortcut-help"
             role="dialog"
             aria-modal="true"
@@ -115,6 +118,7 @@ export function ShortcutHelp<TContext>({
             <div className="cc-modal-head">
               <div className="cc-panel-title">Keyboard shortcuts</div>
               <button
+                ref={closeRef}
                 className="cc-icon-btn"
                 type="button"
                 aria-label="Close keyboard shortcuts"

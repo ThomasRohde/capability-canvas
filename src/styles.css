@@ -657,6 +657,11 @@ button:focus-visible {
   background: var(--cc-slate-100);
 }
 
+.cc-tree-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--cc-brand-600);
+}
+
 .cc-tree-row.active {
   color: var(--cc-brand-700);
   background: var(--cc-brand-50);
@@ -1020,14 +1025,15 @@ button:focus-visible {
 }
 
 .cc-shortcut-help {
-  width: min(780px, calc(100vw - 32px));
+  width: min(1040px, calc(100vw - 32px));
   grid-template-rows: auto minmax(0, 1fr);
+  padding: 16px 18px 18px;
 }
 
 .cc-shortcut-body {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px 28px;
   min-height: 0;
   overflow: auto;
 }
@@ -1035,12 +1041,8 @@ button:focus-visible {
 .cc-shortcut-section {
   display: grid;
   align-content: start;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--cc-slate-200);
-  border-radius: 8px;
-  background: var(--cc-slate-50);
 }
 
 .cc-shortcut-section h2 {
@@ -1052,15 +1054,15 @@ button:focus-visible {
 
 .cc-shortcut-section dl {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   margin: 0;
 }
 
 .cc-shortcut-section dl > div {
   display: grid;
-  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+  grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
   align-items: start;
-  gap: 10px;
+  gap: 9px;
 }
 
 .cc-shortcut-section dt,
@@ -1530,6 +1532,11 @@ button:focus-visible {
   background-image: none;
 }
 
+.cc-canvas:focus-visible {
+  outline: none;
+  box-shadow: inset var(--cc-ring-focus);
+}
+
 .cc-canvas-stage {
   position: absolute;
   inset: 0;
@@ -1574,6 +1581,19 @@ button:focus-visible {
   box-shadow: 0 0 0 2px var(--cc-brand-700);
 }
 
+.cc-node.selected::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--cc-brand-700);
+  border-radius: 2px;
+  background: var(--cc-white);
+  pointer-events: none;
+}
+
 .cc-node.selected.multi-selected {
   box-shadow:
     0 0 0 2px var(--cc-brand-700),
@@ -1588,7 +1608,16 @@ button:focus-visible {
   opacity: 0.82;
 }
 
+.cc-node:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--cc-brand-700),
+    var(--cc-ring-focus);
+}
+
 .cc-node.drop-target {
+  outline: 2px dashed var(--cc-brand-700);
+  outline-offset: 3px;
   box-shadow:
     0 0 0 2px var(--cc-brand-700),
     0 0 0 6px rgba(20, 184, 166, 0.18);
@@ -1619,6 +1648,7 @@ button:focus-visible {
 }
 
 .cc-container-frame.drop-target {
+  border-style: dashed;
   box-shadow:
     0 0 0 2px var(--cc-brand-700),
     0 0 0 6px rgba(20, 184, 166, 0.18);
@@ -1807,6 +1837,12 @@ button:focus-visible {
   z-index: 30;
 }
 
+.cc-bulk-toolbar:focus-within {
+  box-shadow:
+    var(--cc-shadow-sm),
+    var(--cc-ring-focus);
+}
+
 .cc-bulk-toolbar .count {
   padding: 0 8px;
   font-size: 12px;
@@ -1921,6 +1957,12 @@ button:focus-visible {
 
 .cc-bulk-color-swatch.on {
   box-shadow: 0 0 0 2px var(--cc-brand-700);
+}
+
+.cc-color-swatch[aria-pressed="true"],
+.cc-bulk-color-swatch[aria-pressed="true"] {
+  outline: 2px solid var(--cc-brand-700);
+  outline-offset: 2px;
 }
 
 .cc-inspector {

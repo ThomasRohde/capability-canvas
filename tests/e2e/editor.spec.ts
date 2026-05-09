@@ -99,6 +99,68 @@ test('runs common actions from the command palette', async ({ page }) => {
   await expect(page.getByRole('complementary', { name: 'Export' })).toBeVisible();
 });
 
+test('traps command palette focus for keyboard users', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const trigger = page.getByRole('button', { name: 'Open command palette' });
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+
+  const palette = page.getByRole('dialog', { name: 'Command palette' });
+  await expect(palette).toBeVisible();
+  await expect(palette.getByLabel('Search commands')).toBeFocused();
+
+  await page.keyboard.press('Shift+Tab');
+  await expect(palette.getByRole('button', { name: 'Close command palette' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(palette.getByLabel('Search commands')).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test('supports a keyboard-only create rename restore and export smoke flow', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  await page.getByRole('button', { name: 'Add root', exact: true }).focus();
+  await page.keyboard.press('Enter');
+
+  const canvas = page.getByTestId('canvas');
+  let node = canvas.getByRole('button', { name: /New capability, leaf capability/ }).first();
+  await node.focus();
+  await page.keyboard.press('Space');
+  node = canvas.getByRole('button', {
+    name: /New capability, leaf capability, selected/,
+  }).first();
+  await expect(node).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  const labelEditor = page.getByRole('textbox', {
+    name: 'Edit label for New capability',
+  });
+  await expect(labelEditor).toBeFocused();
+  await page.keyboard.type('Keyboard Root');
+  await page.keyboard.press('Enter');
+
+  node = canvas.getByRole('button', {
+    name: /Keyboard Root, leaf capability, selected/,
+  }).first();
+  await expect(node).toBeFocused();
+
+  await page.keyboard.press('Delete');
+  await expect(canvas.getByRole('button', { name: /Keyboard Root/ })).toHaveCount(0);
+
+  await page.keyboard.press('Control+Z');
+  await expect(canvas.getByRole('button', { name: /Keyboard Root/ })).toBeVisible();
+
+  await page.keyboard.press('Control+K');
+  const palette = page.getByRole('dialog', { name: 'Command palette' });
+  await palette.getByLabel('Search commands').fill('Export');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('complementary', { name: 'Export' })).toBeVisible();
+});
+
 test('cancels pasted import review without replacing the document', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const before = await page.evaluate(() => {

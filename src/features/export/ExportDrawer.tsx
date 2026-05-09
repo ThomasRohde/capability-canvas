@@ -6,7 +6,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { validateDocument } from "../../domain/validation/validate";
 import {
   error as diagnosticError,
@@ -16,6 +16,7 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { adapterFor, EXPORT_ADAPTERS, saveExportResult } from "../import-export";
 import type { ExportAdapter, ExportFormat, ExportResult } from "../import-export/types";
+import { useFocusReturn } from "../shared/a11y";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { IconButton } from "../shared/IconButton";
 
@@ -47,6 +48,7 @@ export function ExportDrawer({
   const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
   const [pendingExportFormat, setPendingExportFormat] =
     useState<ExportFormat | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const validation = useMemo(() => validateDocument(doc), [doc]);
   const validationErrors = validation.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",
@@ -65,6 +67,18 @@ export function ExportDrawer({
     setPendingExportFormat(null);
   }, [format, open]);
 
+  useFocusReturn({ active: open, initialFocusRef: closeRef });
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector("[aria-modal='true']"))
+        setActiveDrawer(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, setActiveDrawer]);
+
   if (!open) return null;
   const selected =
     adapters.find((item) => item.format === format) ?? adapterForExport(format);
@@ -78,6 +92,7 @@ export function ExportDrawer({
         <div className="cc-export-head">
           <div className="cc-panel-title">Export</div>
           <IconButton
+            ref={closeRef}
             icon={X}
             label="Close export drawer"
             onClick={() => setActiveDrawer(null)}

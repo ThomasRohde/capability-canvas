@@ -48,6 +48,7 @@ import { useUiStore } from "../../app/stores/uiStore";
 import { CommitTextInput } from "../shared/CommitTextInput";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { IconButton } from "../shared/IconButton";
+import { useFocusReturn, useMenuKeyboardNavigation } from "../shared/a11y";
 
 interface ConfirmRequest {
   title: string;
@@ -94,16 +95,20 @@ export function ViewsDrawer() {
     rootIdForTemplate(doc, "domain-deep-dive@1", selected) ??
     rootTargets[0]?.id ??
     "";
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector("[aria-modal='true']")) return;
       if (document.querySelector(".cc-view-row-menu")) return;
       if (event.key === "Escape") setActiveDrawer(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, setActiveDrawer]);
+
+  useFocusReturn({ active: open, initialFocusRef: closeRef });
 
   useEffect(() => {
     if (templateId !== "domain-deep-dive@1") return;
@@ -168,6 +173,7 @@ export function ViewsDrawer() {
       <div className="cc-export-head">
         <div className="cc-panel-title">Views</div>
         <IconButton
+          ref={closeRef}
           icon={X}
           label="Close views"
           onClick={() => setActiveDrawer(null)}
@@ -353,6 +359,7 @@ function ViewRow({
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuAnchorRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const viewTemplateId = summary?.templateId ?? templateIdForView(view);
   const templateName = summary?.templateName ?? templateById(viewTemplateId).name;
   const fullChanged = summary?.fullChanged ?? false;
@@ -368,19 +375,21 @@ function ViewRow({
         return;
       setMenuOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuOpen(false);
-    };
     const closeOnResize = () => setMenuOpen(false);
     window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", closeOnResize);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", closeOnResize);
     };
   }, [menuOpen]);
+
+  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
+    open: menuOpen,
+    menuRef,
+    triggerRef: menuButtonRef,
+    onClose: () => setMenuOpen(false),
+  });
 
   const toggleMenu = () => {
     if (menuOpen) {
@@ -496,6 +505,7 @@ function ViewRow({
         <div ref={menuRef} className="cc-view-row-menu-wrap">
           <div ref={menuAnchorRef}>
             <IconButton
+              ref={menuButtonRef}
               icon={MoreHorizontal}
               label={`View actions for ${view.name}`}
               active={menuOpen}
@@ -507,6 +517,7 @@ function ViewRow({
               className="cc-view-row-menu"
               role="menu"
               aria-label={`Actions for ${view.name}`}
+              onKeyDown={handleMenuKeyDown}
               style={{
                 top: menuPosition.top,
                 right: menuPosition.right,

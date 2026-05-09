@@ -211,15 +211,15 @@ describe("editor shell", () => {
         within(menu).getByRole("menuitem", { name: "Duplicate" }),
       ).toHaveFocus(),
     );
-    await userEvent.keyboard("{ArrowDown}");
+    fireEvent.keyDown(document.activeElement ?? window, { key: "ArrowDown" });
     expect(
       within(menu).getByRole("menuitem", { name: "Remove from active view" }),
     ).toHaveFocus();
-    await userEvent.keyboard("{End}");
+    fireEvent.keyDown(document.activeElement ?? window, { key: "End" });
     expect(
       within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
     ).toHaveFocus();
-    await userEvent.keyboard("{Escape}");
+    fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
 
     expect(
       screen.queryByRole("menu", { name: "Model actions" }),
@@ -281,6 +281,34 @@ describe("editor shell", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("traps command palette focus and restores focus to the trigger", async () => {
+    render(<EditorRoute />);
+    const trigger = screen.getByRole("button", {
+      name: "Open command palette",
+    });
+
+    await userEvent.click(trigger);
+    const palette = screen.getByRole("dialog", { name: "Command palette" });
+    const input = within(palette).getByLabelText("Search commands");
+    const close = within(palette).getByRole("button", {
+      name: "Close command palette",
+    });
+    await waitFor(() => expect(input).toHaveFocus());
+
+    await userEvent.tab({ shift: true });
+    expect(close).toHaveFocus();
+    await userEvent.tab();
+    expect(input).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Command palette" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+  });
+
   it("runs add child through the command palette", async () => {
     render(<EditorRoute />);
     const historyBefore = useDocumentStore.getState().past.length;
@@ -317,6 +345,150 @@ describe("editor shell", () => {
     ).toHaveFocus();
   });
 
+  it("exposes icon-only controls with accessible names", () => {
+    render(<EditorRoute />);
+
+    expect(
+      screen.getByRole("button", { name: "Open command palette" }),
+    ).toHaveAccessibleName("Open command palette");
+    expect(
+      screen.getByRole("button", { name: "Keyboard shortcuts" }),
+    ).toHaveAccessibleName("Keyboard shortcuts");
+    expect(
+      screen.getByRole("button", { name: "Toggle outline" }),
+    ).toHaveAccessibleName("Toggle outline");
+    expect(
+      screen.getByRole("button", { name: "Diagnostics" }),
+    ).toHaveAccessibleName("Diagnostics");
+  });
+
+  it("makes the selected canvas node keyboard reachable and restores focus after rename", async () => {
+    const doc = useDocumentStore.getState().doc;
+    const activeViewId = doc.visual.activeViewId;
+    const activeView = doc.visual.viewsById[activeViewId]!;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        visual: {
+          ...doc.visual,
+          viewsById: {
+            ...doc.visual.viewsById,
+            [activeViewId]: {
+              ...activeView,
+              heatmap: {
+                ...activeView.heatmap,
+                enabled: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    render(<EditorRoute />);
+    const node = within(screen.getByTestId("canvas")).getByRole("button", {
+      name: /Digital Onboarding, leaf capability, selected, Score 0\.72/,
+    });
+
+    node.focus();
+    await userEvent.keyboard("{Enter}");
+    const input = await screen.findByRole("textbox", {
+      name: "Edit label for Digital Onboarding",
+    });
+    expect(input).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(node).toHaveFocus());
+    expect(
+      within(screen.getByTestId("canvas")).getByLabelText("Heatmap score 0.72"),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the selected canvas node context menu from the keyboard", async () => {
+    render(<EditorRoute />);
+    const node = within(screen.getByTestId("canvas")).getByRole("button", {
+      name: /Digital Onboarding, leaf capability, selected/,
+    });
+
+    node.focus();
+    fireEvent.keyDown(node, { key: "F10", shiftKey: true });
+    const menu = screen.getByRole("menu", { name: "Capability context menu" });
+    const items = within(menu).getAllByRole("menuitem");
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(document.activeElement ?? window, { key: "ArrowDown" });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("menu", { name: "Capability context menu" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(node).toHaveFocus();
+  });
+
+  it("keeps outline, bulk, and view action menus keyboard navigable", async () => {
+    render(<EditorRoute />);
+
+    const outlineTrigger = screen.getByRole("button", {
+      name: "Actions for Digital Onboarding",
+    });
+    outlineTrigger.focus();
+    await userEvent.keyboard("{Enter}");
+    let menu = screen.getByRole("menu", { name: "Capability actions" });
+    let items = within(menu).getAllByRole("menuitem");
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(document.activeElement ?? window, { key: "ArrowDown" });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
+    await waitFor(() => expect(outlineTrigger).toHaveFocus());
+
+    act(() => {
+      useUiStore.setState({
+        selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
+      });
+    });
+    const moreBulkActions = await screen.findByRole("button", {
+      name: "More bulk actions",
+    });
+    moreBulkActions.focus();
+    await userEvent.keyboard("{Enter}");
+    menu = screen.getByRole("menu", { name: "Bulk actions" });
+    items = within(menu).getAllByRole("menuitem");
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(document.activeElement ?? window, { key: "ArrowDown" });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
+    await waitFor(() => expect(moreBulkActions).toHaveFocus());
+
+    await userEvent.click(screen.getByRole("button", { name: "Open active view" }));
+    const viewTrigger = screen.getAllByRole("button", {
+      name: /View actions for/,
+    })[0]!;
+    viewTrigger.focus();
+    await userEvent.keyboard("{Enter}");
+    menu = screen.getByRole("menu", { name: /Actions for/ });
+    items = within(menu)
+      .getAllByRole("menuitem")
+      .filter((item) => !(item as HTMLButtonElement).disabled);
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(document.activeElement ?? window, { key: "End" });
+    expect(items.at(-1)).toHaveFocus();
+    fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
+    await waitFor(() => expect(viewTrigger).toHaveFocus());
+  });
+
+  it("marks color swatch selected state with aria-pressed", () => {
+    render(<EditorRoute />);
+
+    expect(
+      screen.getByRole("button", { name: "Set color slate" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Set color mint" }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("opens and closes shortcut help by keyboard", async () => {
     render(<EditorRoute />);
 
@@ -326,6 +498,10 @@ describe("editor shell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Pan and zoom")).toBeInTheDocument();
     expect(screen.getByText("Commands")).toBeInTheDocument();
+    expect(screen.getByText("Shift+F10 / ContextMenu")).toBeInTheDocument();
+    expect(
+      screen.getByText("Open the selected capability context menu"),
+    ).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() =>

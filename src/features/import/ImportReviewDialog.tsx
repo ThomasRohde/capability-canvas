@@ -6,9 +6,10 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { ImportReview } from "../../app/importReview";
 import type { Diagnostic } from "../../domain/validation/diagnostics";
+import { useFocusTrap } from "../shared/a11y";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { IconButton } from "../shared/IconButton";
 
@@ -28,19 +29,21 @@ export function ImportReviewDialog({
   onDownloadBackup,
 }: ImportReviewDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   const [applyBusy, setApplyBusy] = useState(false);
   const [backupBusy, setBackupBusy] = useState(false);
   const [confirmDirty, setConfirmDirty] = useState(false);
   const busy = applyBusy || backupBusy;
 
-  useEffect(() => {
-    cancelRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onCancel();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [busy, onCancel]);
+  useFocusTrap({
+    active: true,
+    containerRef: dialogRef,
+    initialFocusRef: cancelRef,
+    onEscape: () => {
+      if (!busy) onCancel();
+    },
+    disabled: confirmDirty,
+  });
 
   const requestApply = () => {
     if (!review.summary.canApply || applyBusy) return;
@@ -80,6 +83,7 @@ export function ImportReviewDialog({
         }}
       >
         <section
+          ref={dialogRef}
           className="cc-modal cc-import-review-dialog"
           role="dialog"
           aria-modal="true"

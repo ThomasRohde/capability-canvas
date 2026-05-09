@@ -7,6 +7,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { useFocusTrap } from "../shared/a11y";
 import {
   commandMatchesSearch,
   isEditableTarget,
@@ -30,6 +31,7 @@ export function CommandPalette<TContext>({
 }: CommandPaletteProps<TContext>) {
   const inputId = useId();
   const listId = useId();
+  const dialogRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -48,6 +50,11 @@ export function CommandPalette<TContext>({
     [commands, context, query],
   );
   const activeResult = results[activeIndex];
+  const closePalette = () => {
+    setOpen(false);
+    setQuery("");
+    setActiveIndex(0);
+  };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -62,10 +69,16 @@ export function CommandPalette<TContext>({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  useFocusTrap({
+    active: open,
+    containerRef: dialogRef,
+    initialFocusRef: inputRef,
+    onEscape: closePalette,
+  });
+
   useEffect(() => {
     if (!open) return;
     const frame = window.requestAnimationFrame(() => {
-      inputRef.current?.focus();
       inputRef.current?.select();
     });
     return () => window.cancelAnimationFrame(frame);
@@ -75,12 +88,6 @@ export function CommandPalette<TContext>({
     if (activeIndex < results.length) return;
     setActiveIndex(Math.max(0, results.length - 1));
   }, [activeIndex, results.length]);
-
-  const closePalette = () => {
-    setOpen(false);
-    setQuery("");
-    setActiveIndex(0);
-  };
 
   const openPalette = () => {
     setOpen(true);
@@ -149,6 +156,7 @@ export function CommandPalette<TContext>({
           }}
         >
           <section
+            ref={dialogRef}
             className="cc-modal cc-command-palette"
             role="dialog"
             aria-modal="true"

@@ -59,12 +59,11 @@ import {
 } from "../commands/editorCommands";
 import { ShortcutHelp } from "../commands/ShortcutHelp";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
+import { useFocusTrap, useMenuKeyboardNavigation } from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { ViewSwitcher } from "../views/ViewSwitcher";
 import { fitViewportToBounds } from "../canvas/viewport";
-
-type ToolbarMenuFocusTarget = "first" | "last";
 
 export function Toolbar() {
   const doc = useDocumentStore((state) => state.doc);
@@ -98,6 +97,8 @@ export function Toolbar() {
   const [importBusy, setImportBusy] = useState(false);
   const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] =
     useState(false);
+  const pasteDialogRef = useRef<HTMLElement>(null);
+  const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const promptCopyNoticeTimeout = useRef<number | null>(null);
   const selectedNode = selected[0] ? doc.nodesById[selected[0]] : null;
   const promptNode =
@@ -298,6 +299,7 @@ export function Toolbar() {
   const openExport = () => setActiveDrawer("export");
   const openViews = () => setActiveDrawer("views");
   const openPastedJsonImport = () => setPasteOpen(true);
+  const closePastedJsonImport = () => setPasteOpen(false);
   const renameSelected = () => {
     if (selected.length !== 1 || !selected[0]) return;
     requestLabelEdit(selected[0]);
@@ -332,6 +334,13 @@ export function Toolbar() {
       redo,
     },
   };
+
+  useFocusTrap({
+    active: pasteOpen,
+    containerRef: pasteDialogRef,
+    initialFocusRef: pasteTextareaRef,
+    onEscape: closePastedJsonImport,
+  });
 
   return (
     <>
@@ -501,6 +510,7 @@ export function Toolbar() {
           }}
         >
           <section
+            ref={pasteDialogRef}
             className="cc-modal"
             role="dialog"
             aria-label="Import pasted JSON"
@@ -514,12 +524,13 @@ export function Toolbar() {
               />
             </div>
             <textarea
+              ref={pasteTextareaRef}
               className="cc-textarea cc-paste-json"
+              aria-label="Pasted JSON"
               value={pasteDraft}
-              autoFocus
               onChange={(event) => setPasteDraft(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Escape") setPasteOpen(false);
+                if (event.key === "Escape") closePastedJsonImport();
                 if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
                   event.preventDefault();
                   importPastedJson();
@@ -590,16 +601,20 @@ function ToolbarMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const focusTargetRef = useRef<ToolbarMenuFocusTarget>("first");
 
   const closeMenu = () => {
     setOpen(false);
   };
 
-  const openMenu = (focusTarget: ToolbarMenuFocusTarget = "first") => {
-    focusTargetRef.current = focusTarget;
+  const openMenu = () => {
     setOpen(true);
   };
+  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
+    open,
+    menuRef,
+    triggerRef,
+    onClose: closeMenu,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -612,85 +627,20 @@ function ToolbarMenu({
       }
       closeMenu();
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeMenu();
-    };
     window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const frame = window.requestAnimationFrame(() => {
-      const items = getEnabledMenuItems(menuRef.current);
-      const target =
-        focusTargetRef.current === "last" ? items.at(-1) : items[0];
-      target?.focus();
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [open]);
-
-  const focusRelativeItem = (direction: 1 | -1) => {
-    const items = getEnabledMenuItems(menuRef.current);
-    if (items.length === 0) return;
-    const currentIndex = items.findIndex((item) => item === document.activeElement);
-    const nextIndex =
-      currentIndex === -1
-        ? direction === 1
-          ? 0
-          : items.length - 1
-        : (currentIndex + direction + items.length) % items.length;
-    items[nextIndex]?.focus();
-  };
-
-  const focusEdgeItem = (edge: ToolbarMenuFocusTarget) => {
-    const items = getEnabledMenuItems(menuRef.current);
-    const target = edge === "first" ? items[0] : items.at(-1);
-    target?.focus();
-  };
-
-  const handleTriggerKeyDown = (
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-  ) => {
+  const handleTriggerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      openMenu("first");
+      openMenu();
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      openMenu("last");
-    }
-  };
-
-  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeMenu();
-      triggerRef.current?.focus();
-      return;
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      focusRelativeItem(1);
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      focusRelativeItem(-1);
-      return;
-    }
-    if (event.key === "Home") {
-      event.preventDefault();
-      focusEdgeItem("first");
-      return;
-    }
-    if (event.key === "End") {
-      event.preventDefault();
-      focusEdgeItem("last");
+      openMenu();
     }
   };
 
@@ -707,7 +657,7 @@ function ToolbarMenu({
         title={label}
         onClick={() => {
           if (open) closeMenu();
-          else openMenu("first");
+          else openMenu();
         }}
         onKeyDown={handleTriggerKeyDown}
       >
@@ -774,15 +724,6 @@ function ToolbarMenuItem({
       )}
     </button>
   );
-}
-
-function getEnabledMenuItems(menu: HTMLDivElement | null) {
-  if (!menu) return [];
-  return [
-    ...menu.querySelectorAll<HTMLButtonElement>(
-      'button[role="menuitem"], button[role="menuitemcheckbox"]',
-    ),
-  ].filter((item) => !item.disabled);
 }
 
 async function copyTextToClipboard(text: string): Promise<void> {
