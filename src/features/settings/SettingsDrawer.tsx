@@ -17,8 +17,10 @@ import {
   updateDocumentTitle,
   updateHeatmapSettings,
 } from "../../domain/commands/operations";
+import type { Transaction } from "../../domain/commands/types";
 import type {
   CapabilityColor,
+  DiagramSettings,
   LayoutAspectRatioPreset,
   LayoutMode,
 } from "../../domain/document/types";
@@ -37,6 +39,15 @@ import { importHeatmapCsv } from "../heatmap/csvImport";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
 import { useFocusReturn } from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
+import {
+  buildSettingsPatch,
+  GRID_SIZE_FIELD,
+  LAYOUT_NUMERIC_SETTING_GROUPS,
+  MODEL_DEFAULT_NUMERIC_SETTING_GROUPS,
+  type NumericSettingsField,
+  type NumericSettingsGroup,
+  type SettingsAutoLayoutPolicy,
+} from "./settingsFields";
 
 const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = [
   {
@@ -108,6 +119,17 @@ export function SettingsDrawer() {
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
     "";
+  const commitNumericDocumentSetting = (
+    field: NumericSettingsField,
+    value: number,
+  ) =>
+    commitDocumentSetting({
+      key: field.key,
+      value,
+      autoLayout: field.autoLayout,
+      execute,
+      updateSettings,
+    });
 
   useFocusReturn({ active: open, initialFocusRef: closeRef });
 
@@ -152,53 +174,14 @@ export function SettingsDrawer() {
               execute(updateDocumentSettings({ leafColor }))
             }
           />
-          <div className="cc-field-row">
-            <NumberSetting
-              id="leaf-width"
-              label="Leaf width"
-              value={doc.settings.fixedLeafWidth}
-              min={1}
-              onChange={(fixedLeafWidth) =>
-                void updateSettings({ fixedLeafWidth }, { autoLayout: true })
-              }
+          {MODEL_DEFAULT_NUMERIC_SETTING_GROUPS.map((group) => (
+            <NumberSettingGroup
+              key={group.id}
+              group={group}
+              settings={doc.settings}
+              onChange={commitNumericDocumentSetting}
             />
-            <NumberSetting
-              id="leaf-height"
-              label="Leaf height"
-              value={doc.settings.fixedLeafHeight}
-              min={1}
-              onChange={(fixedLeafHeight) =>
-                void updateSettings({ fixedLeafHeight }, { autoLayout: true })
-              }
-            />
-          </div>
-          <div className="cc-section-title">New parent defaults</div>
-          <div className="cc-field-row">
-            <NumberSetting
-              id="parent-width"
-              label="Width"
-              value={doc.settings.defaultParentWidth}
-              min={1}
-              onChange={(defaultParentWidth) =>
-                void updateSettings(
-                  { defaultParentWidth },
-                  { autoLayout: true },
-                )
-              }
-            />
-            <NumberSetting
-              id="parent-height"
-              label="Height"
-              value={doc.settings.defaultParentHeight}
-              min={1}
-              onChange={(defaultParentHeight) =>
-                void updateSettings(
-                  { defaultParentHeight },
-                  { autoLayout: true },
-                )
-              }
-            />
-          </div>
+          ))}
         </SettingsSection>
 
         <SettingsSection icon={<LayoutTemplate size={16} />} title="Layout">
@@ -302,12 +285,14 @@ export function SettingsDrawer() {
           />
           <div className="cc-field-row">
             <NumberSetting
-              id="grid-size"
-              label="Grid size"
-              value={doc.settings.gridSize}
-              min={4}
-              onChange={(gridSize) =>
-                execute(updateDocumentSettings({ gridSize }))
+              id={GRID_SIZE_FIELD.id}
+              label={GRID_SIZE_FIELD.label}
+              value={doc.settings[GRID_SIZE_FIELD.key]}
+              min={GRID_SIZE_FIELD.min}
+              max={GRID_SIZE_FIELD.max}
+              step={GRID_SIZE_FIELD.step}
+              onChange={(value) =>
+                commitNumericDocumentSetting(GRID_SIZE_FIELD, value)
               }
             />
             <CheckSetting
@@ -318,93 +303,14 @@ export function SettingsDrawer() {
               }
             />
           </div>
-          <div className="cc-section-title">Container padding</div>
-          <div className="cc-field-row cc-field-row-compact">
-            <NumberSetting
-              id="container-padding-top"
-              label="Top"
-              value={doc.settings.containerPaddingTop}
-              onChange={(containerPaddingTop) =>
-                void updateSettings(
-                  { containerPaddingTop },
-                  { autoLayout: true },
-                )
-              }
+          {LAYOUT_NUMERIC_SETTING_GROUPS.map((group) => (
+            <NumberSettingGroup
+              key={group.id}
+              group={group}
+              settings={doc.settings}
+              onChange={commitNumericDocumentSetting}
             />
-            <NumberSetting
-              id="container-padding-right"
-              label="Right"
-              value={doc.settings.containerPaddingRight}
-              onChange={(containerPaddingRight) =>
-                void updateSettings(
-                  { containerPaddingRight },
-                  { autoLayout: true },
-                )
-              }
-            />
-            <NumberSetting
-              id="container-padding-bottom"
-              label="Bottom"
-              value={doc.settings.containerPaddingBottom}
-              onChange={(containerPaddingBottom) =>
-                void updateSettings(
-                  { containerPaddingBottom },
-                  { autoLayout: true },
-                )
-              }
-            />
-            <NumberSetting
-              id="container-padding-left"
-              label="Left"
-              value={doc.settings.containerPaddingLeft}
-              onChange={(containerPaddingLeft) =>
-                void updateSettings(
-                  { containerPaddingLeft },
-                  { autoLayout: true },
-                )
-              }
-            />
-          </div>
-          <div className="cc-field-row">
-            <NumberSetting
-              id="container-title-height"
-              label="Title area"
-              value={doc.settings.containerTitleHeight}
-              onChange={(containerTitleHeight) =>
-                void updateSettings(
-                  { containerTitleHeight },
-                  { autoLayout: true },
-                )
-              }
-            />
-            <NumberSetting
-              id="container-label-offset-top"
-              label="Label top offset"
-              value={doc.settings.containerLabelOffsetTop}
-              onChange={(containerLabelOffsetTop) =>
-                execute(updateDocumentSettings({ containerLabelOffsetTop }))
-              }
-            />
-          </div>
-          <div className="cc-section-title">Child gaps</div>
-          <div className="cc-field-row">
-            <NumberSetting
-              id="child-gap-x"
-              label="Horizontal"
-              value={doc.settings.childGapX}
-              onChange={(childGapX) =>
-                void updateSettings({ childGapX }, { autoLayout: true })
-              }
-            />
-            <NumberSetting
-              id="child-gap-y"
-              label="Vertical"
-              value={doc.settings.childGapY}
-              onChange={(childGapY) =>
-                void updateSettings({ childGapY }, { autoLayout: true })
-              }
-            />
-          </div>
+          ))}
           <button
             className="cc-btn"
             type="button"
@@ -595,6 +501,60 @@ export function SettingsDrawer() {
       </div>
     </aside>
   );
+}
+
+function NumberSettingGroup({
+  group,
+  settings,
+  onChange,
+}: {
+  group: NumericSettingsGroup;
+  settings: DiagramSettings;
+  onChange: (field: NumericSettingsField, value: number) => void;
+}) {
+  return (
+    <>
+      {group.title && <div className="cc-section-title">{group.title}</div>}
+      <div className={group.rowClassName}>
+        {group.fields.map((field) => (
+          <NumberSetting
+            key={field.id}
+            id={field.id}
+            label={field.label}
+            value={settings[field.key]}
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            onChange={(value) => onChange(field, value)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function commitDocumentSetting<Key extends keyof DiagramSettings>({
+  key,
+  value,
+  autoLayout,
+  execute,
+  updateSettings,
+}: {
+  key: Key;
+  value: DiagramSettings[Key];
+  autoLayout: SettingsAutoLayoutPolicy;
+  execute: (txn: Transaction) => unknown;
+  updateSettings: (
+    patch: Partial<DiagramSettings>,
+    options?: { autoLayout?: boolean },
+  ) => Promise<unknown>;
+}) {
+  const patch = buildSettingsPatch(key, value);
+  if (autoLayout === "always") {
+    void updateSettings(patch, { autoLayout: true });
+    return;
+  }
+  execute(updateDocumentSettings(patch));
 }
 
 function SettingsSection({
