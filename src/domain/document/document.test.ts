@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS } from "./defaults";
+import { createNode, DEFAULT_SETTINGS } from "./defaults";
 import { parseDocument } from "./parse";
 import { serializeDocument } from "./serialize";
 import {
@@ -509,6 +509,35 @@ describe("document JSON adapter", () => {
     expect(l3Resolved.nodesById.branch?.isOnCanvas).toBe(true);
     expect(l3Resolved.nodesById["digital-onboarding"]?.isOnCanvas).toBe(false);
     expect(l3Resolved.nodesById.digital?.type).toBe("leaf");
+
+    const levelFiveDoc = createSampleDocument();
+    levelFiveDoc.nodesById["digital-onboarding"] = {
+      ...levelFiveDoc.nodesById["digital-onboarding"]!,
+      type: "parent",
+    };
+    levelFiveDoc.nodesById["kyc-document-capture"] = createNode({
+      id: "kyc-document-capture",
+      parentId: "digital-onboarding",
+      label: "KYC Document Capture",
+      type: "leaf",
+      color: "mint",
+    });
+    levelFiveDoc.childrenByParentId["digital-onboarding"] = [
+      "kyc-document-capture",
+    ];
+    levelFiveDoc.childrenByParentId["kyc-document-capture"] = [];
+
+    const l4 = runTransaction(
+      levelFiveDoc,
+      createVisualView({ templateId: "level-4-map@1" }),
+    ).doc;
+    const l4Resolved = resolveVisualDocument(l4);
+    expect(l4Resolved.nodesById["digital-onboarding"]?.isOnCanvas).toBe(true);
+    expect(l4Resolved.nodesById["kyc-document-capture"]?.isOnCanvas).toBe(
+      false,
+    );
+    expect(l4Resolved.nodesById.digital?.type).toBe("parent");
+    expect(l4Resolved.nodesById["digital-onboarding"]?.type).toBe("leaf");
   });
 
   it("preserves domain deep-dive template context through JSON and reset", () => {

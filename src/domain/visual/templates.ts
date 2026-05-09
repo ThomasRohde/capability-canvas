@@ -12,6 +12,7 @@ export type VisualTemplateId =
   | "level-1-map@1"
   | "level-2-map@1"
   | "level-3-map@1"
+  | "level-4-map@1"
   | "executive-overview@1"
   | "domain-deep-dive@1"
   | "heatmap-overview@1"
@@ -48,6 +49,11 @@ export const BUILT_IN_VIEW_TEMPLATES: VisualTemplateDefinition[] = [
     id: "level-3-map@1",
     name: "Level 3 map",
     description: "Roots through level 3; hides deeper detail.",
+  },
+  {
+    id: "level-4-map@1",
+    name: "Level 4 map",
+    description: "Roots through level 4; hides deeper detail.",
   },
   {
     id: "executive-overview@1",
@@ -150,6 +156,9 @@ function visibleNodesForTemplate(
   }
   if (templateId === "level-3-map@1") {
     return new Set(nodesAtDepthOrLess(doc, 3));
+  }
+  if (templateId === "level-4-map@1") {
+    return new Set(nodesAtDepthOrLess(doc, 4));
   }
   if (templateId === "domain-deep-dive@1") {
     const rootId = context?.rootId ?? childrenOf(doc, null)[0];
