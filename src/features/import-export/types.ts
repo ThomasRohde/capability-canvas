@@ -1,7 +1,8 @@
 import type { CapabilityDocument } from '../../domain/document/types';
 import type { Diagnostic } from '../../domain/validation/diagnostics';
+import type { ExportFormat } from '../../app/exportFormats';
 
-export type ExportFormat = 'json' | 'svg' | 'html' | 'pptx' | 'drawio' | 'archimate';
+export type { ExportFormat } from '../../app/exportFormats';
 
 export type ExportScope = 'full-model' | 'active-view';
 export type ExportHiddenNodes = 'included' | 'excluded';

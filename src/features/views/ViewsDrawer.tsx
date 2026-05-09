@@ -35,6 +35,8 @@ import {
 } from "../../domain/document/types";
 import {
   BUILT_IN_VIEW_TEMPLATES,
+  DEFAULT_VISUAL_TEMPLATE_ID,
+  isBuiltInTemplateId,
   templateById,
   type VisualTemplateId,
 } from "../../domain/visual/templates";
@@ -79,7 +81,7 @@ export function ViewsDrawer() {
   );
   const [createName, setCreateName] = useState("");
   const [templateId, setTemplateId] =
-    useState<VisualTemplateId>("full-model-default@1");
+    useState<VisualTemplateId>(DEFAULT_VISUAL_TEMPLATE_ID);
   const [createRootId, setCreateRootId] = useState<NodeId>("");
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(
     null,
@@ -670,7 +672,7 @@ function formatUpdatedAt(updatedAt: number): string {
 function templateIdForView(view: VisualView): VisualTemplateId {
   return isBuiltInTemplateId(view.templateId)
     ? view.templateId
-    : "full-model-default@1";
+    : DEFAULT_VISUAL_TEMPLATE_ID;
 }
 
 function descriptionForView(view: VisualView, doc?: CapabilityDocument): string {
@@ -727,11 +729,4 @@ function orderedRootTargets(doc: CapabilityDocument): Array<{
     out.push({ id: nodeId, path: node.label });
   }
   return out;
-}
-
-function isBuiltInTemplateId(value: unknown): value is VisualTemplateId {
-  return (
-    typeof value === "string" &&
-    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
-  );
 }

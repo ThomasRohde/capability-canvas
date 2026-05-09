@@ -1,11 +1,10 @@
 import {
   isNodeOnCanvas,
   type CapabilityDocument,
-  type VisualView,
   type VisualViewId,
 } from "../document/types";
 import {
-  BUILT_IN_VIEW_TEMPLATES,
+  resolveBuiltInTemplateId,
   templateById,
   type VisualTemplateId,
 } from "./templates";
@@ -31,7 +30,7 @@ export function summarizeVisualView(
 ): VisualViewSummary | null {
   const view = doc.visual.viewsById[viewId];
   if (!view) return null;
-  const templateId = builtInTemplateId(view.templateId);
+  const templateId = resolveBuiltInTemplateId(view.templateId);
   const changes = viewChangeSummary(doc, viewId);
   return {
     viewId,
@@ -61,14 +60,4 @@ function countVisibleNodes(
 ): number {
   const resolved = resolveVisualDocument(doc, viewId);
   return Object.values(resolved.nodesById).filter(isNodeOnCanvas).length;
-}
-
-function builtInTemplateId(value: VisualView["templateId"]): VisualTemplateId {
-  if (
-    typeof value === "string" &&
-    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
-  ) {
-    return value as VisualTemplateId;
-  }
-  return "full-model-default@1";
 }

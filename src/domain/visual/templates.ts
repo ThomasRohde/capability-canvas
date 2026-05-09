@@ -18,6 +18,9 @@ export type VisualTemplateId =
   | "heatmap-overview@1"
   | "presentation-slide@1";
 
+export const DEFAULT_VISUAL_TEMPLATE_ID: VisualTemplateId =
+  "full-model-default@1";
+
 export interface VisualTemplateContext {
   rootId?: NodeId;
 }
@@ -138,6 +141,17 @@ export function templateById(id: VisualTemplateId): VisualTemplateDefinition {
     BUILT_IN_VIEW_TEMPLATES.find((template) => template.id === id) ??
     BUILT_IN_VIEW_TEMPLATES[0]!
   );
+}
+
+export function isBuiltInTemplateId(value: unknown): value is VisualTemplateId {
+  return (
+    typeof value === "string" &&
+    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
+  );
+}
+
+export function resolveBuiltInTemplateId(value: unknown): VisualTemplateId {
+  return isBuiltInTemplateId(value) ? value : DEFAULT_VISUAL_TEMPLATE_ID;
 }
 
 function visibleNodesForTemplate(

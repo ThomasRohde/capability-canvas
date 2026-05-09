@@ -7,9 +7,8 @@ import {
   type VisualViewId,
 } from "../document/types";
 import {
-  BUILT_IN_VIEW_TEMPLATES,
   createViewFromTemplate,
-  type VisualTemplateId,
+  resolveBuiltInTemplateId,
 } from "./templates";
 import { activeVisualView, resolveVisualDocument } from "./workspace";
 
@@ -76,18 +75,8 @@ function baselineViewFor(
 ): VisualView {
   return createViewFromTemplate(doc, {
     id: view.id,
-    templateId: builtInTemplateId(view.templateId),
+    templateId: resolveBuiltInTemplateId(view.templateId),
     name: view.name,
     context: view.templateContext,
   });
-}
-
-function builtInTemplateId(value: unknown): VisualTemplateId {
-  if (
-    typeof value === "string" &&
-    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
-  ) {
-    return value as VisualTemplateId;
-  }
-  return "full-model-default@1";
 }

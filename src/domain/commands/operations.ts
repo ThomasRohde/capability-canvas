@@ -32,8 +32,9 @@ import {
 } from "../validation/validate";
 import { error, type Diagnostic } from "../validation/diagnostics";
 import {
-  BUILT_IN_VIEW_TEMPLATES,
   createViewFromTemplate,
+  DEFAULT_VISUAL_TEMPLATE_ID,
+  resolveBuiltInTemplateId,
   type VisualTemplateId,
 } from "../visual/templates";
 import {
@@ -738,7 +739,7 @@ export function createVisualView(args: {
           : createVisualViewFromDocument(doc, {
               id,
               name: args.name?.trim() || "New view",
-              templateId: "full-model-default@1",
+              templateId: DEFAULT_VISUAL_TEMPLATE_ID,
             });
         const visual = cloneVisualWorkspace(next.visual);
         visual.viewsById[id] = view;
@@ -946,7 +947,7 @@ export function resetVisualView(viewId: VisualViewId): Transaction {
           id: viewId,
           name: previous.name,
           description: previous.description,
-          templateId: "full-model-default@1",
+          templateId: DEFAULT_VISUAL_TEMPLATE_ID,
         }),
         createdAt: previous.createdAt,
         updatedAt: now(),
@@ -964,7 +965,7 @@ export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
       command("reset-visual-view-layout", { viewId }, (doc) => {
         const existing = doc.visual.viewsById[viewId];
         if (!existing) return fail(doc, "missing-view", "Select a valid view.");
-        const templateId = builtInTemplateId(existing.templateId);
+        const templateId = resolveBuiltInTemplateId(existing.templateId);
         const contextRootId = existing.templateContext?.rootId;
         const baseline = createViewFromTemplate(doc, {
           id: viewId,
@@ -1011,7 +1012,7 @@ export function resetVisualViewVisibility(viewId: VisualViewId): Transaction {
     command("reset-visual-view-visibility", { viewId }, (doc) => {
       const existing = doc.visual.viewsById[viewId];
       if (!existing) return fail(doc, "missing-view", "Select a valid view.");
-      const templateId = builtInTemplateId(existing.templateId);
+      const templateId = resolveBuiltInTemplateId(existing.templateId);
       const contextRootId = existing.templateContext?.rootId;
       const baseline = createViewFromTemplate(doc, {
         id: viewId,
@@ -2124,16 +2125,6 @@ function uniqueViewName(doc: CapabilityDocument, baseName: string): string {
   let suffix = 2;
   while (existing.has(`${baseName} ${suffix}`)) suffix += 1;
   return `${baseName} ${suffix}`;
-}
-
-function builtInTemplateId(value: unknown): VisualTemplateId {
-  if (
-    typeof value === "string" &&
-    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
-  ) {
-    return value as VisualTemplateId;
-  }
-  return "full-model-default@1";
 }
 
 function updateOnly(

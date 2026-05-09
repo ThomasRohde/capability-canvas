@@ -5,9 +5,8 @@ import type {
   VisualViewId,
 } from "../document/types";
 import {
-  BUILT_IN_VIEW_TEMPLATES,
   createViewFromTemplate,
-  type VisualTemplateId,
+  resolveBuiltInTemplateId,
 } from "./templates";
 import { cloneVisualWorkspace } from "./workspace";
 
@@ -105,7 +104,7 @@ function createBaselineView(
   doc: CapabilityDocument,
   view: VisualView,
 ): VisualView {
-  const templateId = builtInTemplateId(view.templateId);
+  const templateId = resolveBuiltInTemplateId(view.templateId);
   return createViewFromTemplate(doc, {
     id: view.id,
     templateId,
@@ -141,16 +140,6 @@ function layoutNodeState(state: VisualNodeState): Partial<VisualNodeState> {
     lockedForView: state.lockedForView,
     isManualPositioningEnabled: state.isManualPositioningEnabled,
   });
-}
-
-function builtInTemplateId(value: unknown): VisualTemplateId {
-  if (
-    typeof value === "string" &&
-    BUILT_IN_VIEW_TEMPLATES.some((template) => template.id === value)
-  ) {
-    return value as VisualTemplateId;
-  }
-  return "full-model-default@1";
 }
 
 function stableStringify(value: unknown): string {

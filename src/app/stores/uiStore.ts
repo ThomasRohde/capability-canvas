@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import type { NodeId } from "../../domain/document/types";
-import type { ExportFormat } from "../../features/import-export/types";
+import {
+  DEFAULT_EXPORT_FORMAT,
+  isExportFormat,
+  type ExportFormat,
+} from "../exportFormats";
 
 export interface ViewportState {
   x: number;
@@ -33,14 +37,6 @@ const OUTLINE_WIDTH_STORAGE_KEY = "capability-canvas.outlineWidth";
 const OUTLINE_OPEN_STORAGE_KEY = "capability-canvas.outlineOpen";
 const INSPECTOR_OPEN_STORAGE_KEY = "capability-canvas.inspectorOpen";
 const EXPORT_FORMAT_STORAGE_KEY = "capability-canvas.exportFormat";
-const EXPORT_FORMATS: ExportFormat[] = [
-  "json",
-  "svg",
-  "html",
-  "pptx",
-  "drawio",
-  "archimate",
-];
 
 export function clampOutlineWidth(width: number) {
   return Math.min(
@@ -77,14 +73,12 @@ function readStoredBoolean(key: string, fallback: boolean) {
 }
 
 function readStoredExportFormat() {
-  if (typeof localStorage === "undefined") return "json";
+  if (typeof localStorage === "undefined") return DEFAULT_EXPORT_FORMAT;
   try {
     const raw = localStorage.getItem(EXPORT_FORMAT_STORAGE_KEY);
-    return EXPORT_FORMATS.includes(raw as ExportFormat)
-      ? (raw as ExportFormat)
-      : "json";
+    return isExportFormat(raw) ? raw : DEFAULT_EXPORT_FORMAT;
   } catch {
-    return "json";
+    return DEFAULT_EXPORT_FORMAT;
   }
 }
 

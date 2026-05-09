@@ -22,6 +22,10 @@ import type {
   LayoutAspectRatioPreset,
   LayoutMode,
 } from "../../domain/document/types";
+import {
+  EXPORT_FORMAT_OPTIONS,
+  type ExportFormat,
+} from "../../app/exportFormats";
 import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
 import {
   MAX_OUTLINE_WIDTH,
@@ -30,7 +34,6 @@ import {
 } from "../../app/stores/uiStore";
 import { importHeatmapCsv } from "../heatmap/csvImport";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
-import type { ExportFormat } from "../import-export/types";
 import { useFocusReturn } from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
 
@@ -71,15 +74,6 @@ const LAYOUT_ASPECT_RATIO_PRESETS: Array<{
   { value: "4:3", label: "4:3" },
   { value: "1:1", label: "1:1" },
   { value: "custom", label: "Custom" },
-];
-
-const EXPORT_FORMATS: Array<{ value: ExportFormat; label: string }> = [
-  { value: "json", label: "JSON" },
-  { value: "svg", label: "SVG" },
-  { value: "html", label: "HTML" },
-  { value: "pptx", label: "PowerPoint" },
-  { value: "drawio", label: "diagrams.net" },
-  { value: "archimate", label: "ArchiMate" },
 ];
 
 const EXPORT_PAGE_PRESETS = [
@@ -589,7 +583,7 @@ export function SettingsDrawer() {
                 setExportFormat(event.target.value as ExportFormat)
               }
             >
-              {EXPORT_FORMATS.map((format) => (
+              {EXPORT_FORMAT_OPTIONS.map((format) => (
                 <option key={format.value} value={format.value}>
                   {format.label}
                 </option>
