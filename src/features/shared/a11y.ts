@@ -45,6 +45,23 @@ interface MenuKeyboardNavigationOptions {
   itemSelector?: string;
 }
 
+export type DismissableLayerReason =
+  | "pointerdown-outside"
+  | "escape"
+  | "resize";
+
+interface DismissableLayerOptions {
+  open: boolean;
+  refs: readonly RefObject<HTMLElement | null>[];
+  onDismiss: (
+    reason: DismissableLayerReason,
+    event: PointerEvent | KeyboardEvent | UIEvent,
+  ) => void;
+  closeOnEscape?: boolean;
+  closeOnPointerDownOutside?: boolean;
+  closeOnResize?: boolean;
+}
+
 export function getFocusableElements(
   container: HTMLElement | null,
   selector = DEFAULT_FOCUSABLE_SELECTOR,
@@ -99,7 +116,9 @@ export function useFocusTrap({
       const container = containerRef.current;
       if (!container) return;
       const target =
-        initialFocusRef?.current ?? getFocusableElements(container)[0] ?? container;
+        initialFocusRef?.current ??
+        getFocusableElements(container)[0] ??
+        container;
       target.focus();
     });
 
@@ -148,6 +167,62 @@ export function useFocusTrap({
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [active, containerRef, disabled, initialFocusRef, onEscape]);
+}
+
+export function useDismissableLayer({
+  open,
+  refs,
+  onDismiss,
+  closeOnEscape = true,
+  closeOnPointerDownOutside = true,
+  closeOnResize = false,
+}: DismissableLayerOptions) {
+  const refsRef = useRef(refs);
+
+  useEffect(() => {
+    refsRef.current = refs;
+  }, [refs]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const containsTarget = (target: EventTarget | null) => {
+      if (!(target instanceof Node)) return false;
+      return refsRef.current.some((ref) => ref.current?.contains(target));
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!closeOnPointerDownOutside || containsTarget(event.target)) return;
+      onDismiss("pointerdown-outside", event);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!closeOnEscape || event.defaultPrevented || event.key !== "Escape")
+        return;
+      event.preventDefault();
+      onDismiss("escape", event);
+    };
+
+    const onResize = (event: UIEvent) => {
+      if (!closeOnResize) return;
+      onDismiss("resize", event);
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [
+    closeOnEscape,
+    closeOnPointerDownOutside,
+    closeOnResize,
+    onDismiss,
+    open,
+  ]);
 }
 
 export function useMenuKeyboardNavigation({
@@ -200,17 +275,15 @@ export function useMenuKeyboardNavigation({
   const handleMenuKeyDown = useCallback(
     (event: MenuKeyboardEvent) => {
       const menu = menuRef.current;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeAndRestoreFocus();
-        return;
-      }
-
       const activeElement =
         document.activeElement instanceof Node ? document.activeElement : null;
       const eventTarget = event.target instanceof Node ? event.target : null;
-      const eventStartedInMenu = eventTarget ? menu?.contains(eventTarget) : false;
-      const focusIsInMenu = activeElement ? menu?.contains(activeElement) : false;
+      const eventStartedInMenu = eventTarget
+        ? menu?.contains(eventTarget)
+        : false;
+      const focusIsInMenu = activeElement
+        ? menu?.contains(activeElement)
+        : false;
       if (!menu || (!eventStartedInMenu && !focusIsInMenu)) {
         return;
       }
@@ -228,7 +301,7 @@ export function useMenuKeyboardNavigation({
         focusItem("last");
       }
     },
-    [closeAndRestoreFocus, focusItem, menuRef],
+    [focusItem, menuRef],
   );
 
   useEffect(() => {

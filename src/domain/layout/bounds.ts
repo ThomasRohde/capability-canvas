@@ -56,11 +56,40 @@ export function isUsableBounds(bounds: Bounds | undefined): bounds is Bounds {
   );
 }
 
-export function rectanglesOverlap(left: BoxBounds, right: BoxBounds): boolean {
+export function sameBounds(
+  left: BoxBounds | undefined,
+  right: BoxBounds | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.w === right.w &&
+    left.h === right.h
+  );
+}
+
+export function intersectsBounds(
+  left: BoxBounds,
+  right: BoxBounds,
+  options: { inclusive?: boolean } = {},
+): boolean {
+  if (options.inclusive) {
+    return (
+      left.x <= right.x + right.w &&
+      left.x + left.w >= right.x &&
+      left.y <= right.y + right.h &&
+      left.y + left.h >= right.y
+    );
+  }
   return (
     left.x < right.x + right.w &&
     left.x + left.w > right.x &&
     left.y < right.y + right.h &&
     left.y + left.h > right.y
   );
+}
+
+export function rectanglesOverlap(left: BoxBounds, right: BoxBounds): boolean {
+  return intersectsBounds(left, right);
 }

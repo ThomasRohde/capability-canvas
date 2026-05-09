@@ -3,28 +3,9 @@ import {
   createEmptyDocument,
   createNode,
 } from "../../domain/document/defaults";
-import {
-  intersectsCanvasBounds,
-  snapDragDelta,
-  snapResizeDelta,
-} from "./canvasGeometry";
+import { snapDragDelta, snapResizeDelta } from "./canvasGeometry";
 
 describe("canvas geometry", () => {
-  it("treats edge-touching rectangles as non-intersecting", () => {
-    expect(
-      intersectsCanvasBounds(
-        { x: 0, y: 0, w: 10, h: 10 },
-        { x: 10, y: 0, w: 10, h: 10 },
-      ),
-    ).toBe(false);
-    expect(
-      intersectsCanvasBounds(
-        { x: 0, y: 0, w: 10, h: 10 },
-        { x: 9.9, y: 0, w: 10, h: 10 },
-      ),
-    ).toBe(true);
-  });
-
   it("snaps drag deltas in screen space using the anchor node", () => {
     const doc = createEmptyDocument();
     doc.nodesById.node = createNode({

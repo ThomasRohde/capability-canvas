@@ -8,9 +8,9 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { IconButton } from "../shared/IconButton";
-import { useMenuKeyboardNavigation } from "../shared/a11y";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 import type { ConfirmRequest } from "./viewDrawerTypes";
 
 const VIEW_ROW_MENU_GAP = 6;
@@ -67,30 +67,23 @@ export function ViewRowMenu({
   const menuAnchorRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        rootRef.current?.contains(event.target)
-      )
-        return;
-      setMenuOpen(false);
-    };
-    const closeOnResize = () => setMenuOpen(false);
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("resize", closeOnResize);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("resize", closeOnResize);
-    };
-  }, [menuOpen]);
+  const { closeAndRestoreFocus, handleMenuKeyDown } = useMenuKeyboardNavigation(
+    {
+      open: menuOpen,
+      menuRef,
+      triggerRef: menuButtonRef,
+      onClose: () => setMenuOpen(false),
+    },
+  );
 
-  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
+  useDismissableLayer({
     open: menuOpen,
-    menuRef,
-    triggerRef: menuButtonRef,
-    onClose: () => setMenuOpen(false),
+    refs: [rootRef],
+    closeOnResize: true,
+    onDismiss: (reason) => {
+      if (reason === "escape") closeAndRestoreFocus();
+      else setMenuOpen(false);
+    },
   });
 
   const toggleMenu = () => {

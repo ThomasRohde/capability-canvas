@@ -1,9 +1,5 @@
-import {
-  ChevronDown,
-  Eye,
-  Star,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Eye, Star } from "lucide-react";
+import { useRef, useState } from "react";
 import type { VisualViewId } from "../../domain/document/types";
 import { summarizeVisualView } from "../../domain/visual/viewSummary";
 import {
@@ -11,7 +7,7 @@ import {
   useActiveVisualState,
 } from "../../app/activeVisualState";
 import { useUiStore } from "../../app/stores/uiStore";
-import { useMenuKeyboardNavigation } from "../shared/a11y";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 
 interface ViewSwitcherProps {
   readonly?: boolean;
@@ -40,27 +36,22 @@ export function ViewSwitcher({
     .map((viewId) => doc.visual.viewsById[viewId])
     .filter(Boolean);
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        rootRef.current?.contains(event.target)
-      )
-        return;
-      setOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [open]);
+  const { closeAndRestoreFocus, handleMenuKeyDown } = useMenuKeyboardNavigation(
+    {
+      open,
+      menuRef,
+      triggerRef,
+      onClose: () => setOpen(false),
+    },
+  );
 
-  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
+  useDismissableLayer({
     open,
-    menuRef,
-    triggerRef,
-    onClose: () => setOpen(false),
+    refs: [rootRef],
+    onDismiss: (reason) => {
+      if (reason === "escape") closeAndRestoreFocus();
+      else setOpen(false);
+    },
   });
 
   const switchToView = (viewId: string) => {
@@ -95,7 +86,8 @@ export function ViewSwitcher({
           <span className="cc-view-trigger-name">{activeView.name}</span>
           {activeSummary && (
             <span className="cc-view-trigger-meta">
-              {activeSummary.templateName} - {activeSummary.visibleNodeCount} visible
+              {activeSummary.templateName} - {activeSummary.visibleNodeCount}{" "}
+              visible
             </span>
           )}
         </span>

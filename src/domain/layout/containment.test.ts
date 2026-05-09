@@ -9,6 +9,7 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../document/types";
+import { rectanglesOverlap } from "./bounds";
 
 describe("parent containment", () => {
   it("keeps the sample fixture visually contained", () => {
@@ -186,19 +187,10 @@ function findSiblingOverlaps(doc: CapabilityDocument): string[] {
       for (let b = a + 1; b < childIds.length; b += 1) {
         const first = doc.nodesById[childIds[a]!];
         const second = doc.nodesById[childIds[b]!];
-        if (first && second && overlaps(first, second))
+        if (first && second && rectanglesOverlap(first, second))
           out.push(`${first.id}<->${second.id}`);
       }
     }
   }
   return out;
-}
-
-function overlaps(
-  a: { x: number; y: number; w: number; h: number },
-  b: { x: number; y: number; w: number; h: number },
-): boolean {
-  return (
-    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
-  );
 }

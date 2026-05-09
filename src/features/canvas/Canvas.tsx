@@ -27,7 +27,7 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { type ViewportState, useUiStore } from "../../app/stores/uiStore";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
-import { useMenuKeyboardNavigation } from "../shared/a11y";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 import { useEditorActions } from "../commands/useEditorActions";
 import { BulkToolbar } from "./BulkToolbar";
 import {
@@ -207,13 +207,24 @@ export function Canvas({
     [readonly, setActiveDrawer, setSelection],
   );
 
-  const { handleMenuKeyDown: handleContextMenuKeyDown } =
-    useMenuKeyboardNavigation({
-      open: !!contextMenu,
-      menuRef: contextMenuRef,
-      triggerRef: contextMenuTriggerRef,
-      onClose: closeContextMenu,
-    });
+  const {
+    closeAndRestoreFocus: closeContextMenuAndRestoreFocus,
+    handleMenuKeyDown: handleContextMenuKeyDown,
+  } = useMenuKeyboardNavigation({
+    open: !!contextMenu,
+    menuRef: contextMenuRef,
+    triggerRef: contextMenuTriggerRef,
+    onClose: closeContextMenu,
+  });
+
+  useDismissableLayer({
+    open: !!contextMenu,
+    refs: [contextMenuRef],
+    onDismiss: (reason) => {
+      if (reason === "escape") closeContextMenuAndRestoreFocus();
+      else closeContextMenu();
+    },
+  });
 
   const handleNodeKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>, nodeId: NodeId) => {
@@ -255,15 +266,6 @@ export function Canvas({
     },
     [openNodeContextMenu],
   );
-
-  useEffect(() => {
-    if (!contextMenu) return;
-    const onPointerDown = () => closeContextMenu();
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [closeContextMenu, contextMenu]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

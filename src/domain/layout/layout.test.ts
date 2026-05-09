@@ -17,6 +17,7 @@ import {
   computeDocumentBounds,
   layoutDocument,
 } from "./engine";
+import { rectanglesOverlap } from "./bounds";
 import { evaluateAdaptiveLayoutQuality } from "./layoutQuality";
 
 describe("layout engine", () => {
@@ -1094,16 +1095,4 @@ function findSiblingOverlaps(doc: CapabilityDocument) {
     }
   }
   return overlaps;
-}
-
-function rectanglesOverlap(
-  left: { x: number; y: number; w: number; h: number },
-  right: { x: number; y: number; w: number; h: number },
-) {
-  return (
-    left.x < right.x + right.w &&
-    left.x + left.w > right.x &&
-    left.y < right.y + right.h &&
-    left.y + left.h > right.y
-  );
 }

@@ -1,11 +1,11 @@
 import { Palette } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { updateNodeColors } from "../../domain/commands/operations";
 import type { CapabilityColor, NodeId } from "../../domain/document/types";
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
-import { useMenuKeyboardNavigation } from "../shared/a11y";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 
 export function BulkColorPicker({
   selected,
@@ -41,30 +41,25 @@ export function BulkColorPicker({
         borderColor: "var(--cc-slate-300)",
       };
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        pickerRef.current?.contains(event.target)
-      )
-        return;
-      setOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [open]);
+  const {
+    closeAndRestoreFocus: closeColorMenuAndRestoreFocus,
+    handleMenuKeyDown: handleColorMenuKeyDown,
+  } = useMenuKeyboardNavigation({
+    open,
+    menuRef: popoverRef,
+    triggerRef,
+    onClose: () => setOpen(false),
+    itemSelector: "button:not([disabled])",
+  });
 
-  const { handleMenuKeyDown: handleColorMenuKeyDown } =
-    useMenuKeyboardNavigation({
-      open,
-      menuRef: popoverRef,
-      triggerRef,
-      onClose: () => setOpen(false),
-      itemSelector: "button:not([disabled])",
-    });
+  useDismissableLayer({
+    open,
+    refs: [pickerRef],
+    onDismiss: (reason) => {
+      if (reason === "escape") closeColorMenuAndRestoreFocus();
+      else setOpen(false);
+    },
+  });
 
   const applyColor = (color: CapabilityColor) => {
     if (disabled) return;

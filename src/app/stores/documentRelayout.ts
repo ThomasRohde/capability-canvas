@@ -4,11 +4,11 @@ import type {
   Transaction,
 } from "../../domain/commands/types";
 import type {
-  Bounds,
   CapabilityDocument,
   NodeId,
   VisualViewId,
 } from "../../domain/document/types";
+import { sameBounds } from "../../domain/layout/bounds";
 import { ensureParentContainment } from "../../domain/layout/containment";
 import {
   applyLayoutMetadata,
@@ -21,10 +21,7 @@ import {
   resolveVisualDocument,
 } from "../../domain/visual/workspace";
 import { attachViewBaseline } from "../../domain/visual/viewChanges";
-import {
-  warning,
-  type Diagnostic,
-} from "../../domain/validation/diagnostics";
+import { warning, type Diagnostic } from "../../domain/validation/diagnostics";
 import {
   clearRedo,
   replaceLastHistoryEntryAfterRelayout,
@@ -173,10 +170,7 @@ export function ensureLayoutBounds(
     !doc.layout.isUserArranged &&
     sameBounds(doc.layout.boundingBox, boundingBox);
   if (
-    doc.layout.boundingBox.x === boundingBox.x &&
-    doc.layout.boundingBox.y === boundingBox.y &&
-    doc.layout.boundingBox.w === boundingBox.w &&
-    doc.layout.boundingBox.h === boundingBox.h &&
+    sameBounds(doc.layout.boundingBox, boundingBox) &&
     (keepFrame ||
       (!doc.layout.aspectRatioFrame && !doc.layout.aspectRatioTarget))
   )
@@ -190,17 +184,4 @@ export function ensureLayoutBounds(
       aspectRatioTarget: keepFrame ? doc.layout.aspectRatioTarget : undefined,
     },
   };
-}
-
-function sameBounds(
-  left: Bounds | undefined,
-  right: Bounds | undefined,
-): boolean {
-  if (!left || !right) return left === right;
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    left.w === right.w &&
-    left.h === right.h
-  );
 }

@@ -15,7 +15,7 @@ import {
   StretchVertical,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   alignNodes,
   distributeNodes,
@@ -32,7 +32,7 @@ import {
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { IconButton } from "../shared/IconButton";
-import { useMenuKeyboardNavigation } from "../shared/a11y";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { BulkColorPicker } from "./BulkColorPicker";
 
@@ -52,29 +52,24 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const anchor = selected[0];
   const anchorNode = anchor ? viewDoc.nodesById[anchor] : undefined;
 
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        moreRef.current?.contains(event.target)
-      )
-        return;
-      setMoreOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [moreOpen]);
+  const {
+    closeAndRestoreFocus: closeBulkMenuAndRestoreFocus,
+    handleMenuKeyDown: handleBulkMenuKeyDown,
+  } = useMenuKeyboardNavigation({
+    open: moreOpen,
+    menuRef: moreRef,
+    triggerRef: moreTriggerRef,
+    onClose: () => setMoreOpen(false),
+  });
 
-  const { handleMenuKeyDown: handleBulkMenuKeyDown } =
-    useMenuKeyboardNavigation({
-      open: moreOpen,
-      menuRef: moreRef,
-      triggerRef: moreTriggerRef,
-      onClose: () => setMoreOpen(false),
-    });
+  useDismissableLayer({
+    open: moreOpen,
+    refs: [moreRef],
+    onDismiss: (reason) => {
+      if (reason === "escape") closeBulkMenuAndRestoreFocus();
+      else setMoreOpen(false);
+    },
+  });
 
   return (
     <div className="cc-bulk-toolbar">

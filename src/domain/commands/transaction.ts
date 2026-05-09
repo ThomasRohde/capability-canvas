@@ -7,6 +7,7 @@ import {
 } from "../document/types";
 import { ensureParentContainment } from "../layout/containment";
 import { computeDocumentBounds } from "../layout/engine";
+import { sameBounds } from "../layout/bounds";
 import { error, type Diagnostic } from "../validation/diagnostics";
 import { validateDocument } from "../validation/validate";
 import {
@@ -93,19 +94,6 @@ function cloneAspectRatioTarget(
   target: CapabilityDocument["layout"]["aspectRatioTarget"] | undefined,
 ): CapabilityDocument["layout"]["aspectRatioTarget"] | undefined {
   return target ? { ...target } : undefined;
-}
-
-function sameBounds(
-  left: { x: number; y: number; w: number; h: number } | undefined,
-  right: { x: number; y: number; w: number; h: number } | undefined,
-): boolean {
-  if (!left || !right) return left === right;
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    left.w === right.w &&
-    left.h === right.h
-  );
 }
 
 export function command<TArgs>(

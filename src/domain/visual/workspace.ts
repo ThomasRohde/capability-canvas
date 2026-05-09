@@ -16,7 +16,7 @@ import {
   type VisualViewport,
   type VisualWorkspace,
 } from "../document/types";
-import { boundsForBoxes, emptyBounds } from "../layout/bounds";
+import { boundsForBoxes, emptyBounds, sameBounds } from "../layout/bounds";
 
 export const DEFAULT_VIEW_ID = "view-default";
 
@@ -726,19 +726,6 @@ function cloneAspectRatioTarget(
   target: VisualView["layout"]["aspectRatioTarget"] | undefined,
 ): VisualView["layout"]["aspectRatioTarget"] | undefined {
   return target ? { ...target } : undefined;
-}
-
-function sameBounds(
-  left: Bounds | undefined,
-  right: Bounds | undefined,
-): boolean {
-  if (!left || !right) return left === right;
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    left.w === right.w &&
-    left.h === right.h
-  );
 }
 
 function sameAspectRatioTarget(

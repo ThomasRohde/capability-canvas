@@ -9,14 +9,12 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
+import { intersectsBounds } from "../../domain/layout/bounds";
 import { resolveSiblingSelection } from "../../domain/selection/rules";
 import type { ViewportState } from "../../app/stores/uiStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
-import {
-  intersectsCanvasBounds,
-  screenPointToDocumentPoint,
-} from "./canvasGeometry";
+import { screenPointToDocumentPoint } from "./canvasGeometry";
 
 export function useCanvasMarquee({
   canvasRef,
@@ -38,7 +36,7 @@ export function useCanvasMarquee({
           isNodeOnCanvas(node) &&
           !node.isTextLabel &&
           node.type !== "text" &&
-          intersectsCanvasBounds(node, selectionRect),
+          intersectsBounds(node, selectionRect),
       )
       .map((node) => node.id);
     return resolveSiblingSelection(viewDoc, ids).nodeIds.length;
@@ -83,7 +81,7 @@ export function useCanvasMarquee({
         for (const node of Object.values(viewDoc.nodesById)) {
           if (!isNodeOnCanvas(node)) continue;
           if (node.isTextLabel || node.type === "text") continue;
-          if (intersectsCanvasBounds(node, rectBounds)) candidate.add(node.id);
+          if (intersectsBounds(node, rectBounds)) candidate.add(node.id);
         }
         const ids = [...candidate];
         if (ids.length === 0) {

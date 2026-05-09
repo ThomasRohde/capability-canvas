@@ -80,6 +80,15 @@ describe("editor shell", () => {
       screen.queryByRole("menu", { name: "Model actions" }),
     ).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+
+    await userEvent.keyboard("{Enter}");
+    expect(
+      screen.getByRole("menu", { name: "Model actions" }),
+    ).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(
+      screen.queryByRole("menu", { name: "Model actions" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps selection-sensitive model menu items disabled without selection", async () => {

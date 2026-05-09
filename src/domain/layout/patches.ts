@@ -9,7 +9,12 @@ import {
   type NodeId,
 } from "../document/types";
 import { expandBoundsToAspectRatioFrame } from "./aspectRatio";
-import { boundsForBoxes, boundsForCanvasNodes, emptyBounds } from "./bounds";
+import {
+  boundsForBoxes,
+  boundsForCanvasNodes,
+  emptyBounds,
+  sameBounds,
+} from "./bounds";
 import { ROOT_OFFSET } from "./constants";
 import { snapLayoutSpacing } from "./grid";
 import type { LayoutPatch, LayoutResult } from "./types";
@@ -121,10 +126,7 @@ export function computePatchedDocumentBounds(
   return boundsForBoxes(boxes) ?? emptyBounds();
 }
 
-export function childAreaTop(
-  doc: CapabilityDocument,
-  node: CapabilityNode,
-) {
+export function childAreaTop(doc: CapabilityDocument, node: CapabilityNode) {
   return snapLayoutSpacing(
     doc,
     (node.layoutPreferences?.marginTop ?? doc.settings.containerPaddingTop) +
@@ -228,19 +230,6 @@ function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   return computeHierarchyDepths(doc, canvasRootChildren(doc), {
     canvasOnly: true,
   }).depths;
-}
-
-function sameBounds(
-  left: { x: number; y: number; w: number; h: number } | undefined,
-  right: { x: number; y: number; w: number; h: number } | undefined,
-): boolean {
-  if (!left || !right) return left === right;
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    left.w === right.w &&
-    left.h === right.h
-  );
 }
 
 function sameAspectRatioTarget(

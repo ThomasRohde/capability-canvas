@@ -1,6 +1,5 @@
 import type { ViewportState } from "../../app/stores/uiStore";
 import {
-  type Bounds,
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
@@ -24,15 +23,6 @@ export function isCanvasBackgroundTarget(
   return (
     target instanceof HTMLElement &&
     target.classList.contains("cc-canvas-stage")
-  );
-}
-
-export function intersectsCanvasBounds(
-  a: Pick<Bounds, "x" | "y" | "w" | "h">,
-  b: Pick<Bounds, "x" | "y" | "w" | "h">,
-): boolean {
-  return (
-    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
   );
 }
 

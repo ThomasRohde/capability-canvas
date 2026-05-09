@@ -7,7 +7,8 @@ import {
   type CapabilityDocument,
   type CapabilityNode,
   type NodeId,
-} from '../../domain/document/types';
+} from "../../domain/document/types";
+import { intersectsBounds } from "../../domain/layout/bounds";
 
 export interface NodeViewModel {
   node: CapabilityNode;
@@ -18,7 +19,10 @@ export interface NodeViewModel {
   zIndex: number;
 }
 
-export function createNodeViewModels(doc: CapabilityDocument, viewport?: Bounds): NodeViewModel[] {
+export function createNodeViewModels(
+  doc: CapabilityDocument,
+  viewport?: Bounds,
+): NodeViewModel[] {
   const depths = computeDepths(doc);
   return Object.values(doc.nodesById)
     .filter(isNodeOnCanvas)
@@ -30,8 +34,10 @@ export function createNodeViewModels(doc: CapabilityDocument, viewport?: Bounds)
         depth,
         descendants: new Set(descendantIds(doc, node.id)),
         bounds,
-        visible: viewport ? intersects(bounds, viewport) : true,
-        zIndex: depth * 10 + (node.type === 'leaf' ? 2 : 1)
+        visible: viewport
+          ? intersectsBounds(bounds, viewport, { inclusive: true })
+          : true,
+        zIndex: depth * 10 + (node.type === "leaf" ? 2 : 1),
       };
     })
     .sort((a, b) => a.depth - b.depth || a.node.id.localeCompare(b.node.id));
@@ -43,22 +49,21 @@ export function computeDepths(doc: CapabilityDocument): Map<NodeId, number> {
   }).depths;
 }
 
-export function descendantIds(doc: CapabilityDocument, nodeId: NodeId): NodeId[] {
+export function descendantIds(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): NodeId[] {
   return collectDescendantIds(doc, nodeId, { canvasOnly: true }).ids;
 }
 
 export function viewportToDocumentBounds(
   viewport: { x: number; y: number; zoom: number },
-  size: { w: number; h: number }
+  size: { w: number; h: number },
 ): Bounds {
   return {
     x: -viewport.x / viewport.zoom,
     y: -viewport.y / viewport.zoom,
     w: size.w / viewport.zoom,
-    h: size.h / viewport.zoom
+    h: size.h / viewport.zoom,
   };
-}
-
-function intersects(a: Bounds, b: Bounds): boolean {
-  return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
 }

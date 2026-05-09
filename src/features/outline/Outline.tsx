@@ -22,7 +22,14 @@ import type {
   ReactNode,
   KeyboardEventHandler,
 } from "react";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   addChild,
   addRoot,
@@ -62,7 +69,7 @@ import {
 } from "../../app/stores/uiStore";
 import { focusNodeInViewport } from "../canvas/viewport";
 import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
-import { useMenuKeyboardNavigation } from "../shared/a11y";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 
 export function Outline({
@@ -208,13 +215,24 @@ export function Outline({
     if (selected.length === 0 && filterToSelection) setFilterToSelection(false);
   }, [filterToSelection, selected.length]);
 
-  const { handleMenuKeyDown: handleOutlineMenuKeyDown } =
-    useMenuKeyboardNavigation({
-      open: menuNodeId !== null,
-      menuRef,
-      triggerRef: menuTriggerRef,
-      onClose: () => setMenuNodeId(null),
-    });
+  const {
+    closeAndRestoreFocus: closeOutlineMenuAndRestoreFocus,
+    handleMenuKeyDown: handleOutlineMenuKeyDown,
+  } = useMenuKeyboardNavigation({
+    open: menuNodeId !== null,
+    menuRef,
+    triggerRef: menuTriggerRef,
+    onClose: () => setMenuNodeId(null),
+  });
+
+  useDismissableLayer({
+    open: menuNodeId !== null,
+    refs: [menuRef, menuTriggerRef],
+    onDismiss: (reason) => {
+      if (reason === "escape") closeOutlineMenuAndRestoreFocus();
+      else setMenuNodeId(null);
+    },
+  });
 
   const startOutlineResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 && event.button !== undefined) return;
@@ -602,17 +620,9 @@ function matchesOutlineSelectionFilter(
   if (selected.includes(nodeId)) return true;
   return selected.some(
     (selectedId) =>
-      isAncestorOf(doc, nodeId, selectedId) ||
-      isAncestorOf(doc, selectedId, nodeId),
+      isHierarchyAncestorOf(doc, nodeId, selectedId) ||
+      isHierarchyAncestorOf(doc, selectedId, nodeId),
   );
-}
-
-function isAncestorOf(
-  doc: CapabilityDocument,
-  ancestorId: NodeId,
-  nodeId: NodeId,
-) {
-  return isHierarchyAncestorOf(doc, ancestorId, nodeId);
 }
 
 function arraysEqual(first: string[], second: string[]) {
@@ -671,7 +681,9 @@ function HighlightedText({
   ranges.forEach((range, index) => {
     if (range.start > cursor) {
       parts.push(
-        <Fragment key={`text-${index}`}>{text.slice(cursor, range.start)}</Fragment>,
+        <Fragment key={`text-${index}`}>
+          {text.slice(cursor, range.start)}
+        </Fragment>,
       );
     }
     parts.push(
@@ -717,7 +729,8 @@ function visibilityLabel(
       ? `Hidden by collapsed ${collapsedAncestorLabel}`
       : "Hidden by collapsed ancestor";
   }
-  if (context?.visibility === "outside-active-view") return "Outside active view";
+  if (context?.visibility === "outside-active-view")
+    return "Outside active view";
   return "Hidden in active view";
 }
 

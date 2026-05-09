@@ -44,7 +44,11 @@ import { getEditorCommandAvailability } from "../commands/editorCommands";
 import { ShortcutHelp } from "../commands/ShortcutHelp";
 import { useEditorActions } from "../commands/useEditorActions";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
-import { useFocusTrap, useMenuKeyboardNavigation } from "../shared/a11y";
+import {
+  useDismissableLayer,
+  useFocusTrap,
+  useMenuKeyboardNavigation,
+} from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
 import { ViewSwitcher } from "../views/ViewSwitcher";
 
@@ -59,8 +63,7 @@ export function Toolbar() {
   const [pasteDraft, setPasteDraft] = useState("");
   const [importReview, setImportReview] = useState<ImportReview | null>(null);
   const [importBusy, setImportBusy] = useState(false);
-  const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] =
-    useState(false);
+  const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] = useState(false);
   const pasteDialogRef = useRef<HTMLElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const promptCopyNoticeTimeout = useRef<number | null>(null);
@@ -520,31 +523,27 @@ function ToolbarMenu({
   const openMenu = () => {
     setOpen(true);
   };
-  const { handleMenuKeyDown } = useMenuKeyboardNavigation({
+  const { closeAndRestoreFocus, handleMenuKeyDown } = useMenuKeyboardNavigation(
+    {
+      open,
+      menuRef,
+      triggerRef,
+      onClose: closeMenu,
+    },
+  );
+
+  useDismissableLayer({
     open,
-    menuRef,
-    triggerRef,
-    onClose: closeMenu,
+    refs: [rootRef],
+    onDismiss: (reason) => {
+      if (reason === "escape") closeAndRestoreFocus();
+      else closeMenu();
+    },
   });
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        rootRef.current?.contains(event.target)
-      ) {
-        return;
-      }
-      closeMenu();
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [open]);
-
-  const handleTriggerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+  const handleTriggerKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+  ) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
       openMenu();
@@ -631,7 +630,10 @@ function ToolbarMenuItem({
       <Icon aria-hidden="true" />
       <span>{label}</span>
       {role === "menuitemcheckbox" && (
-        <span className={`cc-toggle ${checked ? "on" : ""}`} aria-hidden="true" />
+        <span
+          className={`cc-toggle ${checked ? "on" : ""}`}
+          aria-hidden="true"
+        />
       )}
     </button>
   );
