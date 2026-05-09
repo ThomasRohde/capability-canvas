@@ -26,7 +26,6 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
       'Add root',
       'Add child',
       'Model actions',
-      'View options',
       'Fit',
       'Auto layout',
       'Import',
@@ -36,6 +35,10 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
         timeout: 15000,
       });
     }
+    await expect(page.getByRole('button', { name: 'Toggle heatmap', exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('button', { name: 'View options', exact: true })).toHaveCount(0);
 
     const metrics = await toolbar.evaluate((element) => ({
       clientWidth: element.clientWidth,
@@ -57,9 +60,13 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
     );
     await page.keyboard.press('Escape');
 
-    await page.getByRole('button', { name: 'View options', exact: true }).click();
-    await expect(page.getByRole('menuitemcheckbox', { name: 'Heatmap' })).toBeVisible();
-    await page.keyboard.press('Escape');
+    const heatmapToggle = page.getByRole('button', { name: 'Toggle heatmap', exact: true });
+    const heatmapPressed = await heatmapToggle.getAttribute('aria-pressed');
+    await heatmapToggle.click();
+    await expect(heatmapToggle).toHaveAttribute(
+      'aria-pressed',
+      heatmapPressed === 'true' ? 'false' : 'true',
+    );
 
     await page.getByRole('button', { name: 'Import', exact: true }).click();
     await expect(page.getByRole('menuitem', { name: 'Import JSON file' })).toBeVisible();

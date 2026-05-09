@@ -4,14 +4,11 @@ import {
   Download,
   EyeOff,
   FileJson,
-  Grid3X3,
   LayoutTemplate,
   Minus,
   MoreHorizontal,
   Plus,
   Redo2,
-  Settings,
-  SlidersHorizontal,
   Trash2,
   Upload,
   Undo2,
@@ -358,26 +355,6 @@ export function Toolbar() {
           <CommandPalette commands={commandRegistry} context={commandContext} />
           <ShortcutHelp commands={commandRegistry} context={commandContext} />
         </div>
-        <ToolbarMenu label="View options" icon={SlidersHorizontal} compact>
-          {({ closeMenu }) => (
-            <>
-              <ToolbarMenuItem
-                icon={Grid3X3}
-                label="Heatmap"
-                role="menuitemcheckbox"
-                checked={viewDoc.heatmap.enabled}
-                closeMenu={closeMenu}
-                onSelect={toggleHeatmap}
-              />
-              <ToolbarMenuItem
-                icon={Settings}
-                label="Settings"
-                closeMenu={closeMenu}
-                onSelect={openSettings}
-              />
-            </>
-          )}
-        </ToolbarMenu>
         <span className="cc-divider" />
         <div className="cc-toolbar-group" aria-label="Model commands">
           <button

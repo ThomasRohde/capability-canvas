@@ -83,7 +83,7 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Model actions" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "View options" }),
+      screen.getByRole("button", { name: "Toggle heatmap" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
@@ -133,21 +133,18 @@ describe("editor shell", () => {
     const canvas = screen.getByTestId("canvas");
     expect(within(canvas).queryByText("0.72")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "View options" }));
-    const heatmapItem = screen.getByRole("menuitemcheckbox", {
-      name: "Heatmap",
+    const heatmapToggle = screen.getByRole("button", {
+      name: "Toggle heatmap",
     });
-    expect(heatmapItem).toHaveAttribute("aria-checked", "false");
-    await userEvent.click(heatmapItem);
+    expect(heatmapToggle).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(heatmapToggle);
     expect(within(canvas).getByText("0.72")).toHaveClass("leaf-score");
     expect(
       canvas.querySelector(".cc-node-score.container-score"),
     ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "View options" }));
     expect(
-      screen.getByRole("menuitemcheckbox", { name: "Heatmap" }),
-    ).toHaveAttribute("aria-checked", "true");
+      screen.getByRole("button", { name: "Toggle heatmap" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("positions the heatmap legend from the active view", () => {
@@ -932,8 +929,7 @@ describe("editor shell", () => {
       container.querySelector(".cc-canvas .cc-node-title .cc-tree-swatch"),
     ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "View options" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Settings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open settings" }));
     expect(
       screen.getByRole("complementary", { name: "Settings" }),
     ).toBeInTheDocument();

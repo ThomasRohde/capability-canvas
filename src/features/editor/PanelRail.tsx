@@ -1,13 +1,25 @@
-import { Download, Layers3, PanelLeft, PanelRight, Settings } from 'lucide-react';
+import { Download, Grid3X3, Layers3, PanelLeft, PanelRight, Settings } from 'lucide-react';
+import { useDocumentStore } from '../../app/stores/documentStore';
 import { useUiStore } from '../../app/stores/uiStore';
+import { updateActiveViewHeatmapSettings } from '../../domain/commands/operations';
+import { resolveVisualDocument } from '../../domain/visual/workspace';
 
 export function PanelRail() {
+  const doc = useDocumentStore((state) => state.doc);
+  const execute = useDocumentStore((state) => state.execute);
   const outlineOpen = useUiStore((state) => state.outlineOpen);
   const inspectorOpen = useUiStore((state) => state.inspectorOpen);
   const activeDrawer = useUiStore((state) => state.activeDrawer);
   const toggleOutline = useUiStore((state) => state.toggleOutline);
   const toggleInspector = useUiStore((state) => state.toggleInspector);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const viewDoc = resolveVisualDocument(doc);
+  const toggleHeatmap = () =>
+    execute(
+      updateActiveViewHeatmapSettings({
+        enabled: !viewDoc.heatmap.enabled,
+      }),
+    );
 
   return (
     <nav className="cc-panel-rail" aria-label="Workspace tools">
@@ -40,6 +52,16 @@ export function PanelRail() {
         onClick={() => setActiveDrawer(activeDrawer === 'views' ? null : 'views')}
       >
         <Layers3 />
+      </button>
+      <button
+        className={`cc-rail-btn ${viewDoc.heatmap.enabled ? 'active' : ''}`}
+        type="button"
+        aria-label="Toggle heatmap"
+        aria-pressed={viewDoc.heatmap.enabled}
+        title="Heatmap"
+        onClick={toggleHeatmap}
+      >
+        <Grid3X3 />
       </button>
       <span className="cc-rail-separator" />
       <button
