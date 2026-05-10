@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { APP_VERSION } from "../../app/version";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { HELP_SEEN_STORAGE_KEY } from "../help/helpStorage";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
 
 describe("editor shell", () => {
@@ -37,8 +38,29 @@ describe("editor shell", () => {
     expect(
       screen.getByRole("button", { name: "Toggle heatmap" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open help" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
+  });
+
+  it("opens help the first time this browser runs the editor", async () => {
+    window.localStorage.removeItem(HELP_SEEN_STORAGE_KEY);
+
+    renderEditor();
+
+    const dialog = await screen.findByRole("dialog", { name: "Help" });
+    expect(within(dialog).getByText("Getting started")).toBeInTheDocument();
+    expect(window.localStorage.getItem(HELP_SEEN_STORAGE_KEY)).toBe("true");
+  });
+
+  it("does not auto-open help after the first-run flag is set", () => {
+    renderEditor();
+
+    expect(
+      screen.queryByRole("dialog", { name: "Help" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps secondary model commands in a keyboard-accessible menu", async () => {
@@ -210,8 +232,8 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Open command palette" }),
     ).toHaveAccessibleName("Open command palette");
     expect(
-      screen.getByRole("button", { name: "Keyboard shortcuts" }),
-    ).toHaveAccessibleName("Keyboard shortcuts");
+      screen.getByRole("button", { name: "Open help" }),
+    ).toHaveAccessibleName("Open help");
     expect(
       screen.getByRole("button", { name: "Toggle outline" }),
     ).toHaveAccessibleName("Toggle outline");
@@ -220,24 +242,56 @@ describe("editor shell", () => {
     ).toHaveAccessibleName("Diagnostics");
   });
 
-  it("opens and closes shortcut help by keyboard", async () => {
+  it("opens help from the rail", async () => {
+    renderEditor();
+
+    const trigger = screen.getByRole("button", { name: "Open help" });
+    await userEvent.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { name: "Help" });
+    expect(dialog).toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-pressed", "true");
+    expect(within(dialog).getByText("Getting started")).toBeInTheDocument();
+  });
+
+  it("opens and closes help by keyboard", async () => {
     renderEditor();
 
     fireEvent.keyDown(window, { key: "?" });
+    const dialog = screen.getByRole("dialog", { name: "Help" });
+    expect(within(dialog).getByText("Pan and zoom")).toBeInTheDocument();
+    expect(within(dialog).getByText("Commands")).toBeInTheDocument();
     expect(
-      screen.getByRole("dialog", { name: "Keyboard shortcuts" }),
+      within(dialog).getByText("Shift+F10 / ContextMenu"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Pan and zoom")).toBeInTheDocument();
-    expect(screen.getByText("Commands")).toBeInTheDocument();
-    expect(screen.getByText("Shift+F10 / ContextMenu")).toBeInTheDocument();
     expect(
-      screen.getByText("Open the selected capability context menu"),
+      within(dialog).getByText("Open the selected capability context menu"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("heading", { name: "Data formats" }),
+    ).toBeInTheDocument();
+    for (const format of [
+      "Capability hierarchy JSON",
+      "Nested hierarchy JSON",
+      "Prompt merge JSON",
+      "Heatmap CSV",
+      "Full native document JSON",
+    ]) {
+      expect(
+        within(dialog).getByRole("heading", { name: format }),
+      ).toBeInTheDocument();
+    }
+    expect(
+      within(dialog).getByRole("button", { name: "Copy hierarchy format" }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/paste it into an agent/i),
     ).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: "Keyboard shortcuts" }),
+        screen.queryByRole("dialog", { name: "Help" }),
       ).not.toBeInTheDocument(),
     );
   });

@@ -70,7 +70,8 @@
 }
 
 .cc-command-backdrop,
-.cc-shortcut-backdrop {
+.cc-shortcut-backdrop,
+.cc-help-backdrop {
   z-index: 95;
 }
 
@@ -221,6 +222,218 @@
   color: var(--cc-slate-600);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.cc-help-dialog {
+  width: min(1080px, calc(100vw - 32px));
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 16px 18px 18px;
+}
+
+.cc-help-body {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+}
+
+.cc-help-index {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding-right: 12px;
+  border-right: 1px solid var(--cc-slate-200);
+}
+
+.cc-help-index button {
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cc-slate-600);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.cc-help-index button:hover,
+.cc-help-index button:focus-visible {
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-900);
+}
+
+.cc-help-content {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  min-height: 0;
+  max-height: min(680px, calc(100vh - 130px));
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.cc-help-section {
+  display: grid;
+  gap: 10px;
+  scroll-margin-top: 8px;
+}
+
+.cc-help-section h2,
+.cc-help-format-card h3,
+.cc-help-shortcut-section h3 {
+  margin: 0;
+  color: var(--cc-slate-900);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cc-help-section p {
+  margin: 0;
+  color: var(--cc-slate-600);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cc-help-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--cc-slate-600);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cc-help-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 18px 24px;
+}
+
+.cc-help-shortcut-section {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cc-help-shortcut-section dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.cc-help-shortcut-section dl > div {
+  display: grid;
+  grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+}
+
+.cc-help-shortcut-section dt,
+.cc-help-shortcut-section dd {
+  margin: 0;
+}
+
+.cc-help-shortcut-section dd {
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cc-help-format-list {
+  display: grid;
+  gap: 12px;
+}
+
+.cc-help-format-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 8px;
+  background: var(--cc-white);
+}
+
+.cc-help-format-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.cc-help-format-card p {
+  margin: 4px 0 0;
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cc-help-format-accepts {
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-600);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cc-help-format-code {
+  max-height: 260px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--cc-slate-200);
+  border-radius: 6px;
+  background: var(--cc-slate-50);
+  color: var(--cc-slate-800);
+  font-family: var(--cc-font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre;
+}
+
+@media (max-width: 760px) {
+  .cc-help-dialog {
+    width: min(760px, calc(100vw - 24px));
+    padding: 14px;
+  }
+
+  .cc-help-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .cc-help-index {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 0 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--cc-slate-200);
+  }
+
+  .cc-help-index button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .cc-help-content {
+    max-height: calc(100vh - 170px);
+  }
+
+  .cc-help-format-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cc-help-format-head .cc-btn {
+    justify-self: start;
+  }
 }
 
 .cc-confirm-dialog {

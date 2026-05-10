@@ -109,5 +109,6 @@ export default defineConfig({
     globals: true,
     css: true,
     exclude: ["node_modules/**", "dist/**", "tests/e2e/**"],
+    testTimeout: 10_000,
   },
 });

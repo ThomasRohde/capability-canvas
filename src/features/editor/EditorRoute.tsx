@@ -1,7 +1,8 @@
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { useUiStore } from "../../app/stores/uiStore";
 import { Canvas } from "../canvas/Canvas";
 import { ExportDrawer } from "../export/ExportDrawer";
+import { hasSeenHelp, markHelpSeen } from "../help/helpStorage";
 import { Inspector } from "../inspector/Inspector";
 import { Outline } from "../outline/Outline";
 import { SettingsDrawer } from "../settings/SettingsDrawer";
@@ -14,9 +15,16 @@ export function EditorRoute() {
   const outlineOpen = useUiStore((state) => state.outlineOpen);
   const outlineWidth = useUiStore((state) => state.outlineWidth);
   const inspectorOpen = useUiStore((state) => state.inspectorOpen);
+  const setHelpDialogOpen = useUiStore((state) => state.setHelpDialogOpen);
   const workspaceStyle = {
     "--cc-outline-width": `${outlineWidth}px`,
   } as CSSProperties;
+
+  useEffect(() => {
+    if (hasSeenHelp()) return;
+    markHelpSeen();
+    setHelpDialogOpen(true);
+  }, [setHelpDialogOpen]);
 
   return (
     <div className="cc-app">

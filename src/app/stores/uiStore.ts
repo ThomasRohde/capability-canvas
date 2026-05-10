@@ -117,6 +117,7 @@ interface UiState {
   outlineWidth: number;
   inspectorOpen: boolean;
   activeDrawer: ActiveDrawer;
+  helpDialogOpen: boolean;
   exportFormat: ExportFormat;
   inspectorTab: "inspector" | "layout" | "data";
   searchQuery: string;
@@ -133,6 +134,7 @@ interface UiState {
   setInspectorOpen: (open: boolean) => void;
   toggleInspector: () => void;
   setActiveDrawer: (drawer: ActiveDrawer) => void;
+  setHelpDialogOpen: (open: boolean) => void;
   setExportFormat: (format: ExportFormat) => void;
   setInspectorTab: (tab: UiState["inspectorTab"]) => void;
   setSearchQuery: (query: string) => void;
@@ -150,6 +152,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   outlineWidth: readStoredOutlineWidth(),
   inspectorOpen: readStoredBoolean(INSPECTOR_OPEN_STORAGE_KEY, true),
   activeDrawer: null,
+  helpDialogOpen: false,
   exportFormat: readStoredExportFormat(),
   inspectorTab: "inspector",
   searchQuery: "",
@@ -191,6 +194,7 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ inspectorOpen });
   },
   setActiveDrawer: (drawer) => set({ activeDrawer: drawer }),
+  setHelpDialogOpen: (open) => set({ helpDialogOpen: open }),
   setExportFormat: (format) => {
     persistExportFormat(format);
     set({ exportFormat: format });

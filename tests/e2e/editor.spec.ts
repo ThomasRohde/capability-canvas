@@ -1,9 +1,18 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.setTimeout(60_000);
 
-test('loads editor shell and opens export drawer', async ({ page }) => {
+const HELP_SEEN_STORAGE_KEY = 'capability-canvas.helpSeen';
+
+async function gotoEditor(page: Page) {
+  await page.addInitScript((key) => {
+    window.localStorage.setItem(key, 'true');
+  }, HELP_SEEN_STORAGE_KEY);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
+}
+
+test('loads editor shell and opens export drawer', async ({ page }) => {
+  await gotoEditor(page);
   await expect(page.locator('.cc-editor-toolbar .cc-brand-mark')).toBeVisible();
   await expect(page.getByText('Outline')).toBeVisible();
   await expect(page.getByTestId('canvas')).toBeVisible();
@@ -12,13 +21,30 @@ test('loads editor shell and opens export drawer', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Export file' })).toBeVisible();
 });
 
+test('opens help on first editor load in a browser profile', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const help = page.getByRole('dialog', { name: 'Help' });
+  await expect(help).toBeVisible();
+  await expect(help.getByRole('heading', { name: 'Data formats' })).toBeVisible();
+  await expect(help.getByRole('heading', { name: 'Capability hierarchy JSON' })).toBeVisible();
+  await expect(help.getByRole('heading', { name: 'Prompt merge JSON' })).toBeVisible();
+  await expect(help.getByRole('heading', { name: 'Heatmap CSV' })).toBeVisible();
+  await expect(help.getByRole('button', { name: 'Copy hierarchy format' })).toBeVisible();
+
+  await help.getByRole('button', { name: 'Close help' }).click();
+  await expect(help).toHaveCount(0);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('dialog', { name: 'Help' })).toHaveCount(0);
+});
+
 test('keeps compact editor toolbar single-row and exposes grouped menus', async ({ page }) => {
   for (const viewport of [
     { width: 1366, height: 800 },
     { width: 960, height: 720 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await gotoEditor(page);
     const toolbar = page.locator('.cc-editor-toolbar');
     await expect(toolbar).toBeVisible();
 
@@ -75,7 +101,7 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
 });
 
 test('runs common actions from the command palette', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
 
   await page.getByRole('button', { name: 'Open command palette' }).click();
   let palette = page.getByRole('dialog', { name: 'Command palette' });
@@ -107,7 +133,7 @@ test('runs common actions from the command palette', async ({ page }) => {
 });
 
 test('traps command palette focus for keyboard users', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
 
   const trigger = page.getByRole('button', { name: 'Open command palette' });
   await trigger.focus();
@@ -128,7 +154,7 @@ test('traps command palette focus for keyboard users', async ({ page }) => {
 });
 
 test('supports a keyboard-only create rename restore and export smoke flow', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
 
   await page.getByRole('button', { name: 'Add root', exact: true }).focus();
   await page.keyboard.press('Enter');
@@ -169,7 +195,7 @@ test('supports a keyboard-only create rename restore and export smoke flow', asy
 });
 
 test('cancels pasted import review without replacing the document', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const before = await page.evaluate(() => {
     const testWindow = window as unknown as {
       __ccTestSerializeDocument?: () => { title?: string; nodes: unknown[] };
@@ -210,7 +236,7 @@ test('cancels pasted import review without replacing the document', async ({ pag
 });
 
 test('applies repairable pasted import and surfaces diagnostics', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const payload = await page.evaluate(() => {
     const testWindow = window as unknown as {
       __ccTestSerializeDocument?: () => {
@@ -258,7 +284,7 @@ test('applies repairable pasted import and surfaces diagnostics', async ({ page 
 });
 
 test('renames a canvas label inline and undoes the rename', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const canvas = page.getByTestId('canvas');
 
   await canvas.getByText('Digital Onboarding').dblclick();
@@ -273,7 +299,7 @@ test('renames a canvas label inline and undoes the rename', async ({ page }) => 
 });
 
 test('cancels a canvas inline label edit with Escape', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const canvas = page.getByTestId('canvas');
 
   await canvas.getByText('Digital Onboarding').dblclick();
@@ -287,7 +313,7 @@ test('cancels a canvas inline label edit with Escape', async ({ page }) => {
 });
 
 test('supports panel rail, padding controls and outline actions', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
 
   await page.getByRole('button', { name: 'Collapse outline' }).click();
   await expect(page.getByText('Outline')).toHaveCount(0);
@@ -350,7 +376,7 @@ test('viewer presentation controls do not mutate the serialized document', async
 });
 
 test('separates active view remove from source-model delete', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
 
   const serializedContains = (nodeId: string) =>
     page.evaluate((id) => {
@@ -384,7 +410,7 @@ test('separates active view remove from source-model delete', async ({ page }) =
 });
 
 test('outline search finds, restores and expands active view results', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const outline = page.locator('.cc-outline');
   const canvas = page.getByTestId('canvas');
   const search = page.getByPlaceholder('Search outline');
@@ -417,7 +443,7 @@ test('outline search finds, restores and expands active view results', async ({ 
 });
 
 test('creates, renames, duplicates, resets, deletes and persists visual views', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const sourceNodeIds = () =>
     page.evaluate(() =>
       (
@@ -494,7 +520,7 @@ test('creates, renames, duplicates, resets, deletes and persists visual views', 
 
 test('views drawer remains readable on a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 720 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   await page.getByRole('button', { name: 'Open views' }).click();
   await expect(page.getByRole('complementary', { name: 'Views' })).toBeVisible();
   await page.getByLabel('New view name').fill('Narrow menu check');
@@ -535,7 +561,7 @@ test('views drawer remains readable on a narrow viewport', async ({ page }) => {
 });
 
 test('bulk-selects sibling leaves, aligns, undoes and redoes', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const canvas = page.getByTestId('canvas');
   const nodeX = (nodeId: string) =>
     page
@@ -586,7 +612,7 @@ function nodeIdToLabel(nodeId: string) {
 }
 
 test('Ctrl+A expands from selected risk child to risk siblings', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const canvas = page.getByTestId('canvas');
 
   await canvas.getByText('Credit Risk').click();
@@ -601,7 +627,7 @@ test('Ctrl+A expands from selected risk child to risk siblings', async ({ page }
 });
 
 test('invalid mixed-parent multi-select shows selection feedback', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const canvas = page.getByTestId('canvas');
 
   await canvas.getByText('Credit Risk').click();
@@ -612,7 +638,7 @@ test('invalid mixed-parent multi-select shows selection feedback', async ({ page
 });
 
 test('marquee selection preview is transient', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoEditor(page);
   const serialize = () =>
     page.evaluate(() =>
       JSON.stringify(

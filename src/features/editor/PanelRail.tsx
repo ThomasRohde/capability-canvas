@@ -1,4 +1,12 @@
-import { Download, Grid3X3, Layers3, PanelLeft, PanelRight, Settings } from 'lucide-react';
+import {
+  CircleHelp,
+  Download,
+  Grid3X3,
+  Layers3,
+  PanelLeft,
+  PanelRight,
+  Settings,
+} from 'lucide-react';
 import { useActiveVisualState } from '../../app/activeVisualState';
 import { useDocumentStore } from '../../app/stores/documentStore';
 import { useUiStore } from '../../app/stores/uiStore';
@@ -10,9 +18,11 @@ export function PanelRail() {
   const outlineOpen = useUiStore((state) => state.outlineOpen);
   const inspectorOpen = useUiStore((state) => state.inspectorOpen);
   const activeDrawer = useUiStore((state) => state.activeDrawer);
+  const helpDialogOpen = useUiStore((state) => state.helpDialogOpen);
   const toggleOutline = useUiStore((state) => state.toggleOutline);
   const toggleInspector = useUiStore((state) => state.toggleInspector);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const setHelpDialogOpen = useUiStore((state) => state.setHelpDialogOpen);
   const { visualDocument: viewDoc } = useActiveVisualState({ doc });
   const toggleHeatmap = () =>
     execute(
@@ -83,6 +93,17 @@ export function PanelRail() {
         onClick={() => setActiveDrawer(activeDrawer === 'export' ? null : 'export')}
       >
         <Download />
+      </button>
+      <span className="cc-rail-separator" />
+      <button
+        className={`cc-rail-btn ${helpDialogOpen ? 'active' : ''}`}
+        type="button"
+        aria-label="Open help"
+        aria-pressed={helpDialogOpen}
+        title="Help"
+        onClick={() => setHelpDialogOpen(true)}
+      >
+        <CircleHelp />
       </button>
     </nav>
   );

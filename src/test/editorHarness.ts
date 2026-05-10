@@ -6,6 +6,7 @@ import { useDocumentStore } from "../app/stores/documentStore";
 import { useTransientStore } from "../app/stores/transientStore";
 import { DEFAULT_OUTLINE_WIDTH, useUiStore } from "../app/stores/uiStore";
 import { EditorRoute } from "../features/editor/EditorRoute";
+import { HELP_SEEN_STORAGE_KEY } from "../features/help/helpStorage";
 import { ViewerRoute } from "../features/viewer/ViewerRoute";
 import "../styles.css";
 
@@ -24,6 +25,7 @@ export function installEditorTestHooks() {
 export function resetEditorTestState() {
   window.history.pushState({}, "", "/");
   window.localStorage.clear();
+  window.localStorage.setItem(HELP_SEEN_STORAGE_KEY, "true");
   useDocumentStore.getState().reset();
   useTransientStore.getState().cancel();
   useUiStore.setState({
@@ -32,6 +34,7 @@ export function resetEditorTestState() {
     outlineWidth: DEFAULT_OUTLINE_WIDTH,
     inspectorOpen: true,
     activeDrawer: null,
+    helpDialogOpen: false,
     exportFormat: "json",
     inspectorTab: "inspector",
     searchQuery: "",

@@ -41,8 +41,8 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CommandPalette } from "../commands/CommandPalette";
 import { getEditorCommandAvailability } from "../commands/editorCommands";
-import { ShortcutHelp } from "../commands/ShortcutHelp";
 import { useEditorActions } from "../commands/useEditorActions";
+import { HelpDialog } from "../help/HelpDialog";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
 import {
   useDismissableLayer,
@@ -289,7 +289,6 @@ export function Toolbar() {
         <ViewSwitcher />
         <div className="cc-toolbar-group" aria-label="Command tools">
           <CommandPalette commands={commandRegistry} context={commandContext} />
-          <ShortcutHelp commands={commandRegistry} context={commandContext} />
         </div>
         <span className="cc-divider" />
         <div className="cc-toolbar-group" aria-label="Model commands">
@@ -471,6 +470,7 @@ export function Toolbar() {
           </section>
         </div>
       )}
+      <HelpDialog commands={commandRegistry} context={commandContext} />
       {importReview && (
         <ImportReviewDialog
           review={importReview}

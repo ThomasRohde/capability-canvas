@@ -2,6 +2,11 @@ import { Keyboard, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFocusTrap } from "../shared/a11y";
 import {
+  commandShortcutItems,
+  STATIC_SHORTCUT_SECTIONS,
+  type ShortcutItem,
+} from "./shortcutContent";
+import {
   isEditableTarget,
   type CommandDefinition,
 } from "./types";
@@ -11,44 +16,6 @@ interface ShortcutHelpProps<TContext> {
   context: TContext;
 }
 
-const STATIC_SECTIONS = [
-  {
-    title: "Pan and zoom",
-    items: [
-      ["Drag background", "Pan the canvas"],
-      ["Ctrl/Cmd+wheel", "Zoom around the pointer"],
-      ["Minimap controls", "Fit, zoom, or jump the viewport"],
-    ],
-  },
-  {
-    title: "Selection",
-    items: [
-      ["Click", "Select a capability"],
-      ["Shift/Ctrl/Cmd+click", "Extend selection within valid sibling sets"],
-      ["Shift/Ctrl/Cmd+drag", "Marquee select visible capabilities"],
-      ["Ctrl/Cmd+A", "Select visible capabilities from the current context"],
-      ["Shift+F10 / ContextMenu", "Open the selected capability context menu"],
-    ],
-  },
-  {
-    title: "Inline editing",
-    items: [
-      ["Enter", "Rename the selected visible item"],
-      ["Double-click label", "Rename that item"],
-      ["Enter while editing", "Commit the label"],
-      ["Escape while editing", "Cancel the label edit"],
-    ],
-  },
-  {
-    title: "Canvas movement",
-    items: [
-      ["Arrow keys", "Move selected capabilities"],
-      ["Shift+Arrow keys", "Move selected capabilities by a larger step"],
-      ["Escape", "Cancel an in-progress drag, resize, or selection preview"],
-    ],
-  },
-];
-
 export function ShortcutHelp<TContext>({
   commands,
   context,
@@ -57,17 +24,7 @@ export function ShortcutHelp<TContext>({
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const commandShortcuts = useMemo(
-    () =>
-      commands
-        .filter((command) => command.shortcut && !command.canRun(context).hidden)
-        .map((command) => ({
-          id: command.id,
-          group: command.group,
-          label: command.label,
-          shortcut: [command.shortcut!, ...(command.shortcutAliases ?? [])].join(
-            ", ",
-          ),
-        })),
+    () => commandShortcutItems(commands, context),
     [commands, context],
   );
 
@@ -132,12 +89,9 @@ export function ShortcutHelp<TContext>({
             <div className="cc-shortcut-body">
               <ShortcutSection
                 title="Commands"
-                items={commandShortcuts.map((item) => [
-                  item.shortcut,
-                  `${item.group}: ${item.label}`,
-                ])}
+                items={commandShortcuts}
               />
-              {STATIC_SECTIONS.map((section) => (
+              {STATIC_SHORTCUT_SECTIONS.map((section) => (
                 <ShortcutSection
                   key={section.title}
                   title={section.title}
@@ -157,18 +111,18 @@ function ShortcutSection({
   items,
 }: {
   title: string;
-  items: string[][];
+  items: ShortcutItem[];
 }) {
   return (
     <section className="cc-shortcut-section">
       <h2>{title}</h2>
       <dl>
-        {items.map(([keys, description]) => (
-          <div key={`${keys}-${description}`}>
+        {items.map((item) => (
+          <div key={`${item.keys}-${item.description}`}>
             <dt>
-              <kbd className="cc-kbd">{keys}</kbd>
+              <kbd className="cc-kbd">{item.keys}</kbd>
             </dt>
-            <dd>{description}</dd>
+            <dd>{item.description}</dd>
           </div>
         ))}
       </dl>
