@@ -8,21 +8,6 @@ import {
 import { attachViewBaseline } from "../../domain/visual/viewChanges";
 import type { Diagnostic } from "../../domain/validation/diagnostics";
 
-const VISUAL_COMMAND_TYPES = new Set([
-  "add-subtree-to-canvas",
-  "remove-subtree-from-canvas",
-  "remove-nodes-from-canvas",
-  "move-nodes",
-  "resize-node",
-  "align-nodes",
-  "distribute-nodes",
-  "same-size",
-  "fit-parent-to-children",
-  "repair-sibling-overlaps",
-  "lock-subtree",
-  "set-manual-positioning",
-]);
-
 export interface StoreTransactionResult {
   doc: CapabilityDocument;
   diagnostics: Diagnostic[];
@@ -60,6 +45,6 @@ export function applyBaselineResult(
 export function isVisualEditTransaction(txn: Transaction): boolean {
   return (
     txn.commands.length > 0 &&
-    txn.commands.every((command) => VISUAL_COMMAND_TYPES.has(command.type))
+    txn.commands.every((command) => command.scope === "visual")
   );
 }

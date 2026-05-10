@@ -25,7 +25,7 @@ export function addRoot(
   options: AddCapabilityOptions = {},
 ): Transaction {
   return transaction("Add root capability", [
-    command("add-root", { label }, (doc) => {
+    command("add-root", { label }, "source", (doc) => {
       const next = cloneDocument(doc);
       const rootCount = childrenOf(next, null).length;
       const isOnCanvas = options.isOnCanvas ?? true;
@@ -58,7 +58,7 @@ export function addChild(
   return transaction(
     "Add child capability",
     [
-      command("add-child", { parentId, label }, (doc) => {
+      command("add-child", { parentId, label }, "source", (doc) => {
         const parent = doc.nodesById[parentId];
         if (!parent)
           return fail(
@@ -106,7 +106,7 @@ export function addTextLabel(
   label = "Text label",
 ): Transaction {
   return transaction("Add text label", [
-    command("add-text-label", { parentId, label }, (doc) => {
+    command("add-text-label", { parentId, label }, "source", (doc) => {
       const next = cloneDocument(doc);
       const id = makeId("text");
       next.nodesById[id] = createNode({
@@ -137,7 +137,7 @@ export function updateNode(
   patch: Partial<CapabilityNode>,
 ): Transaction {
   return transaction("Update capability", [
-    command("update-node", { nodeId, patch }, (doc) => {
+    command("update-node", { nodeId, patch }, "source", (doc) => {
       const node = doc.nodesById[nodeId];
       if (!node)
         return fail(
@@ -176,7 +176,7 @@ export function updateNodeColors(
   return transaction(
     "Update capability colors",
     [
-      command("update-node-colors", { nodeIds, color }, (doc) => {
+      command("update-node-colors", { nodeIds, color }, "source", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
         const allowed = canBulkEditNodes(doc, nodeIds);
         if (!allowed.valid)
@@ -222,6 +222,7 @@ export function updateNodeHeatmapValues(
       command(
         "update-node-heatmap-values",
         { nodeIds, heatmapValue },
+        "source",
         (doc) => {
           if (nodeIds.length === 0) return ok(doc);
           const allowed = canBulkEditNodes(doc, nodeIds);
@@ -271,7 +272,7 @@ export function updateNodeHeatmapValues(
 
 export function updateDocumentTitle(title: string): Transaction {
   return transaction("Update document title", [
-    command("update-document-title", { title }, (doc) =>
+    command("update-document-title", { title }, "source", (doc) =>
       ok({ ...doc, title: title.trim() || "Untitled capability model" }),
     ),
   ]);
@@ -281,7 +282,7 @@ export function updateDocumentSettings(
   patch: Partial<CapabilityDocument["settings"]>,
 ): Transaction {
   return transaction("Update document settings", [
-    command("update-document-settings", { patch }, (doc) =>
+    command("update-document-settings", { patch }, "source", (doc) =>
       ok({
         ...doc,
         settings: {
@@ -301,7 +302,7 @@ export function updateHeatmapSettings(
   patch: Partial<CapabilityDocument["heatmap"]>,
 ): Transaction {
   return transaction("Update heatmap settings", [
-    command("update-heatmap-settings", { patch }, (doc) =>
+    command("update-heatmap-settings", { patch }, "source", (doc) =>
       ok({ ...doc, heatmap: { ...doc.heatmap, ...patch } }),
     ),
   ]);
@@ -311,7 +312,7 @@ export function deleteNodes(nodeIds: NodeId[]): Transaction {
   return transaction(
     "Delete from model",
     [
-      command("delete-nodes", { nodeIds }, (doc) => {
+      command("delete-nodes", { nodeIds }, "source", (doc) => {
         const next = cloneDocument(doc);
         const toDelete = new Set<NodeId>();
         for (const id of nodeIds) {
@@ -354,7 +355,7 @@ export function reparentNode(
   return transaction(
     "Reparent capability",
     [
-      command("reparent-node", { nodeId, parentId }, (doc) => {
+      command("reparent-node", { nodeId, parentId }, "source", (doc) => {
         const node = doc.nodesById[nodeId];
         const parent = parentId ? doc.nodesById[parentId] : null;
         if (!node)
@@ -405,7 +406,7 @@ export function reparentNode(
 
 export function duplicateNodes(nodeIds: NodeId[]): Transaction {
   return transaction("Duplicate capability", [
-    command("duplicate-nodes", { nodeIds }, (doc) => {
+    command("duplicate-nodes", { nodeIds }, "source", (doc) => {
       const next = cloneDocument(doc);
       const idMap = new Map<NodeId, NodeId>();
       const sourceIds = new Set<NodeId>();

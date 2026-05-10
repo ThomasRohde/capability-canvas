@@ -10,9 +10,12 @@ export type RelayoutScope =
   | "document"
   | ((beforeDoc: CapabilityDocument, afterDoc: CapabilityDocument) => NodeId[]);
 
+export type CommandScope = "source" | "visual";
+
 export interface Command<TArgs = unknown> {
   type: string;
   args: TArgs;
+  scope: CommandScope;
   apply(doc: CapabilityDocument): CommandResult;
 }
 

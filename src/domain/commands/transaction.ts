@@ -14,7 +14,7 @@ import {
   materializeActiveViewMetadata,
   reconcileVisualWorkspaceWithNodes,
 } from "../visual/workspace";
-import type { Command, Transaction } from "./types";
+import type { Command, CommandScope, Transaction } from "./types";
 
 type MutableDoc = CapabilityDocument;
 
@@ -99,12 +99,13 @@ function cloneAspectRatioTarget(
 export function command<TArgs>(
   type: string,
   args: TArgs,
+  scope: CommandScope,
   apply: (doc: MutableDoc) => {
     doc: CapabilityDocument;
     diagnostics: Diagnostic[];
   },
 ): Command<TArgs> {
-  return { type, args, apply };
+  return { type, args, scope, apply };
 }
 
 export function ok(doc: CapabilityDocument) {

@@ -42,7 +42,7 @@ export function createVisualView(
   return transaction(
     "Create visual view",
     [
-      command("create-visual-view", { ...args, id }, (doc) => {
+      command("create-visual-view", { ...args, id }, "source", (doc) => {
         const next = cloneDocument(doc);
         const view = args.templateId
           ? createViewFromTemplate(doc, {
@@ -77,7 +77,7 @@ export function createVisualView(
 
 export function duplicateVisualView(viewId?: VisualViewId): Transaction {
   return transaction("Duplicate visual view", [
-    command("duplicate-visual-view", { viewId }, (doc) => {
+    command("duplicate-visual-view", { viewId }, "source", (doc) => {
       const sourceId = viewId ?? doc.visual.activeViewId;
       const source = doc.visual.viewsById[sourceId];
       if (!source)
@@ -115,7 +115,7 @@ export function renameVisualView(
   name: string,
 ): Transaction {
   return transaction("Rename visual view", [
-    command("rename-visual-view", { viewId, name }, (doc) =>
+    command("rename-visual-view", { viewId, name }, "source", (doc) =>
       updateView(doc, viewId, {
         name: name.trim() || "Untitled view",
         updatedAt: now(),
@@ -126,7 +126,7 @@ export function renameVisualView(
 
 export function deleteVisualView(viewId: VisualViewId): Transaction {
   return transaction("Delete visual view", [
-    command("delete-visual-view", { viewId }, (doc) => {
+    command("delete-visual-view", { viewId }, "source", (doc) => {
       if (doc.visual.viewOrder.length <= 1)
         return fail(
           doc,
@@ -151,7 +151,7 @@ export function deleteVisualView(viewId: VisualViewId): Transaction {
 
 export function reorderVisualViews(viewOrder: VisualViewId[]): Transaction {
   return transaction("Reorder visual views", [
-    command("reorder-visual-views", { viewOrder }, (doc) => {
+    command("reorder-visual-views", { viewOrder }, "source", (doc) => {
       const existing = new Set(doc.visual.viewOrder);
       const requested = viewOrder.filter((id) => existing.has(id));
       if (requested.length !== doc.visual.viewOrder.length)
@@ -175,7 +175,7 @@ export function updateVisualView(
   patch: Partial<VisualView>,
 ): Transaction {
   return transaction("Update visual view", [
-    command("update-visual-view", { viewId, patch }, (doc) =>
+    command("update-visual-view", { viewId, patch }, "source", (doc) =>
       updateView(doc, viewId, { ...patch, updatedAt: now() }),
     ),
   ]);
@@ -197,7 +197,7 @@ export function updateVisualNodeState(
   return transaction(
     label,
     [
-      command("update-visual-node-state", { viewId, nodeId, patch }, (doc) => {
+      command("update-visual-node-state", { viewId, nodeId, patch }, "source", (doc) => {
         if (!doc.nodesById[nodeId])
           return fail(
             doc,
@@ -273,7 +273,7 @@ export function resetVisualView(viewId: VisualViewId): Transaction {
   return transaction(
     "Reset visual view",
     [
-      command("reset-visual-view", { viewId }, (doc) => {
+      command("reset-visual-view", { viewId }, "source", (doc) => {
         if (!doc.visual.viewsById[viewId])
           return fail(doc, "missing-view", "Select a valid view.");
         const next = cloneDocument(doc);
@@ -307,7 +307,7 @@ export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
   return transaction(
     "Reset visual view layout",
     [
-      command("reset-visual-view-layout", { viewId }, (doc) => {
+      command("reset-visual-view-layout", { viewId }, "source", (doc) => {
         const existing = doc.visual.viewsById[viewId];
         if (!existing) return fail(doc, "missing-view", "Select a valid view.");
         const templateId = resolveBuiltInTemplateId(existing.templateId);
@@ -360,7 +360,7 @@ export function resetVisualViewLayout(viewId: VisualViewId): Transaction {
 
 export function resetVisualViewVisibility(viewId: VisualViewId): Transaction {
   return transaction("Reset visual view visibility", [
-    command("reset-visual-view-visibility", { viewId }, (doc) => {
+    command("reset-visual-view-visibility", { viewId }, "source", (doc) => {
       const existing = doc.visual.viewsById[viewId];
       if (!existing) return fail(doc, "missing-view", "Select a valid view.");
       const templateId = resolveBuiltInTemplateId(existing.templateId);
@@ -399,6 +399,7 @@ export function resetVisualViewFromTemplate(
       command(
         "reset-visual-view-from-template",
         { viewId, templateId, rootId },
+        "source",
         (doc) => {
           const existing = doc.visual.viewsById[viewId];
           if (!existing)
@@ -436,7 +437,7 @@ export function resetVisualViewFromTemplate(
 
 export function setDefaultVisualView(viewId: VisualViewId): Transaction {
   return transaction("Set default visual view", [
-    command("set-default-visual-view", { viewId }, (doc) => {
+    command("set-default-visual-view", { viewId }, "source", (doc) => {
       if (!doc.visual.viewsById[viewId])
         return fail(doc, "missing-view", "Select a valid view.");
       const next = cloneDocument(doc);
@@ -453,7 +454,7 @@ export function updateActiveViewHeatmapSettings(
   patch: Partial<VisualView["heatmap"]>,
 ): Transaction {
   return transaction("Update view heatmap settings", [
-    command("update-active-view-heatmap-settings", { patch }, (doc) => {
+    command("update-active-view-heatmap-settings", { patch }, "source", (doc) => {
       const view = activeVisualView(doc);
       return updateView(doc, view.id, {
         heatmap: {
@@ -470,7 +471,7 @@ export function updateActiveViewLayoutSettings(
   patch: Partial<VisualView["layout"]>,
 ): Transaction {
   return transaction("Update view layout settings", [
-    command("update-active-view-layout-settings", { patch }, (doc) => {
+    command("update-active-view-layout-settings", { patch }, "source", (doc) => {
       const view = activeVisualView(doc);
       return updateView(doc, view.id, {
         layout: {
@@ -487,7 +488,7 @@ export function updateActiveViewExportSettings(
   patch: Partial<VisualView["export"]>,
 ): Transaction {
   return transaction("Update view export settings", [
-    command("update-active-view-export-settings", { patch }, (doc) => {
+    command("update-active-view-export-settings", { patch }, "source", (doc) => {
       const view = activeVisualView(doc);
       return updateView(doc, view.id, {
         export: {

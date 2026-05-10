@@ -157,51 +157,27 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ lastDiagnostics: diagnostics });
       return diagnostics;
     }
-    const visual = {
-      ...before.visual,
-      viewOrder: [...before.visual.viewOrder],
-      viewsById: Object.fromEntries(
-        Object.entries(before.visual.viewsById).map(([id, view]) => [
-          id,
-          {
-            ...view,
-            nodeStatesById: { ...view.nodeStatesById },
-            viewport: view.viewport ? { ...view.viewport } : undefined,
-            layout: {
-              ...view.layout,
-              boundingBox: view.layout.boundingBox
-                ? { ...view.layout.boundingBox }
-                : undefined,
-              aspectRatioFrame: view.layout.aspectRatioFrame
-                ? { ...view.layout.aspectRatioFrame }
-                : undefined,
-              aspectRatioTarget: view.layout.aspectRatioTarget
-                ? { ...view.layout.aspectRatioTarget }
-                : undefined,
-            },
-            heatmap: {
-              ...view.heatmap,
-              legendBounds: view.heatmap.legendBounds
-                ? { ...view.heatmap.legendBounds }
-                : undefined,
-            },
-            export: { ...view.export },
-          },
-        ]),
-      ),
-      activeViewId: viewId,
-    };
+    let viewsById = before.visual.viewsById;
     if (options.previousViewport) {
-      const previousView =
-        visual.viewsById[before.visual.activeViewId];
+      const previousView = viewsById[before.visual.activeViewId];
       if (previousView) {
-        previousView.viewport = { ...options.previousViewport };
-        previousView.updatedAt = Date.now();
+        viewsById = {
+          ...viewsById,
+          [before.visual.activeViewId]: {
+            ...previousView,
+            viewport: { ...options.previousViewport },
+            updatedAt: Date.now(),
+          },
+        };
       }
     }
     const next = materializeActiveViewMetadata({
       ...before,
-      visual,
+      visual: {
+        ...before.visual,
+        viewsById,
+        activeViewId: viewId,
+      },
       timestamp: Date.now(),
     });
     const state = get();

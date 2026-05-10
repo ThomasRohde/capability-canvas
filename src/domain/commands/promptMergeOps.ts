@@ -32,7 +32,7 @@ export function mergePromptCapabilities(
   return transaction(
     "Merge prompt capabilities",
     [
-      command("merge-prompt-capabilities", { payload }, (doc) => {
+      command("merge-prompt-capabilities", { payload }, "source", (doc) => {
         const target = doc.nodesById[payload.targetId];
         if (!target)
           return fail(

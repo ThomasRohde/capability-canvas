@@ -268,6 +268,8 @@ export function useMenuKeyboardNavigation({
   const closeAndRestoreFocus = useCallback(() => {
     const target = triggerRef?.current;
     onClose();
+    // Sync focus handles the immediate case; the rAF retry covers triggers that
+    // briefly become unfocusable (disabled, hidden, or remounted) during close.
     target?.focus();
     window.requestAnimationFrame(() => target?.focus());
   }, [onClose, triggerRef]);

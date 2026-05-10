@@ -27,7 +27,7 @@ export function updateNodeSizes(
   return transaction(
     "Update selected sizes",
     [
-      command("update-node-sizes", { nodeIds, patch }, (doc) => {
+      command("update-node-sizes", { nodeIds, patch }, "source", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
         const allowed = canBulkEditNodes(doc, nodeIds);
         if (!allowed.valid)
@@ -116,7 +116,7 @@ export function moveNodes(
   return transaction(
     "Move capability",
     [
-      command("move-nodes", { nodeIds, dx, dy }, (doc) => {
+      command("move-nodes", { nodeIds, dx, dy }, "visual", (doc) => {
         const next = cloneDocument(doc);
         const toMove = new Set<NodeId>();
         for (const nodeId of nodeIds) {
@@ -149,7 +149,7 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
   return transaction(
     "Resize capability",
     [
-      command("resize-node", { nodeId, w, h }, (doc) => {
+      command("resize-node", { nodeId, w, h }, "visual", (doc) => {
         const node = doc.nodesById[nodeId];
         if (!node)
           return fail(
@@ -209,7 +209,7 @@ export function alignNodes(
   return transaction(
     `Align ${direction}`,
     [
-      command("align-nodes", { nodeIds, direction }, (doc) => {
+      command("align-nodes", { nodeIds, direction }, "visual", (doc) => {
         const allowed = canAlign(doc, nodeIds);
         if (!allowed.valid)
           return fail(
@@ -252,7 +252,7 @@ export function distributeNodes(
   return transaction(
     `Distribute ${axis}`,
     [
-      command("distribute-nodes", { nodeIds, axis }, (doc) => {
+      command("distribute-nodes", { nodeIds, axis }, "visual", (doc) => {
         const allowed = canDistribute(doc, nodeIds);
         if (!allowed.valid)
           return fail(
@@ -301,7 +301,7 @@ export function sameSize(
   return transaction(
     "Same size",
     [
-      command("same-size", { nodeIds, anchorId, axis }, (doc) => {
+      command("same-size", { nodeIds, anchorId, axis }, "visual", (doc) => {
         const anchor = doc.nodesById[anchorId];
         if (!anchor)
           return fail(doc, "missing-anchor", "Anchor node no longer exists.");
@@ -325,7 +325,7 @@ export function sameSize(
 
 export function fitParentToChildren(nodeId: NodeId): Transaction {
   return transaction("Fit parent to children", [
-    command("fit-parent-to-children", { nodeId }, (doc) => {
+    command("fit-parent-to-children", { nodeId }, "visual", (doc) => {
       const node = doc.nodesById[nodeId];
       if (!node)
         return fail(
@@ -378,7 +378,7 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
 
 export function repairSiblingOverlaps(parentId: NodeId): Transaction {
   return transaction("Resolve sibling overlap", [
-    command("repair-sibling-overlaps", { parentId }, (doc) => {
+    command("repair-sibling-overlaps", { parentId }, "visual", (doc) => {
       const parent = doc.nodesById[parentId];
       if (!parent) return ok(doc);
       const childIds = canvasChildrenOf(doc, parentId);
@@ -422,7 +422,7 @@ export function repairSiblingOverlaps(parentId: NodeId): Transaction {
 
 export function lockSubtree(nodeId: NodeId, locked: boolean): Transaction {
   return transaction(locked ? "Lock subtree" : "Unlock subtree", [
-    command("lock-subtree", { nodeId, locked }, (doc) => {
+    command("lock-subtree", { nodeId, locked }, "visual", (doc) => {
       const next = cloneDocument(doc);
       for (const id of [nodeId, ...descendantsOf(next, nodeId)]) {
         const node = next.nodesById[id];
@@ -442,7 +442,7 @@ export function lockSubtrees(nodeIds: NodeId[], locked: boolean): Transaction {
   return transaction(
     locked ? "Preserve selected layouts" : "Stop preserving selected layouts",
     [
-      command("lock-subtrees", { nodeIds, locked }, (doc) => {
+      command("lock-subtrees", { nodeIds, locked }, "source", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
         const allowed = canBulkEditNodes(doc, nodeIds);
         if (!allowed.valid)
@@ -487,7 +487,7 @@ export function setManualPositioning(
   enabled: boolean,
 ): Transaction {
   return transaction("Set manual positioning", [
-    command("set-manual-positioning", { nodeId, enabled }, (doc) => {
+    command("set-manual-positioning", { nodeId, enabled }, "visual", (doc) => {
       const node = doc.nodesById[nodeId];
       if (!node)
         return fail(
@@ -518,6 +518,7 @@ export function setManualPositioningForNodes(
       command(
         "set-manual-positioning-for-nodes",
         { nodeIds, enabled },
+        "source",
         (doc) => {
           if (nodeIds.length === 0) return ok(doc);
           const allowed = canBulkEditNodes(doc, nodeIds);
