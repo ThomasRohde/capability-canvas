@@ -238,11 +238,15 @@ describe('exports', () => {
     const leafCell = xml.match(/<mxCell id="leaf"[^>]+>/)?.[0] ?? '';
 
     expect(rootCell).toContain('absoluteArcSize=1;arcSize=16;');
+    expect(rootCell).toContain('labelPosition=center;verticalLabelPosition=middle;');
     expect(rootCell).toContain('verticalAlign=top;spacingTop=4;spacingBottom=6;');
+    expect(rootCell).not.toContain('overflow=fill');
     expect(rootCell).toContain('fontSize=14;fontStyle=1;');
     expect(leafCell).toContain('value="Very long&lt;br&gt;onboarding..."');
     expect(leafCell).toContain('absoluteArcSize=1;arcSize=12;');
+    expect(leafCell).toContain('labelPosition=center;verticalLabelPosition=middle;');
     expect(leafCell).toContain('verticalAlign=middle;spacing=8;');
+    expect(leafCell).not.toContain('overflow=fill');
     expect(leafCell).toContain('fontSize=13;fontStyle=0;');
   });
 
