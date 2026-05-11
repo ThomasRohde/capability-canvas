@@ -14,6 +14,8 @@ const SLIDE_WIDE_HEIGHT = 7.5;
 const SLIDE_MARGIN = 0.35;
 const TITLE_HEIGHT = 0.35;
 const TITLE_GAP = 0.15;
+const MAX_FONT_POINTS_PER_PIXEL = 0.72;
+const MIN_FONT_SIZE = 1;
 
 interface SlideMapper {
   x(value: number): number;
@@ -219,7 +221,8 @@ function createSlideMapper(model: VisualExportModel): SlideMapper {
     y: (value) => offsetY + value * scale,
     w: (value) => Math.max(0.01, value * scale),
     h: (value) => Math.max(0.01, value * scale),
-    font: (value) => Math.max(5, value * 0.72),
+    font: (value) =>
+      Math.max(MIN_FONT_SIZE, value * Math.min(MAX_FONT_POINTS_PER_PIXEL, scale * 72)),
   };
 }
 

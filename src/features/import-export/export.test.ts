@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import JSZip from 'jszip';
 import { createSampleDocument } from '../../domain/fixtures/sample';
 import { runTransaction, updateDocumentTitle } from '../../domain/commands/operations';
 import { createEmptyDocument, createNode } from '../../domain/document/defaults';
@@ -33,6 +34,16 @@ describe('exports', () => {
     expect(result.format).toBe('pptx');
     expect(result.filename).toBe('export-fidelity.pptx');
     expect(result.data).toBeInstanceOf(Blob);
+  });
+
+  it('scales PPTX label fonts down when a large model is fit to one slide', async () => {
+    const slideXml = await pptxSlideXml(createWideExportFixture());
+    const fontSizes = [...slideXml.matchAll(/<a:rPr\b[^>]*\bsz="(\d+)"/g)].map(
+      (match) => Number(match[1]) / 100,
+    );
+
+    expect(fontSizes.length).toBeGreaterThan(0);
+    expect(Math.max(...fontSizes)).toBeLessThan(7);
   });
 
   it('reports active-view legend rendering for visual adapters that render it', () => {
@@ -293,4 +304,47 @@ function createExportFixture(): CapabilityDocument {
   };
   doc.visual = createVisualWorkspaceFromDocument(doc);
   return materializeActiveViewMetadata(doc);
+}
+
+function createWideExportFixture(): CapabilityDocument {
+  const doc = createExportFixture();
+  doc.nodesById.root = {
+    ...doc.nodesById.root!,
+    w: 2400,
+    h: 900,
+  };
+  doc.layout = {
+    ...doc.layout,
+    boundingBox: { x: 0, y: 0, w: 2400, h: 900 },
+  };
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return materializeActiveViewMetadata(doc);
+}
+
+async function pptxSlideXml(doc: CapabilityDocument): Promise<string> {
+  const result = await pptxExport(doc);
+  const zip = await JSZip.loadAsync(await blobToArrayBuffer(result.data as Blob));
+  const slide = zip.file('ppt/slides/slide1.xml');
+  expect(slide).toBeDefined();
+  return slide!.async('string');
+}
+
+function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  if (typeof blob.arrayBuffer === 'function') {
+    return blob.arrayBuffer();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () =>
+      reject(new Error(reader.error?.message ?? 'Failed to read PPTX Blob.'));
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Expected PPTX Blob to read as an ArrayBuffer.'));
+    };
+    reader.readAsArrayBuffer(blob);
+  });
 }
