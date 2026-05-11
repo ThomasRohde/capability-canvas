@@ -297,6 +297,7 @@ describe("document JSON adapter", () => {
     delete legacySettings.childGapX;
     delete legacySettings.childGapY;
     delete legacySettings.leafColor;
+    delete legacySettings.colorPalette;
 
     const parsed = parseDocument(wire);
     expect(parsed.doc).not.toBeNull();
@@ -325,6 +326,9 @@ describe("document JSON adapter", () => {
     expect(parsed.doc!.settings.childGapX).toBe(DEFAULT_SETTINGS.childGapX);
     expect(parsed.doc!.settings.childGapY).toBe(DEFAULT_SETTINGS.childGapY);
     expect(parsed.doc!.settings.leafColor).toBe(DEFAULT_SETTINGS.leafColor);
+    expect(parsed.doc!.settings.colorPalette).toBe(
+      DEFAULT_SETTINGS.colorPalette,
+    );
   });
 
   it("defaults legacy nodes without canvas membership to visible", () => {
@@ -371,6 +375,7 @@ describe("document JSON adapter", () => {
         childGapX: 52,
         childGapY: 20,
         leafColor: "stone" as const,
+        colorPalette: "darker" as const,
       },
     };
 
@@ -387,6 +392,7 @@ describe("document JSON adapter", () => {
       childGapX: 52,
       childGapY: 20,
       leafColor: "stone",
+      colorPalette: "darker",
     });
   });
 
@@ -415,6 +421,19 @@ describe("document JSON adapter", () => {
     ).doc;
     expect(resolveVisualDocument(l1).nodesById.customer?.color).toBe(
       "slate",
+    );
+  });
+
+  it("preserves transparent colors through JSON round-trip", () => {
+    const doc = runTransaction(
+      createSampleDocument(),
+      updateNode("credit-risk", { color: "transparent" }),
+    ).doc;
+
+    const parsed = parseDocument(serializeDocument(doc));
+
+    expect(parsed.doc?.nodesById["credit-risk"]?.colorOverride).toBe(
+      "transparent",
     );
   });
 

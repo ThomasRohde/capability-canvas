@@ -75,15 +75,17 @@ function renderNode(
   node: VisualExportNodeModel,
 ): void {
   const shape = mapBounds(mapper, node.bounds);
-  slide.addShape(deck.ShapeType.roundRect, {
-    ...shape,
-    rectRadius: Math.max(0.02, Math.min(shape.w, shape.h, mapper.w(node.radius))),
-    fill: { color: toPptColor(node.fill.background) },
-    line: {
-      color: toPptColor(node.fill.border),
-      width: node.isContainer ? 0.8 : 0.5,
-    },
-  });
+  if (!node.fill.isTransparent) {
+    slide.addShape(deck.ShapeType.roundRect, {
+      ...shape,
+      rectRadius: Math.max(0.02, Math.min(shape.w, shape.h, mapper.w(node.radius))),
+      fill: { color: toPptColor(node.fill.background) },
+      line: {
+        color: toPptColor(node.fill.border),
+        width: node.isContainer ? 0.8 : 0.5,
+      },
+    });
+  }
 
   const labelTop =
     node.label.firstBaselineY - node.label.fontSize - node.label.lineHeight * 0.08;

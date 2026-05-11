@@ -4,7 +4,11 @@ import { updateNodeColors } from "../../domain/commands/operations";
 import type { CapabilityColor, NodeId } from "../../domain/document/types";
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import {
+  CAPABILITY_COLORS,
+  categoryStyle,
+  swatchBackgroundForFill,
+} from "../heatmap/resolveNodeFill";
 import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 
 export function BulkColorPicker({
@@ -29,11 +33,15 @@ export function BulkColorPicker({
   const selectedColors = new Set(selectedNodes.map((node) => node.color));
   const activeColor =
     selectedColors.size === 1 ? selectedNodes[0]?.color : undefined;
-  const activeStyle = activeColor ? CATEGORY_STYLES[activeColor] : undefined;
+  const activeStyle = activeColor
+    ? categoryStyle(activeColor, viewDoc.settings.colorPalette)
+    : undefined;
   const previewStyle = activeStyle
     ? {
-        background: activeStyle.background,
-        borderColor: activeStyle.border,
+        background: swatchBackgroundForFill(activeStyle),
+        borderColor: activeStyle.isTransparent
+          ? "var(--cc-slate-400)"
+          : activeStyle.border,
       }
     : {
         background:
@@ -96,7 +104,7 @@ export function BulkColorPicker({
           onKeyDown={handleColorMenuKeyDown}
         >
           {CAPABILITY_COLORS.map((color) => {
-            const style = CATEGORY_STYLES[color];
+            const style = categoryStyle(color, viewDoc.settings.colorPalette);
             return (
               <button
                 key={color}
@@ -106,8 +114,10 @@ export function BulkColorPicker({
                 className={`cc-bulk-color-swatch ${activeColor === color ? "on" : ""}`}
                 title={`Set selected color ${color}`}
                 style={{
-                  color: style.border,
-                  background: style.background,
+                  color: style.isTransparent
+                    ? "var(--cc-slate-400)"
+                    : style.border,
+                  background: swatchBackgroundForFill(style),
                 }}
                 onClick={() => applyColor(color)}
               />

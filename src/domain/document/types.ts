@@ -14,7 +14,9 @@ export type CapabilityColor =
   | "peach"
   | "teal"
   | "slate"
-  | "stone";
+  | "stone"
+  | "transparent";
+export type ColorPalette = "default" | "darker";
 export type LayoutMode = "uniform" | "flow" | "adaptive" | "balanced" | "free";
 export type LayoutAspectRatioPreset =
   | "auto"
@@ -77,6 +79,7 @@ export interface DiagramSettings {
   fixedLeafWidth: number;
   fixedLeafHeight: number;
   leafColor: CapabilityColor;
+  colorPalette: ColorPalette;
   defaultParentWidth: number;
   defaultParentHeight: number;
   containerPaddingTop: number;

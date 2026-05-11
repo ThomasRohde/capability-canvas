@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS = {
   fixedLeafWidth: 175,
   fixedLeafHeight: 40,
   leafColor: "slate" as const,
+  colorPalette: "default" as const,
   defaultParentWidth: 175,
   defaultParentHeight: 40,
   containerPaddingTop: 8,

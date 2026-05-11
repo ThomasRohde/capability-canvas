@@ -141,15 +141,16 @@ function buildNodeModel(
   const score = hasScore
     ? buildScoreModel(node)
     : undefined;
+  const fill = resolveNodeFill(node, doc.heatmap, doc.settings.colorPalette);
 
   return {
     id: node.id,
     description: node.description?.trim() || undefined,
     bounds: { x: node.x, y: node.y, w: node.w, h: node.h },
     isContainer,
-    fill: resolveNodeFill(node, doc.heatmap),
+    fill,
     radius: isContainer ? 8 : 6,
-    strokeWidth: isContainer ? 1.5 : 1,
+    strokeWidth: fill.isTransparent ? 0 : isContainer ? 1.5 : 1,
     label,
     score,
   };

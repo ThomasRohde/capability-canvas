@@ -153,6 +153,9 @@ describe("editor canvas workflows", () => {
     node.focus();
     fireEvent.keyDown(node, { key: "F10", shiftKey: true });
     const menu = screen.getByRole("menu", { name: "Capability context menu" });
+    expect(
+      within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
+    ).toBeInTheDocument();
     const items = within(menu).getAllByRole("menuitem");
     await waitFor(() => expect(items[0]).toHaveFocus());
     fireEvent.keyDown(document.activeElement ?? window, { key: "ArrowDown" });
@@ -332,7 +335,11 @@ describe("editor canvas workflows", () => {
     const doc = resolveVisualDocument(useDocumentStore.getState().doc);
     const expectedFills = Object.values(doc.nodesById)
       .map((node) => {
-        const fill = resolveNodeFill(node, doc.heatmap);
+        const fill = resolveNodeFill(
+          node,
+          doc.heatmap,
+          doc.settings.colorPalette,
+        );
         return `${normalizeCssColor(fill.background)}|${normalizeCssColor(fill.border)}`;
       })
       .sort();
@@ -1010,14 +1017,14 @@ describe("editor canvas workflows", () => {
     );
     await userEvent.click(
       within(bulkToolbar).getByRole("button", {
-        name: "Set selected color lavender",
+        name: "Set selected color transparent",
       }),
     );
 
     const doc = useDocumentStore.getState().doc;
     for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
       expect(doc.nodesById[nodeId]!.color).toBe("coral");
-      expect(doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
+      expect(doc.nodesById[nodeId]!.colorOverride).toBe("transparent");
     }
   });
 

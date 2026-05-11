@@ -3,10 +3,15 @@ import { updateNode } from "../../domain/commands/operations";
 import { normalizeNodeLabel } from "../../domain/document/labels";
 import type {
   CapabilityNode,
+  ColorPalette,
   VisualNodeState,
 } from "../../domain/document/types";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import {
+  CAPABILITY_COLORS,
+  categoryStyle,
+  swatchBackgroundForFill,
+} from "../heatmap/resolveNodeFill";
 import {
   CommitNumberInput,
   CommitTextarea,
@@ -24,6 +29,9 @@ export function PropertiesTab({
   activeViewState?: VisualNodeState;
 }) {
   const execute = useDocumentStore((state) => state.execute);
+  const colorPalette = useDocumentStore(
+    (state) => state.doc.settings.colorPalette,
+  );
   return (
     <>
       <Breadcrumb node={node} />
@@ -54,7 +62,11 @@ export function PropertiesTab({
           placeholder="Enter description..."
         />
       </div>
-      <ColorEditor node={node} viewNode={viewNode} />
+      <ColorEditor
+        node={node}
+        viewNode={viewNode}
+        colorPalette={colorPalette}
+      />
       <div className="cc-field">
         <label htmlFor="heatmap-value">Heatmap value</label>
         <CommitNumberInput
@@ -83,9 +95,11 @@ export function PropertiesTab({
 function ColorEditor({
   node,
   viewNode,
+  colorPalette,
 }: {
   node: CapabilityNode;
   viewNode: CapabilityNode;
+  colorPalette: ColorPalette;
 }) {
   const execute = useDocumentStore((state) => state.execute);
   const usesLeafDefault = viewNode.type === "leaf" && !viewNode.isTextLabel;
@@ -106,20 +120,25 @@ function ColorEditor({
             Default
           </button>
         )}
-        {CAPABILITY_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            aria-label={`Set color ${color}`}
-            aria-pressed={activeColor === color}
-            className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
-            style={{
-              color: CATEGORY_STYLES[color].border,
-              background: CATEGORY_STYLES[color].background,
-            }}
-            onClick={() => execute(updateNode(node.id, { color }))}
-          />
-        ))}
+        {CAPABILITY_COLORS.map((color) => {
+          const style = categoryStyle(color, colorPalette);
+          return (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Set color ${color}`}
+              aria-pressed={activeColor === color}
+              className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
+              style={{
+                color: style.isTransparent
+                  ? "var(--cc-slate-400)"
+                  : style.border,
+                background: swatchBackgroundForFill(style),
+              }}
+              onClick={() => execute(updateNode(node.id, { color }))}
+            />
+          );
+        })}
       </div>
     </div>
   );

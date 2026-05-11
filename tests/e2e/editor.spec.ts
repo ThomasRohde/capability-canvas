@@ -51,7 +51,6 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
     for (const name of [
       'Add root',
       'Add child',
-      'Model actions',
       'Fit',
       'Auto layout',
       'Import',
@@ -64,6 +63,7 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
     await expect(page.getByRole('button', { name: 'Toggle heatmap', exact: true })).toBeVisible({
       timeout: 15000,
     });
+    await expect(page.getByRole('button', { name: 'Model actions', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'View options', exact: true })).toHaveCount(0);
 
     const metrics = await toolbar.evaluate((element) => ({
@@ -75,15 +75,10 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
     expect(metrics.height).toBeLessThanOrEqual(54);
 
     await page.getByTestId('canvas').getByText('Digital Onboarding').click();
-    await page.getByRole('button', { name: 'Model actions', exact: true }).focus();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('Shift+F10');
+    await expect(page.getByRole('menu', { name: 'Capability context menu' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Duplicate' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Copy BCM prompt' })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Duplicate' })).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toContain(
-      'Remove from active view',
-    );
     await page.keyboard.press('Escape');
 
     const heatmapToggle = page.getByRole('button', { name: 'Toggle heatmap', exact: true });

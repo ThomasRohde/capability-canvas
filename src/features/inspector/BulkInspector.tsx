@@ -11,7 +11,11 @@ import type {
 } from "../../domain/document/types";
 import { canMultiSelect } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import {
+  CAPABILITY_COLORS,
+  categoryStyle,
+  swatchBackgroundForFill,
+} from "../heatmap/resolveNodeFill";
 import { BulkNumberField, CommitNumberInput } from "../shared/CommitTextInput";
 import { commonValue } from "./inspectorUtils";
 
@@ -108,20 +112,25 @@ export function BulkColorEditor({
         <span>{activeColor === "" ? "Mixed" : activeColor}</span>
       </div>
       <div className="cc-color-row">
-        {CAPABILITY_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            aria-label={`Set selected color ${color}`}
-            aria-pressed={activeColor === color}
-            className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
-            style={{
-              color: CATEGORY_STYLES[color].border,
-              background: CATEGORY_STYLES[color].background,
-            }}
-            onClick={() => execute(updateNodeColors(selected, color))}
-          />
-        ))}
+        {CAPABILITY_COLORS.map((color) => {
+          const style = categoryStyle(color, viewDoc.settings.colorPalette);
+          return (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Set selected color ${color}`}
+              aria-pressed={activeColor === color}
+              className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
+              style={{
+                color: style.isTransparent
+                  ? "var(--cc-slate-400)"
+                  : style.border,
+                background: swatchBackgroundForFill(style),
+              }}
+              onClick={() => execute(updateNodeColors(selected, color))}
+            />
+          );
+        })}
       </div>
     </div>
   );

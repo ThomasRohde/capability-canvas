@@ -15,6 +15,8 @@ import {
   removeNodesFromCanvas,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
+import { buildBcmPrompt } from "../../domain/promptMerge/bcmPrompt";
+import { warning } from "../../domain/validation/diagnostics";
 import {
   hasCanvasChildren,
   isNodeOnCanvas,
@@ -28,6 +30,7 @@ import { useTransientStore } from "../../app/stores/transientStore";
 import { type ViewportState, useUiStore } from "../../app/stores/uiStore";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
+import { copyTextToClipboard } from "../shared/clipboard";
 import { useEditorActions } from "../commands/useEditorActions";
 import { BulkToolbar } from "./BulkToolbar";
 import {
@@ -59,6 +62,7 @@ export function Canvas({
   const storeDoc = useDocumentStore((state) => state.doc);
   const doc = displayDoc ?? storeDoc;
   const execute = useDocumentStore((state) => state.execute);
+  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const { visualDocument: viewDoc, activeView } = useActiveVisualState({ doc });
   const displayBounds = useMemo(() => layoutDisplayBounds(viewDoc), [viewDoc]);
   const selected = useUiStore((state) => state.selectedNodeIds);
@@ -75,9 +79,11 @@ export function Canvas({
   const nodeRefs = useRef(new Map<NodeId, HTMLDivElement>());
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const contextMenuTriggerRef = useRef<HTMLElement | null>(null);
+  const promptCopyNoticeTimeout = useRef<number | null>(null);
   const [contextMenu, setContextMenu] = useState<CanvasContextMenuState | null>(
     null,
   );
+  const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] = useState(false);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const {
     viewport,
@@ -119,6 +125,57 @@ export function Canvas({
       viewport,
       showSelectionNotice,
     },
+  );
+
+  useEffect(() => {
+    return () => {
+      if (promptCopyNoticeTimeout.current !== null) {
+        window.clearTimeout(promptCopyNoticeTimeout.current);
+      }
+    };
+  }, []);
+
+  const showPromptCopyNotice = useCallback(() => {
+    setPromptCopyNoticeVisible(true);
+    if (promptCopyNoticeTimeout.current !== null) {
+      window.clearTimeout(promptCopyNoticeTimeout.current);
+    }
+    promptCopyNoticeTimeout.current = window.setTimeout(() => {
+      setPromptCopyNoticeVisible(false);
+      promptCopyNoticeTimeout.current = null;
+    }, 2400);
+  }, []);
+
+  const copyBcmPrompt = useCallback(
+    (nodeId: NodeId) => {
+      try {
+        const prompt = buildBcmPrompt(doc, nodeId);
+        void copyTextToClipboard(prompt)
+          .then(showPromptCopyNotice)
+          .catch((copyError: unknown) => {
+            setDiagnostics([
+              warning(
+                "prompt-copy-failed",
+                `Prompt could not be copied. ${
+                  copyError instanceof Error
+                    ? copyError.message
+                    : String(copyError)
+                }`,
+              ),
+            ]);
+          });
+      } catch (promptError) {
+        setDiagnostics([
+          warning(
+            "prompt-build-failed",
+            promptError instanceof Error
+              ? promptError.message
+              : "Prompt could not be built.",
+          ),
+        ]);
+      }
+    },
+    [doc, setDiagnostics, showPromptCopyNotice],
   );
   const { handleNodePointerDown, handleResizePointerDown } =
     useCanvasNodeInteractions({
@@ -378,6 +435,10 @@ export function Canvas({
             execute(duplicateNodes([nodeId]));
             closeContextMenu();
           }}
+          onCopyBcmPrompt={(nodeId) => {
+            copyBcmPrompt(nodeId);
+            closeContextMenu();
+          }}
           onFitParent={(nodeId) => {
             execute(fitParentToChildren(nodeId));
             closeContextMenu();
@@ -441,13 +502,27 @@ export function Canvas({
         viewport={docViewport}
         nodes={viewModels.map((vm) => ({
           ...vm.bounds,
-          fill: resolveNodeFill(vm.node, viewDoc.heatmap),
+          fill: resolveNodeFill(
+            vm.node,
+            viewDoc.heatmap,
+            viewDoc.settings.colorPalette,
+          ),
         }))}
         onFit={fitView}
         onZoomIn={() => zoomBy(0.1)}
         onZoomOut={() => zoomBy(-0.1)}
         onCenter={centerOnDocumentPoint}
       />
+      {promptCopyNoticeVisible && (
+        <div
+          className="cc-toast"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Prompt copied
+        </div>
+      )}
       {deleteFromModelDialog}
     </main>
   );

@@ -18,6 +18,25 @@ describe("editor inspector workflows", () => {
     expect(
       screen.getByRole("button", { name: "Set color mint" }),
     ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("button", { name: "Set color transparent" }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("commits transparent as a node color from the inspector", async () => {
+    renderEditor();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set color transparent" }),
+    );
+
+    expect(
+      useDocumentStore.getState().doc.nodesById["digital-onboarding"]
+        ?.colorOverride,
+    ).toBe("transparent");
+    expect(
+      screen.getByRole("button", { name: "Set color transparent" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("collapses and restores the inspector even with no selection", async () => {
@@ -116,7 +135,7 @@ describe("editor inspector workflows", () => {
       ),
     ).toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: "Set selected color lavender" }),
+      screen.getByRole("button", { name: "Set selected color transparent" }),
     );
     const heatmap = screen.getByLabelText("Heatmap value");
     fireEvent.change(heatmap, { target: { value: "0.33" } });
@@ -124,7 +143,7 @@ describe("editor inspector workflows", () => {
 
     const doc = useDocumentStore.getState().doc;
     for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
-      expect(doc.nodesById[nodeId]!.colorOverride).toBe("lavender");
+      expect(doc.nodesById[nodeId]!.colorOverride).toBe("transparent");
       expect(doc.nodesById[nodeId]!.heatmapValue).toBe(0.33);
     }
     expect(useDocumentStore.getState().past.at(-1)?.label).toBe(

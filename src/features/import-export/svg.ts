@@ -66,8 +66,10 @@ function renderNode(
     options.includeDescriptionData && node.description
       ? ` class="cc-node" tabindex="0" data-description="${escapeXml(node.description)}"`
       : '';
+  const fill = node.fill.isTransparent ? 'none' : node.fill.background;
+  const stroke = node.fill.isTransparent ? 'none' : node.fill.border;
   return `<g data-node-id="${escapeXml(node.id)}"${descriptionData}>
-    <rect x="${num(node.bounds.x)}" y="${num(node.bounds.y)}" width="${num(node.bounds.w)}" height="${num(node.bounds.h)}" rx="${num(node.radius)}" fill="${node.fill.background}" stroke="${node.fill.border}" stroke-width="${num(node.strokeWidth)}" />
+    <rect x="${num(node.bounds.x)}" y="${num(node.bounds.y)}" width="${num(node.bounds.w)}" height="${num(node.bounds.h)}" rx="${num(node.radius)}" fill="${fill}" stroke="${stroke}" stroke-width="${num(node.strokeWidth)}" />
     ${renderLabel(node)}
     ${node.score ? renderScore(node) : ''}
   </g>`;

@@ -20,6 +20,7 @@ import {
 import type { Transaction } from "../../domain/commands/types";
 import type {
   CapabilityColor,
+  ColorPalette,
   DiagramSettings,
   LayoutAspectRatioPreset,
   LayoutMode,
@@ -36,7 +37,11 @@ import {
   useUiStore,
 } from "../../app/stores/uiStore";
 import { importHeatmapCsv } from "../heatmap/csvImport";
-import { CAPABILITY_COLORS, CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import {
+  CAPABILITY_COLORS,
+  categoryStyle,
+  swatchBackgroundForFill,
+} from "../heatmap/resolveNodeFill";
 import { useFocusReturn } from "../shared/a11y";
 import { IconButton } from "../shared/IconButton";
 import {
@@ -75,6 +80,11 @@ const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = 
     label: "Freeform",
     help: "Preserves manual placement unless layout is forced.",
   },
+];
+
+const COLOR_PALETTES: Array<{ value: ColorPalette; label: string }> = [
+  { value: "default", label: "Default" },
+  { value: "darker", label: "Darker" },
 ];
 
 const LAYOUT_ASPECT_RATIO_PRESETS: Array<{
@@ -168,9 +178,30 @@ export function SettingsDrawer() {
         </SettingsSection>
 
         <SettingsSection icon={<Palette size={16} />} title="Model defaults">
+          <SettingField id="color-palette" label="Color palette">
+            <select
+              id="color-palette"
+              className="cc-select"
+              value={doc.settings.colorPalette}
+              onChange={(event) =>
+                execute(
+                  updateDocumentSettings({
+                    colorPalette: event.target.value as ColorPalette,
+                  }),
+                )
+              }
+            >
+              {COLOR_PALETTES.map((palette) => (
+                <option key={palette.value} value={palette.value}>
+                  {palette.label}
+                </option>
+              ))}
+            </select>
+          </SettingField>
           <ColorSetting
             label="Default leaf color"
             value={doc.settings.leafColor}
+            colorPalette={doc.settings.colorPalette}
             onChange={(leafColor) =>
               execute(updateDocumentSettings({ leafColor }))
             }
@@ -360,6 +391,7 @@ export function SettingsDrawer() {
           <ColorSetting
             label="Fallback color"
             value={doc.heatmap.fallbackColor}
+            colorPalette={doc.settings.colorPalette}
             onChange={(fallbackColor) =>
               execute(updateHeatmapSettings({ fallbackColor }))
             }
@@ -632,29 +664,36 @@ function CheckSetting({
 function ColorSetting({
   label,
   value,
+  colorPalette,
   onChange,
 }: {
   label: string;
   value: CapabilityColor;
+  colorPalette: ColorPalette;
   onChange: (value: CapabilityColor) => void;
 }) {
   return (
     <SettingField label={label}>
       <div className="cc-color-row">
-        {CAPABILITY_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            aria-label={`Set ${label.toLowerCase()} ${color}`}
-            aria-pressed={value === color}
-            className={`cc-color-swatch ${value === color ? "on" : ""}`}
-            style={{
-              color: CATEGORY_STYLES[color].border,
-              background: CATEGORY_STYLES[color].background,
-            }}
-            onClick={() => onChange(color)}
-          />
-        ))}
+        {CAPABILITY_COLORS.map((color) => {
+          const style = categoryStyle(color, colorPalette);
+          return (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Set ${label.toLowerCase()} ${color}`}
+              aria-pressed={value === color}
+              className={`cc-color-swatch ${value === color ? "on" : ""}`}
+              style={{
+                color: style.isTransparent
+                  ? "var(--cc-slate-400)"
+                  : style.border,
+                background: swatchBackgroundForFill(style),
+              }}
+              onClick={() => onChange(color)}
+            />
+          );
+        })}
       </div>
     </SettingField>
   );

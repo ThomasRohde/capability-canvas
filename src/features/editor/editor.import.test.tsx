@@ -284,13 +284,15 @@ describe("editor import workflows", () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
-  it("copies a leaf expansion BCM prompt from the toolbar", async () => {
+  it("copies a leaf expansion BCM prompt from the node context menu", async () => {
     const writeText = stubClipboard();
     renderEditor();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Model actions" }),
-    );
+    const canvas = screen.getByTestId("canvas");
+    const node = within(canvas)
+      .getByText("Digital Onboarding")
+      .closest(".cc-node") as HTMLElement;
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Copy BCM prompt" }),
     );
@@ -308,13 +310,14 @@ describe("editor import workflows", () => {
   });
 
   it("copies a non-leaf BCM prompt with merge context", async () => {
-    useUiStore.setState({ selectedNodeIds: ["customer"] });
     const writeText = stubClipboard();
     renderEditor();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Model actions" }),
-    );
+    const canvas = screen.getByTestId("canvas");
+    const node = within(canvas)
+      .getByText("Customer")
+      .closest(".cc-node") as HTMLElement;
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Copy BCM prompt" }),
     );

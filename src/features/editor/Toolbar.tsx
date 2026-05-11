@@ -1,18 +1,13 @@
 import {
   ChevronDown,
-  Copy,
   Download,
-  EyeOff,
   FileJson,
   LayoutTemplate,
   Minus,
-  MoreHorizontal,
   Plus,
   Redo2,
-  Trash2,
   Upload,
   Undo2,
-  WandSparkles,
   X,
   ZoomIn,
   type LucideProps,
@@ -28,7 +23,6 @@ import {
 } from "react";
 import { mergePromptCapabilities } from "../../domain/commands/operations";
 import { parseDocument, parseDocumentJson } from "../../domain/document/parse";
-import { buildBcmPrompt } from "../../domain/promptMerge/bcmPrompt";
 import {
   isPromptMergePayloadShape,
   parsePromptMergePayload,
@@ -63,15 +57,12 @@ export function Toolbar() {
   const [pasteDraft, setPasteDraft] = useState("");
   const [importReview, setImportReview] = useState<ImportReview | null>(null);
   const [importBusy, setImportBusy] = useState(false);
-  const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] = useState(false);
   const pasteDialogRef = useRef<HTMLElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const promptCopyNoticeTimeout = useRef<number | null>(null);
   const {
     commands: commandRegistry,
     context: commandContext,
     actions: editorActions,
-    selectedNodeIds: selected,
     deleteFromModelDialog,
   } = useEditorActions({
     doc,
@@ -84,38 +75,11 @@ export function Toolbar() {
     "model.add-child",
     commandContext,
   );
-  const duplicateAvailable = getEditorCommandAvailability(
-    commandRegistry,
-    "model.duplicate-selected",
-    commandContext,
-  );
-  const removeFromViewAvailable = getEditorCommandAvailability(
-    commandRegistry,
-    "model.remove-from-view",
-    commandContext,
-  );
-  const deleteFromModelAvailable = getEditorCommandAvailability(
-    commandRegistry,
-    "model.delete-from-model",
-    commandContext,
-  );
   const autoLayoutAvailable = getEditorCommandAvailability(
     commandRegistry,
     "layout.auto-layout",
     commandContext,
   );
-  const promptNode =
-    selected.length === 1 && selected[0] ? doc.nodesById[selected[0]] : null;
-  const canCopyPrompt =
-    !!promptNode && !promptNode.isTextLabel && promptNode.type !== "text";
-
-  useEffect(() => {
-    return () => {
-      if (promptCopyNoticeTimeout.current !== null) {
-        window.clearTimeout(promptCopyNoticeTimeout.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const pending = localStorage.getItem("capability-canvas.import");
@@ -128,17 +92,6 @@ export function Toolbar() {
       }),
     );
   }, []);
-
-  const showPromptCopyNotice = () => {
-    setPromptCopyNoticeVisible(true);
-    if (promptCopyNoticeTimeout.current !== null) {
-      window.clearTimeout(promptCopyNoticeTimeout.current);
-    }
-    promptCopyNoticeTimeout.current = window.setTimeout(() => {
-      setPromptCopyNoticeVisible(false);
-      promptCopyNoticeTimeout.current = null;
-    }, 2400);
-  };
 
   function importDocument() {
     setImportBusy(true);
@@ -223,36 +176,6 @@ export function Toolbar() {
   const downloadCurrentBackup = () =>
     saveDocumentFile(useDocumentStore.getState().doc);
 
-  const copyPrompt = () => {
-    if (!canCopyPrompt || !promptNode) return;
-    try {
-      const prompt = buildBcmPrompt(doc, promptNode.id);
-      void copyTextToClipboard(prompt)
-        .then(showPromptCopyNotice)
-        .catch((copyError: unknown) => {
-          setDiagnostics([
-            warning(
-              "prompt-copy-failed",
-              `Prompt could not be copied. ${
-                copyError instanceof Error
-                  ? copyError.message
-                  : String(copyError)
-              }`,
-            ),
-          ]);
-        });
-    } catch (promptError) {
-      setDiagnostics([
-        warning(
-          "prompt-build-failed",
-          promptError instanceof Error
-            ? promptError.message
-            : "Prompt could not be built.",
-        ),
-      ]);
-    }
-  };
-
   const zoomOut = () =>
     setViewport({
       ...viewport,
@@ -311,42 +234,6 @@ export function Toolbar() {
             <Plus />
             <span className="cc-btn-label">Add child</span>
           </button>
-          <ToolbarMenu label="Model actions" icon={MoreHorizontal}>
-            {({ closeMenu }) => (
-              <>
-                <ToolbarMenuItem
-                  icon={Copy}
-                  label="Duplicate"
-                  disabled={!duplicateAvailable?.valid}
-                  closeMenu={closeMenu}
-                  onSelect={editorActions.duplicateSelected}
-                />
-                <ToolbarMenuItem
-                  icon={EyeOff}
-                  label="Remove from active view"
-                  disabled={!removeFromViewAvailable?.valid}
-                  closeMenu={closeMenu}
-                  onSelect={editorActions.removeFromActiveView}
-                />
-                <ToolbarMenuItem
-                  icon={Trash2}
-                  label="Delete from model"
-                  disabled={!deleteFromModelAvailable?.valid}
-                  tone="danger"
-                  closeMenu={closeMenu}
-                  onSelect={editorActions.deleteFromModel}
-                />
-                <div className="cc-menu-separator" role="separator" />
-                <ToolbarMenuItem
-                  icon={WandSparkles}
-                  label="Copy BCM prompt"
-                  disabled={!canCopyPrompt}
-                  closeMenu={closeMenu}
-                  onSelect={copyPrompt}
-                />
-              </>
-            )}
-          </ToolbarMenu>
         </div>
         <span className="cc-divider" />
         <div className="cc-toolbar-group" aria-label="History commands">
@@ -479,16 +366,6 @@ export function Toolbar() {
           onApply={() => applyReviewedImport(importReview)}
           onDownloadBackup={downloadCurrentBackup}
         />
-      )}
-      {promptCopyNoticeVisible && (
-        <div
-          className="cc-toast"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          Prompt copied
-        </div>
       )}
       {deleteFromModelDialog}
     </>
@@ -637,33 +514,4 @@ function ToolbarMenuItem({
       )}
     </button>
   );
-}
-
-async function copyTextToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      // Some embedded browsers expose the async clipboard API but reject it.
-      // Keep the user gesture alive by immediately trying the DOM fallback.
-    }
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  textarea.style.opacity = "0";
-  document.body.append(textarea);
-  textarea.focus();
-  textarea.select();
-  try {
-    if (!document.execCommand("copy")) {
-      throw new Error("Clipboard fallback was rejected.");
-    }
-  } finally {
-    textarea.remove();
-  }
 }

@@ -28,6 +28,7 @@ describe("editor settings workflows", () => {
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
     expect(screen.getByLabelText("Leaf width")).toHaveValue(175);
     expect(screen.getByLabelText("Leaf height")).toHaveValue(40);
+    expect(screen.getByLabelText("Color palette")).toHaveValue("default");
     expect(
       screen.getByRole("button", { name: "Set default leaf color slate" }),
     ).toHaveClass("on");
@@ -36,6 +37,11 @@ describe("editor settings workflows", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Set default leaf color stone" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Set default leaf color transparent",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Title area")).toHaveValue(28);
     expect(screen.getByLabelText("Label top offset")).toHaveValue(4);
@@ -120,6 +126,24 @@ describe("editor settings workflows", () => {
     ).toBe("slate");
   });
 
+  it("supports transparent as the default leaf color", async () => {
+    renderEditor();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Set default leaf color transparent",
+      }),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    expect(doc.settings.leafColor).toBe("transparent");
+    expect(resolveVisualDocument(doc).nodesById["account-management"]?.color).toBe(
+      "transparent",
+    );
+  });
+
   it("groups settings by scope without repeating ownership badges", async () => {
     renderEditor();
     await userEvent.click(
@@ -165,8 +189,17 @@ describe("editor settings workflows", () => {
       }),
     );
     await userEvent.selectOptions(
+      within(drawer).getByLabelText("Color palette"),
+      "darker",
+    );
+    await userEvent.selectOptions(
       within(drawer).getByLabelText("Palette"),
       "mint-amber-coral",
+    );
+    await userEvent.click(
+      within(drawer).getByRole("button", {
+        name: "Set fallback color transparent",
+      }),
     );
     await userEvent.selectOptions(
       within(drawer).getByLabelText("Page preset"),
@@ -177,7 +210,9 @@ describe("editor settings workflows", () => {
     );
 
     const doc = useDocumentStore.getState().doc;
+    expect(doc.settings.colorPalette).toBe("darker");
     expect(doc.heatmap.palette).toBe("mint-amber-coral");
+    expect(doc.heatmap.fallbackColor).toBe("transparent");
     expect(doc.visual.viewsById[secondViewId]?.heatmap.enabled).toBe(true);
     expect(doc.visual.viewsById[firstViewId]?.heatmap.enabled).toBe(false);
     expect(doc.visual.viewsById[secondViewId]?.export).toMatchObject({

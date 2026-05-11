@@ -28,7 +28,11 @@ export const ContainerFrame = memo(function ContainerFrame({
       ? "multi-selected"
       : "single-selected"
     : "";
-  const fill = resolveNodeFill(node, viewDoc.heatmap);
+  const fill = resolveNodeFill(
+    node,
+    viewDoc.heatmap,
+    viewDoc.settings.colorPalette,
+  );
   const dragDelta = drag?.nodeIds.includes(node.id)
     ? { x: drag.dx / viewportZoom, y: drag.dy / viewportZoom }
     : { x: 0, y: 0 };
@@ -39,7 +43,7 @@ export const ContainerFrame = memo(function ContainerFrame({
 
   return (
     <div
-      className={`cc-container-frame ${selectedState ? "selected" : ""} ${selectionModeClass} ${reparentTargetId === node.id ? "drop-target" : ""}`}
+      className={`cc-container-frame ${fill.isTransparent ? "transparent" : ""} ${selectedState ? "selected" : ""} ${selectionModeClass} ${reparentTargetId === node.id ? "drop-target" : ""}`}
       aria-hidden="true"
       style={
         {

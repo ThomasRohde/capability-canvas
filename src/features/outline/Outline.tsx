@@ -68,7 +68,10 @@ import {
   useUiStore,
 } from "../../app/stores/uiStore";
 import { focusNodeInViewport } from "../canvas/viewport";
-import { CATEGORY_STYLES } from "../heatmap/resolveNodeFill";
+import {
+  categoryStyle,
+  swatchBackgroundForFill,
+} from "../heatmap/resolveNodeFill";
 import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 
@@ -428,7 +431,10 @@ export function Outline({
             if (!node) return null;
             const active = selected.includes(node.id);
             const viewNode = viewDoc.nodesById[node.id];
-            const style = CATEGORY_STYLES[viewNode?.color ?? node.color];
+            const style = categoryStyle(
+              viewNode?.color ?? node.color,
+              viewDoc.settings.colorPalette,
+            );
             const itemProps = item.getProps();
             const subtreeIds = subtreeNodeIds(doc, node.id);
             const hasHiddenCanvasNodes = subtreeIds.some(
@@ -482,7 +488,15 @@ export function Outline({
                 )}
                 <span
                   className="cc-tree-swatch"
-                  style={{ color: style.border, background: style.background }}
+                  style={{
+                    color: style.isTransparent
+                      ? "var(--cc-slate-400)"
+                      : style.border,
+                    background: swatchBackgroundForFill(style),
+                    borderColor: style.isTransparent
+                      ? "var(--cc-slate-400)"
+                      : style.border,
+                  }}
                 />
                 <span className="cc-tree-text">
                   <span className="cc-tree-label">

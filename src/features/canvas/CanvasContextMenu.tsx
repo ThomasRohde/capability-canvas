@@ -18,6 +18,7 @@ export function CanvasContextMenu({
   onInspect,
   onAddChild,
   onDuplicate,
+  onCopyBcmPrompt,
   onFitParent,
   onToggleCollapse,
   onRemoveFromView,
@@ -33,6 +34,7 @@ export function CanvasContextMenu({
   onInspect: (nodeId: NodeId) => void;
   onAddChild: (nodeId: NodeId) => void;
   onDuplicate: (nodeId: NodeId) => void;
+  onCopyBcmPrompt: (nodeId: NodeId) => void;
   onFitParent: (nodeId: NodeId) => void;
   onToggleCollapse: (nodeId: NodeId) => void;
   onRemoveFromView: (nodeId: NodeId) => void;
@@ -76,6 +78,15 @@ export function CanvasContextMenu({
       >
         Duplicate
       </button>
+      {!node.isTextLabel && node.type !== "text" && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => onCopyBcmPrompt(menu.nodeId)}
+        >
+          Copy BCM prompt
+        </button>
+      )}
       {hasCanvasChildren && (
         <button
           type="button"

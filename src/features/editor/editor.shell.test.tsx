@@ -33,8 +33,8 @@ describe("editor shell", () => {
       screen.getByRole("button", { name: "Add child" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Model actions" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Model actions" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Toggle heatmap" }),
     ).toBeInTheDocument();
@@ -63,76 +63,50 @@ describe("editor shell", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps secondary model commands in a keyboard-accessible menu", async () => {
+  it("keeps import commands in a keyboard-accessible menu", async () => {
     renderEditor();
-    const trigger = screen.getByRole("button", { name: "Model actions" });
+    const trigger = screen.getByRole("button", { name: "Import" });
 
     trigger.focus();
     await userEvent.keyboard("{Enter}");
-    const menu = screen.getByRole("menu", { name: "Model actions" });
+    const menu = screen.getByRole("menu", { name: "Import" });
     expect(
-      within(menu).getByRole("menuitem", { name: "Duplicate" }),
+      within(menu).getByRole("menuitem", { name: "Import JSON file" }),
     ).toBeEnabled();
     expect(
-      within(menu).getByRole("menuitem", { name: "Remove from active view" }),
-    ).toBeEnabled();
-    expect(
-      within(menu).getByRole("menuitem", { name: "Delete from model" }),
-    ).toBeEnabled();
-    expect(
-      within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
+      within(menu).getByRole("menuitem", { name: "Import pasted JSON" }),
     ).toBeEnabled();
 
     await waitFor(() =>
       expect(
-        within(menu).getByRole("menuitem", { name: "Duplicate" }),
+        within(menu).getByRole("menuitem", { name: "Import JSON file" }),
       ).toHaveFocus(),
     );
     fireEvent.keyDown(document.activeElement ?? window, { key: "ArrowDown" });
     expect(
-      within(menu).getByRole("menuitem", { name: "Remove from active view" }),
-    ).toHaveFocus();
-    fireEvent.keyDown(document.activeElement ?? window, { key: "End" });
-    expect(
-      within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
+      within(menu).getByRole("menuitem", { name: "Import pasted JSON" }),
     ).toHaveFocus();
     fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
 
     expect(
-      screen.queryByRole("menu", { name: "Model actions" }),
+      screen.queryByRole("menu", { name: "Import" }),
     ).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
 
     await userEvent.keyboard("{Enter}");
-    expect(
-      screen.getByRole("menu", { name: "Model actions" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("menu", { name: "Import" })).toBeInTheDocument();
     fireEvent.pointerDown(document.body);
-    expect(
-      screen.queryByRole("menu", { name: "Model actions" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("menu", { name: "Import" })).not.toBeInTheDocument();
   });
 
-  it("keeps selection-sensitive model menu items disabled without selection", async () => {
+  it("keeps Add child disabled without selection after removing model actions", async () => {
     useUiStore.setState({ selectedNodeIds: [] });
     renderEditor();
 
     expect(screen.getByRole("button", { name: "Add child" })).toBeDisabled();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Model actions" }),
-    );
-    const menu = screen.getByRole("menu", { name: "Model actions" });
-
-    for (const label of [
-      "Duplicate",
-      "Remove from active view",
-      "Delete from model",
-      "Copy BCM prompt",
-    ]) {
-      expect(
-        within(menu).getByRole("menuitem", { name: label }),
-      ).toBeDisabled();
-    }
+    expect(
+      screen.queryByRole("button", { name: "Model actions" }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens the command palette by keyboard and explains disabled commands", async () => {

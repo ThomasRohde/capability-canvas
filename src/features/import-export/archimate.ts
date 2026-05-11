@@ -139,14 +139,21 @@ function archimateViewNode(
 }
 
 function archimateNodeStyle(visualDoc: CapabilityDocument, node: CapabilityNode): string {
-  const fill = resolveNodeFill(node, visualDoc.heatmap);
+  const fill = resolveNodeFill(
+    node,
+    visualDoc.heatmap,
+    visualDoc.settings.colorPalette,
+  );
   const lineColor = rgbFromHex(fill.border);
   const fillColor = rgbFromHex(fill.background);
   const fontColor = rgbFromHex(fill.text);
   const isContainer = node.type !== 'leaf' && !node.isTextLabel;
   const fontSize = isContainer ? ARCHIMATE_CONTAINER_FONT_SIZE : ARCHIMATE_LEAF_FONT_SIZE;
+  const lineAlpha = fill.isTransparent ? 0 : 100;
+  const fillAlpha = fill.isTransparent ? 0 : 100;
+  const lineWidth = fill.isTransparent ? 0 : isContainer ? 2 : 1;
 
-  return `<style lineWidth="${isContainer ? 2 : 1}"><lineColor ${rgbAttributes(lineColor)} a="100"/><fillColor ${rgbAttributes(fillColor)} a="100"/><font name="${ARCHIMATE_FONT_FAMILY}" size="${fontSize}" style="${isContainer ? 'bold' : 'plain'}"><color ${rgbAttributes(fontColor)} a="100"/></font></style>`;
+  return `<style lineWidth="${lineWidth}"><lineColor ${rgbAttributes(lineColor)} a="${lineAlpha}"/><fillColor ${rgbAttributes(fillColor)} a="${fillAlpha}"/><font name="${ARCHIMATE_FONT_FAMILY}" size="${fontSize}" style="${isContainer ? 'bold' : 'plain'}"><color ${rgbAttributes(fontColor)} a="100"/></font></style>`;
 }
 
 function viewCoordinateOffset(nodes: CapabilityNode[]): { x: number; y: number } {

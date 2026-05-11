@@ -40,7 +40,7 @@
   border: 1px solid var(--node-border);
   border-radius: 6px;
   background: var(--node-bg);
-  color: var(--cc-slate-900);
+  color: var(--node-text, var(--cc-slate-900));
   font-size: 13px;
   font-weight: 500;
   text-align: center;
@@ -51,6 +51,11 @@
 .cc-node:not(.cc-node-container) {
   padding: 0 6px;
   line-height: 1.2;
+}
+
+.cc-node.transparent {
+  border-color: transparent;
+  background: transparent;
 }
 
 .cc-node.cc-node-container {
@@ -120,6 +125,15 @@
   background: transparent;
 }
 
+.cc-container-frame.transparent {
+  border-color: transparent;
+}
+
+.cc-container-frame.transparent.selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--cc-brand-700);
+}
+
 .cc-container-frame.selected {
   border-width: 2px;
   border-color: var(--node-border);
@@ -129,6 +143,12 @@
 .cc-container-frame.selected.multi-selected {
   box-shadow:
     0 0 0 1px var(--node-border),
+    0 0 0 5px rgba(20, 184, 166, 0.18);
+}
+
+.cc-container-frame.transparent.selected.multi-selected {
+  box-shadow:
+    0 0 0 2px var(--cc-brand-700),
     0 0 0 5px rgba(20, 184, 166, 0.18);
 }
 

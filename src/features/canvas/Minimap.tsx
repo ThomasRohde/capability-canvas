@@ -18,6 +18,7 @@ export function Minimap({
       fill: {
         background: string;
         border: string;
+        isTransparent?: boolean;
       };
     }
   >;
@@ -98,7 +99,9 @@ export function Minimap({
               width: Math.max(2, node.w * scale),
               height: Math.max(2, node.h * scale),
               background: node.fill.background,
-              border: `1px solid ${node.fill.border}`,
+              border: node.fill.isTransparent
+                ? "0"
+                : `1px solid ${node.fill.border}`,
             }}
           />
         ))}

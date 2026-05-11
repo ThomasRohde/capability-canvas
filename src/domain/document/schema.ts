@@ -19,6 +19,18 @@ const layoutAspectRatioPresetSchema = z.enum([
   "1:1",
   "custom",
 ]);
+const capabilityColorSchema = z.enum([
+  "mint",
+  "sky",
+  "coral",
+  "amber",
+  "lavender",
+  "peach",
+  "teal",
+  "slate",
+  "stone",
+  "transparent",
+]);
 
 export const LayoutPreferencesSchema = z
   .object({
@@ -42,30 +54,8 @@ export const NodeSchema = z
     w: positiveNumber,
     h: positiveNumber,
     type: z.enum(["root", "parent", "leaf", "text"]),
-    color: z.enum([
-      "mint",
-      "sky",
-      "coral",
-      "amber",
-      "lavender",
-      "peach",
-      "teal",
-      "slate",
-      "stone",
-    ]),
-    colorOverride: z
-      .enum([
-        "mint",
-        "sky",
-        "coral",
-        "amber",
-        "lavender",
-        "peach",
-        "teal",
-        "slate",
-        "stone",
-      ])
-      .optional(),
+    color: capabilityColorSchema,
+    colorOverride: capabilityColorSchema.optional(),
     description: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).default({}),
     layoutPreferences: LayoutPreferencesSchema.optional(),
@@ -95,19 +85,10 @@ export const SettingsSchema = z
     resizeSnapToGrid: z.boolean().default(DEFAULT_SETTINGS.resizeSnapToGrid),
     fixedLeafWidth: positiveNumber,
     fixedLeafHeight: positiveNumber,
-    leafColor: z
-      .enum([
-        "mint",
-        "sky",
-        "coral",
-        "amber",
-        "lavender",
-        "peach",
-        "teal",
-        "slate",
-        "stone",
-      ])
-      .default(DEFAULT_SETTINGS.leafColor),
+    leafColor: capabilityColorSchema.default(DEFAULT_SETTINGS.leafColor),
+    colorPalette: z
+      .enum(["default", "darker"])
+      .default(DEFAULT_SETTINGS.colorPalette),
     defaultParentWidth: positiveNumber,
     defaultParentHeight: positiveNumber,
     containerPaddingTop: spacingNumber.default(
@@ -173,17 +154,7 @@ export const HeatmapSchema = z
     enabled: z.boolean(),
     showLegend: z.boolean(),
     palette: z.enum(["green-yellow-red", "mint-amber-coral"]),
-    fallbackColor: z.enum([
-      "mint",
-      "sky",
-      "coral",
-      "amber",
-      "lavender",
-      "peach",
-      "teal",
-      "slate",
-      "stone",
-    ]),
+    fallbackColor: capabilityColorSchema,
   })
   .passthrough();
 
@@ -196,19 +167,7 @@ export const VisualNodeStateSchema = z
     isOnCanvas: z.boolean().optional(),
     isCollapsed: z.boolean().optional(),
     labelOverride: z.string().optional(),
-    colorOverride: z
-      .enum([
-        "mint",
-        "sky",
-        "coral",
-        "amber",
-        "lavender",
-        "peach",
-        "teal",
-        "slate",
-        "stone",
-      ])
-      .optional(),
+    colorOverride: capabilityColorSchema.optional(),
     textStyleOverride: z
       .object({
         fontFamily: z.string().optional(),

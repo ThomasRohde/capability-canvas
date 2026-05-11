@@ -234,7 +234,11 @@ describe('exports', () => {
     doc.visual.viewsById[doc.visual.activeViewId]!.heatmap.enabled = true;
     const visualDoc = resolveVisualDocument(doc);
     const node = visualDoc.nodesById['digital-onboarding']!;
-    const fill = resolveNodeFill(node, visualDoc.heatmap);
+    const fill = resolveNodeFill(
+      node,
+      visualDoc.heatmap,
+      visualDoc.settings.colorPalette,
+    );
     expect(fill.border).toMatch(/^#/);
     expect(svgExport(doc).data).toContain(fill.border);
   });
@@ -247,7 +251,13 @@ describe('exports', () => {
 
     for (const nodeModel of model.nodes) {
       const node = visualDoc.nodesById[nodeModel.id]!;
-      expect(nodeModel.fill).toEqual(resolveNodeFill(node, visualDoc.heatmap));
+      expect(nodeModel.fill).toEqual(
+        resolveNodeFill(
+          node,
+          visualDoc.heatmap,
+          visualDoc.settings.colorPalette,
+        ),
+      );
     }
   });
 
@@ -255,8 +265,16 @@ describe('exports', () => {
     const doc = createSampleDocument();
     doc.heatmap.enabled = false;
     const node = doc.nodesById['digital-onboarding']!;
-    const categoryFill = resolveNodeFill(node, doc.heatmap);
-    const heatmapFill = resolveNodeFill(node, { ...doc.heatmap, enabled: true });
+    const categoryFill = resolveNodeFill(
+      node,
+      doc.heatmap,
+      doc.settings.colorPalette,
+    );
+    const heatmapFill = resolveNodeFill(
+      node,
+      { ...doc.heatmap, enabled: true },
+      doc.settings.colorPalette,
+    );
     const heatmapScore = `>${node.heatmapValue!.toFixed(2)}</text>`;
     const svg = svgExport(doc).data;
     const html = htmlExport(doc).data;
@@ -272,12 +290,72 @@ describe('exports', () => {
     const doc = createSampleDocument();
     doc.heatmap.enabled = true;
     const node = doc.nodesById['digital-onboarding']!;
-    const defaultFill = resolveNodeFill(node, doc.heatmap);
+    const defaultFill = resolveNodeFill(
+      node,
+      doc.heatmap,
+      doc.settings.colorPalette,
+    );
     doc.heatmap.palette = 'mint-amber-coral';
-    const alternateFill = resolveNodeFill(node, doc.heatmap);
+    const alternateFill = resolveNodeFill(
+      node,
+      doc.heatmap,
+      doc.settings.colorPalette,
+    );
 
     expect(alternateFill.border).toMatch(/^#/);
     expect(alternateFill.border).not.toBe(defaultFill.border);
+  });
+
+  it('uses the configured darker category palette in visual exports', () => {
+    const doc = createSampleDocument();
+    doc.settings.colorPalette = 'darker';
+    const visualDoc = resolveVisualDocument(doc);
+    const node = visualDoc.nodesById.customer!;
+    const fill = resolveNodeFill(
+      node,
+      visualDoc.heatmap,
+      visualDoc.settings.colorPalette,
+    );
+    const svg = svgExport(doc).data as string;
+    const drawio = drawioExport(doc).data as string;
+    const archimate = archimateExport(doc).data as string;
+
+    expect(fill.background).toBe('#8ABDAA');
+    expect(fill.border).toBe('#4E6F66');
+    expect(buildVisualExportModel(doc).nodes.find((item) => item.id === 'customer')?.fill).toEqual(fill);
+    expect(svg).toContain('fill="#8ABDAA" stroke="#4E6F66"');
+    expect(drawio).toContain('fillColor=#8ABDAA;strokeColor=#4E6F66');
+    expect(archimate).toContain(
+      '<lineColor r="78" g="111" b="102" a="100"/><fillColor r="138" g="189" b="170" a="100"/>',
+    );
+  });
+
+  it('renders transparent nodes as text-only across visual exports', async () => {
+    const doc = createSampleDocument();
+    doc.nodesById.customer = {
+      ...doc.nodesById.customer!,
+      colorOverride: 'transparent',
+    };
+    const model = buildVisualExportModel(doc);
+    const customer = model.nodes.find((node) => node.id === 'customer')!;
+    const svg = svgExport(doc).data as string;
+    const html = htmlExport(doc).data as string;
+    const drawio = drawioExport(doc).data as string;
+    const archimate = archimateExport(doc).data as string;
+    const pptxSlide = await pptxSlideXml(doc);
+
+    expect(customer.fill.isTransparent).toBe(true);
+    expect(customer.strokeWidth).toBe(0);
+    expect(svg).toMatch(
+      /data-node-id="customer">[\s\S]*?<rect [^>]+fill="none" stroke="none" stroke-width="0"/,
+    );
+    expect(html).toContain('fill="none" stroke="none" stroke-width="0"');
+    expect(drawio).toContain('fillColor=none;strokeColor=none;strokeWidth=0');
+    expect(archimate).toContain(
+      '<style lineWidth="0"><lineColor r="0" g="0" b="0" a="0"/><fillColor r="0" g="0" b="0" a="0"/>',
+    );
+    expect(pptxSlide).toContain('Customer');
+    expect(pptxSlide).not.toContain('TRANSPARENT');
   });
 
   it('keeps explicit zero heatmap scores distinct from unscored nodes', () => {
