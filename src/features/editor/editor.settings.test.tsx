@@ -295,7 +295,14 @@ describe("editor settings workflows", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Open settings" }),
     );
+    const drawer = screen.getByRole("complementary", { name: "Settings" });
+    expect(
+      within(drawer).getByRole("button", { name: "Import CSV" }),
+    ).toBeInTheDocument();
     const input = document.querySelector("#heatmap-csv") as HTMLInputElement;
+    expect(input).toHaveAttribute("aria-hidden", "true");
+    expect(input).toHaveAttribute("tabindex", "-1");
+    expect(getComputedStyle(input).display).toBe("none");
     const file = {
       text: async () => "id,value\ndigital-onboarding,0.91\nmissing-node,0.5",
     } as File;

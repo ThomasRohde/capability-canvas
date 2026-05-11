@@ -115,6 +115,7 @@ export function SettingsDrawer() {
   const exportFormat = useUiStore((state) => state.exportFormat);
   const setExportFormat = useUiStore((state) => state.setExportFormat);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const heatmapCsvInputRef = useRef<HTMLInputElement>(null);
   const { activeView } = useActiveVisualState({ doc });
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
@@ -367,14 +368,21 @@ export function SettingsDrawer() {
             label="Node scores"
             hint="CSV import updates heatmap values stored on capabilities."
           >
-            <label className="cc-btn cc-file-label" htmlFor="heatmap-csv">
+            <button
+              className="cc-btn cc-file-label"
+              type="button"
+              onClick={() => heatmapCsvInputRef.current?.click()}
+            >
               <Upload /> Import CSV
-            </label>
+            </button>
             <input
+              ref={heatmapCsvInputRef}
               id="heatmap-csv"
               className="cc-file-input-hidden"
               type="file"
               accept=".csv,text/csv"
+              tabIndex={-1}
+              aria-hidden="true"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.currentTarget.value = "";
