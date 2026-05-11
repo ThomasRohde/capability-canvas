@@ -46,6 +46,20 @@ describe('exports', () => {
     expect(Math.max(...fontSizes)).toBeLessThan(7);
   });
 
+  it('uses Segoe UI consistently across visual exports', async () => {
+    const doc = createExportFixture();
+    const svg = svgExport(doc).data as string;
+    const html = htmlExport(doc).data as string;
+    const drawio = drawioExport(doc).data as string;
+    const pptxSlide = await pptxSlideXml(doc);
+
+    expect(buildVisualExportModel(doc).fontFamily).toBe('Segoe UI');
+    expect(svg).toContain('font-family: "Segoe UI", Arial, sans-serif;');
+    expect(html).toContain('font-family: "Segoe UI", system-ui, sans-serif;');
+    expect(drawio).toContain('fontFamily=Segoe UI;');
+    expect(pptxSlide).toContain('typeface="Segoe UI"');
+  });
+
   it('reports active-view legend rendering for visual adapters that render it', () => {
     expect(svgAdapter.legend).toBe('active-view-display');
     expect(htmlAdapter.legend).toBe('active-view-display');

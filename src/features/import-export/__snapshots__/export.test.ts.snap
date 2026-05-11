@@ -12,7 +12,7 @@ exports[`exports > snapshots SVG active-view visibility filtering 1`] = `
 <svg xmlns="http://www.w3.org/2000/svg" width="356" height="236" viewBox="-48 -48 356 236">
   <defs />
   <style>
-    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    text { font-family: "Segoe UI", Arial, sans-serif; fill: #0f172a; }
     .node-label { font-size: 13px; font-weight: 500; }
     .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
@@ -34,7 +34,7 @@ exports[`exports > snapshots SVG heatmap scores and legend fidelity 1`] = `
 <svg xmlns="http://www.w3.org/2000/svg" width="356" height="318" viewBox="-48 -48 356 318">
   <defs><linearGradient id="cc-heatmap-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#86efac" /><stop offset="25%" stop-color="#bef264" /><stop offset="50%" stop-color="#fde047" /><stop offset="75%" stop-color="#fb923c" /><stop offset="100%" stop-color="#ef4444" /></linearGradient></defs>
   <style>
-    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    text { font-family: "Segoe UI", Arial, sans-serif; fill: #0f172a; }
     .node-label { font-size: 13px; font-weight: 500; }
     .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
@@ -70,7 +70,7 @@ exports[`exports > snapshots SVG normal color mode fidelity 1`] = `
 <svg xmlns="http://www.w3.org/2000/svg" width="356" height="236" viewBox="-48 -48 356 236">
   <defs />
   <style>
-    text { font-family: Inter, Arial, sans-serif; fill: #0f172a; }
+    text { font-family: "Segoe UI", Arial, sans-serif; fill: #0f172a; }
     .node-label { font-size: 13px; font-weight: 500; }
     .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
@@ -114,7 +114,7 @@ exports[`exports > snapshots the shared render model used by PPTX 1`] = `
     "showSubtitle": undefined,
     "showTitle": undefined,
   },
-  "fontFamily": "Inter",
+  "fontFamily": "Segoe UI",
   "legend": {
     "barBounds": {
       "h": 8,

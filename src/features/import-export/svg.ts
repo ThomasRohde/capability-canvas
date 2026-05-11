@@ -33,7 +33,7 @@ export function renderSvg(
 <svg xmlns="http://www.w3.org/2000/svg" width="${num(bounds.w)}" height="${num(bounds.h)}" viewBox="${num(bounds.x)} ${num(bounds.y)} ${num(bounds.w)} ${num(bounds.h)}">
   ${renderDefs(model)}
   <style>
-    text { font-family: ${escapeXml(model.fontFamily)}, Arial, sans-serif; fill: #0f172a; }
+    text { font-family: "${escapeXml(model.fontFamily)}", Arial, sans-serif; fill: #0f172a; }
     .node-label { font-size: 13px; font-weight: 500; }
     .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }

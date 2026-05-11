@@ -42,7 +42,7 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
       y: 0.2,
       w: SLIDE_WIDE_WIDTH - SLIDE_MARGIN * 2,
       h: TITLE_HEIGHT,
-      fontFace: 'Aptos',
+      fontFace: model.fontFamily,
       fontSize: 13,
       bold: true,
       color: '0F172A',
@@ -51,10 +51,10 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
   }
 
   for (const node of model.nodes) {
-    renderNode(slide, deck, mapper, node);
+    renderNode(slide, deck, model, mapper, node);
   }
   if (model.legend) {
-    renderLegend(slide, deck, mapper, model.legend);
+    renderLegend(slide, deck, model, mapper, model.legend);
   }
 
   const blob = await deck.write({ outputType: 'blob' });
@@ -70,6 +70,7 @@ export async function pptxExport(doc: CapabilityDocument): Promise<ExportResult>
 function renderNode(
   slide: pptxgen.Slide,
   deck: pptxgen,
+  model: VisualExportModel,
   mapper: SlideMapper,
   node: VisualExportNodeModel,
 ): void {
@@ -91,7 +92,7 @@ function renderNode(
     y: mapper.y(labelTop),
     w: mapper.w(node.bounds.w - (node.isContainer ? 28 : 12)),
     h: mapper.h(node.label.lines.length * node.label.lineHeight),
-    fontFace: 'Aptos',
+    fontFace: model.fontFamily,
     fontSize: mapper.font(node.label.fontSize),
     bold: node.label.fontWeight >= 600,
     align: 'center',
@@ -113,7 +114,7 @@ function renderNode(
       });
       slide.addText(node.score.value, {
         ...scoreBounds,
-        fontFace: 'Aptos',
+        fontFace: model.fontFamily,
         fontSize: mapper.font(node.score.fontSize),
         bold: true,
         align: 'center',
@@ -128,7 +129,7 @@ function renderNode(
         y: mapper.y(node.score.y - node.score.fontSize),
         w: mapper.w(node.bounds.w),
         h: mapper.h(node.score.fontSize + 2),
-        fontFace: 'Aptos',
+        fontFace: model.fontFamily,
         fontSize: mapper.font(node.score.fontSize),
         bold: false,
         align: 'center',
@@ -144,6 +145,7 @@ function renderNode(
 function renderLegend(
   slide: pptxgen.Slide,
   deck: pptxgen,
+  model: VisualExportModel,
   mapper: SlideMapper,
   legend: VisualExportLegendModel,
 ): void {
@@ -158,7 +160,7 @@ function renderLegend(
     y: mapper.y(legend.titleY - 11),
     w: mapper.w(legend.bounds.w - 24),
     h: mapper.h(14),
-    fontFace: 'Aptos',
+    fontFace: model.fontFamily,
     fontSize: mapper.font(11),
     bold: true,
     color: '0F172A',
@@ -182,7 +184,7 @@ function renderLegend(
     y: mapper.y(legend.labelY - 10),
     w: mapper.w(legend.barBounds.w / 2),
     h: mapper.h(12),
-    fontFace: 'Aptos',
+    fontFace: model.fontFamily,
     fontSize: mapper.font(11),
     color: '64748B',
     margin: 0,
@@ -192,7 +194,7 @@ function renderLegend(
     y: mapper.y(legend.labelY - 10),
     w: mapper.w(legend.barBounds.w / 2),
     h: mapper.h(12),
-    fontFace: 'Aptos',
+    fontFace: model.fontFamily,
     fontSize: mapper.font(11),
     color: '64748B',
     align: 'right',

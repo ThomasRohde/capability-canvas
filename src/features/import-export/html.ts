@@ -1,7 +1,7 @@
 import { safeFileBaseName } from '../../domain/document/fileName';
 import type { CapabilityDocument } from '../../domain/document/types';
 import { escapeXml } from './escape';
-import { buildVisualExportModel } from './renderModel';
+import { buildVisualExportModel, EXPORT_FONT_FAMILY } from './renderModel';
 import { renderSvg } from './svg';
 import type { ExportAdapter, ExportResult } from './types';
 
@@ -15,7 +15,7 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeXml(model.title)}</title>
     <style>
-      body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Inter, system-ui, sans-serif; }
+      body { margin: 0; background: #f8fafc; color: #0f172a; font-family: "${EXPORT_FONT_FAMILY}", system-ui, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
       svg { max-width: 100%; height: auto; border: 1px solid #e2e8f0; background: #f1f5f9; }
       .cc-node[data-description] { cursor: help; }

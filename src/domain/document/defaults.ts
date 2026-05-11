@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS = {
   containerLabelOffsetTop: 4,
   childGapX: 4,
   childGapY: 4,
-  fontFamily: "Inter",
+  fontFamily: "Segoe UI",
   borderRadius: 8,
   layoutMode: "uniform" as const,
   layoutAspectRatioPreset: "16:9" as const,

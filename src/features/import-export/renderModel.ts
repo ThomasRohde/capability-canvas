@@ -39,6 +39,7 @@ const CONTAINER_LINE_HEIGHT = 17;
 const LEAF_SCORE_FONT_SIZE = 11;
 const CONTAINER_SCORE_FONT_SIZE = 10;
 const LEAF_SCORE_GAP = 3;
+export const EXPORT_FONT_FAMILY = "Segoe UI";
 
 export interface VisualExportModel {
   title: string;
@@ -126,7 +127,7 @@ export function buildVisualExportModel(
 
   return {
     title: visualDoc.title,
-    fontFamily: visualDoc.settings.fontFamily || "Inter",
+    fontFamily: EXPORT_FONT_FAMILY,
     background: "#f1f5f9",
     documentBounds,
     contentBounds,

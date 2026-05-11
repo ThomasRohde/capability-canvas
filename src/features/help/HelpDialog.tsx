@@ -208,7 +208,7 @@ Return only valid JSON. Every node requires geometry, timestamps, type, color, a
     "containerLabelOffsetTop": 14,
     "childGapX": 16,
     "childGapY": 16,
-    "fontFamily": "Inter",
+    "fontFamily": "Segoe UI",
     "borderRadius": 8,
     "layoutMode": "adaptive",
     "layoutAspectRatioPreset": "auto",
