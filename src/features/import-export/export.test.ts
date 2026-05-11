@@ -221,6 +221,20 @@ describe('exports', () => {
     expect(xml).toContain(`y="${child.y - parent.y}"`);
   });
 
+  it('exports Draw.io cells with fixed radii, top parent labels, and wrapped labels', () => {
+    const xml = drawioExport(createExportFixture()).data as string;
+    const rootCell = xml.match(/<mxCell id="root"[^>]+>/)?.[0] ?? '';
+    const leafCell = xml.match(/<mxCell id="leaf"[^>]+>/)?.[0] ?? '';
+
+    expect(rootCell).toContain('absoluteArcSize=1;arcSize=16;');
+    expect(rootCell).toContain('verticalAlign=top;spacingTop=4;spacingBottom=6;');
+    expect(rootCell).toContain('fontSize=14;fontStyle=1;');
+    expect(leafCell).toContain('value="Very long&lt;br&gt;onboarding..."');
+    expect(leafCell).toContain('absoluteArcSize=1;arcSize=12;');
+    expect(leafCell).toContain('verticalAlign=middle;spacing=8;');
+    expect(leafCell).toContain('fontSize=13;fontStyle=0;');
+  });
+
   it('keeps JSON full-fidelity while active-view exports omit hidden nodes', () => {
     const doc = createSampleDocument();
     doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById['digital-onboarding'] = {
