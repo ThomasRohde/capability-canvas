@@ -14,9 +14,12 @@ import type { ExportAdapter, ExportResult } from './types';
 interface ArchimateIdentifiers {
   model: string;
   nodes: Map<string, string>;
-  relationships: Map<string, string>;
   used: Set<string>;
 }
+
+const ARCHIMATE_FONT_FAMILY = 'Segoe UI';
+const ARCHIMATE_CONTAINER_FONT_SIZE = 9;
+const ARCHIMATE_LEAF_FONT_SIZE = 8;
 
 export function archimateExport(doc: CapabilityDocument): ExportResult {
   const nodes = sortedNodes(doc);
@@ -66,7 +69,7 @@ function createArchimateIdentifiers(
     nodeIdentifiers.set(node.id, nextArchimateIdentifier(used, 'cc-node', node.id));
   }
 
-  return { model, nodes: nodeIdentifiers, relationships: new Map(), used };
+  return { model, nodes: nodeIdentifiers, used };
 }
 
 function createRelationshipModels(
@@ -80,7 +83,6 @@ function createRelationshipModels(
       const source = identifiers.nodes.get(node.parentId!)!;
       const target = identifiers.nodes.get(node.id)!;
       const id = nextArchimateIdentifier(identifiers.used, 'cc-rel', `${source}-${target}`);
-      identifiers.relationships.set(relationshipKey(node.parentId!, node.id), id);
       return { id, source, target };
     });
 }
@@ -106,7 +108,6 @@ function archimateView(
   const visualDoc = resolveVisualDocument(doc, view.id);
   const nodes = sortedNodes(visualDoc).filter(isNodeOnCanvas);
   const viewNodeIds = new Map<string, string>();
-  const visibleNodeIds = new Set(nodes.map((node) => node.id));
   const offset = viewCoordinateOffset(nodes);
   const viewId = nextArchimateIdentifier(identifiers.used, 'cc-view', view.id);
 
@@ -120,15 +121,11 @@ function archimateView(
   const viewNodes = nodes
     .map((node) => archimateViewNode(visualDoc, node, identifiers, viewNodeIds, offset))
     .join('');
-  const viewConnections = nodes
-    .filter((node) => node.parentId && visibleNodeIds.has(node.parentId))
-    .map((node) => archimateViewConnection(view.id, node, identifiers, viewNodeIds))
-    .join('');
   const documentation = view.description?.trim()
     ? `<documentation>${escapeXml(view.description.trim())}</documentation>`
     : '';
 
-  return `<view identifier="${escapeXml(viewId)}" xsi:type="Diagram" viewpoint="Capability Map"><name>${escapeXml(view.name)}</name>${documentation}${viewNodes}${viewConnections}</view>`;
+  return `<view identifier="${escapeXml(viewId)}" xsi:type="Diagram" viewpoint="Capability Map"><name>${escapeXml(view.name)}</name>${documentation}${viewNodes}</view>`;
 }
 
 function archimateViewNode(
@@ -141,34 +138,15 @@ function archimateViewNode(
   return `<node identifier="${escapeXml(viewNodeIds.get(node.id)!)}" elementRef="${escapeXml(identifiers.nodes.get(node.id)!)}" xsi:type="Element" x="${nonNegativeInt(node.x + offset.x)}" y="${nonNegativeInt(node.y + offset.y)}" w="${positiveInt(node.w)}" h="${positiveInt(node.h)}">${archimateNodeStyle(visualDoc, node)}</node>`;
 }
 
-function archimateViewConnection(
-  viewId: string,
-  node: CapabilityNode,
-  identifiers: ArchimateIdentifiers,
-  viewNodeIds: Map<string, string>,
-): string {
-  const relationshipRef = identifiers.relationships.get(relationshipKey(node.parentId!, node.id));
-  if (!relationshipRef) return '';
-  const connectionId = nextArchimateIdentifier(
-    identifiers.used,
-    'cc-view-connection',
-    `${viewId}-${node.parentId}-${node.id}`,
-  );
-  return `<connection identifier="${escapeXml(connectionId)}" relationshipRef="${escapeXml(relationshipRef)}" source="${escapeXml(viewNodeIds.get(node.parentId!)!)}" target="${escapeXml(viewNodeIds.get(node.id)!)}" xsi:type="Relationship">${archimateConnectionStyle()}</connection>`;
-}
-
 function archimateNodeStyle(visualDoc: CapabilityDocument, node: CapabilityNode): string {
   const fill = resolveNodeFill(node, visualDoc.heatmap);
   const lineColor = rgbFromHex(fill.border);
   const fillColor = rgbFromHex(fill.background);
   const fontColor = rgbFromHex(fill.text);
   const isContainer = node.type !== 'leaf' && !node.isTextLabel;
+  const fontSize = isContainer ? ARCHIMATE_CONTAINER_FONT_SIZE : ARCHIMATE_LEAF_FONT_SIZE;
 
-  return `<style lineWidth="${isContainer ? 2 : 1}"><lineColor ${rgbAttributes(lineColor)} a="100"/><fillColor ${rgbAttributes(fillColor)} a="100"/><font name="${escapeXml(visualDoc.settings.fontFamily)}" size="${isContainer ? 14 : 12}" style="${isContainer ? 'bold' : 'plain'}"><color ${rgbAttributes(fontColor)} a="100"/></font></style>`;
-}
-
-function archimateConnectionStyle(): string {
-  return '<style lineWidth="1"><lineColor r="100" g="116" b="139" a="100"/></style>';
+  return `<style lineWidth="${isContainer ? 2 : 1}"><lineColor ${rgbAttributes(lineColor)} a="100"/><fillColor ${rgbAttributes(fillColor)} a="100"/><font name="${ARCHIMATE_FONT_FAMILY}" size="${fontSize}" style="${isContainer ? 'bold' : 'plain'}"><color ${rgbAttributes(fontColor)} a="100"/></font></style>`;
 }
 
 function viewCoordinateOffset(nodes: CapabilityNode[]): { x: number; y: number } {
@@ -176,10 +154,6 @@ function viewCoordinateOffset(nodes: CapabilityNode[]): { x: number; y: number }
   const minX = Math.min(...nodes.map((node) => node.x));
   const minY = Math.min(...nodes.map((node) => node.y));
   return { x: -minX, y: -minY };
-}
-
-function relationshipKey(sourceId: string, targetId: string): string {
-  return JSON.stringify([sourceId, targetId]);
 }
 
 function positiveInt(value: number): number {

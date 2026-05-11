@@ -119,8 +119,13 @@ describe('exports', () => {
     expect(defaultViewXml).toContain('viewpoint="Capability Map"');
     expect(defaultViewXml).toContain('elementRef="cc-node-root"');
     expect(defaultViewXml).toContain('elementRef="cc-node-leaf"');
-    expect(defaultViewXml).toContain('relationshipRef="cc-rel-cc-node-root-cc-node-leaf"');
-    expect(defaultViewXml).toContain('xsi:type="Relationship"');
+    expect(defaultViewXml).toContain('<font name="Segoe UI" size="9"');
+    expect(defaultViewXml).toContain('<font name="Segoe UI" size="8"');
+    expect(defaultViewXml).not.toContain('<connection');
+    expect(defaultViewXml).not.toContain('xsi:type="Relationship"');
+    expect(xml).toContain(
+      '<relationship identifier="cc-rel-cc-node-root-cc-node-leaf"',
+    );
     expect(rootOnlyViewXml).toContain('elementRef="cc-node-root"');
     expect(rootOnlyViewXml).not.toContain('elementRef="cc-node-leaf"');
     expect(rootOnlyViewXml).not.toContain('relationshipRef=');
