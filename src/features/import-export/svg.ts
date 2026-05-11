@@ -87,13 +87,10 @@ function renderLabel(node: VisualExportNodeModel): string {
 function renderScore(node: VisualExportNodeModel): string {
   const score = node.score;
   if (!score) return '';
-  if (score.kind === 'badge') {
-    return `<g class="heatmap-score heatmap-score-badge">
+  return `<g class="heatmap-score heatmap-score-badge">
       <rect x="${num(score.bounds.x)}" y="${num(score.bounds.y)}" width="${num(score.bounds.w)}" height="${num(score.bounds.h)}" rx="${num(score.bounds.h / 2)}" fill="#ffffff" fill-opacity="0.72" stroke="#64748b" stroke-opacity="0.16" />
       <text x="${num(score.textX)}" y="${num(score.textY)}" text-anchor="middle" font-size="${num(score.fontSize)}" font-weight="${score.fontWeight}">${score.value}</text>
     </g>`;
-  }
-  return `<text class="heatmap-score" x="${num(score.x)}" y="${num(score.y)}" text-anchor="middle" font-size="${num(score.fontSize)}" font-weight="${score.fontWeight}">${score.value}</text>`;
 }
 
 function renderLegend(legend: VisualExportLegendModel): string {

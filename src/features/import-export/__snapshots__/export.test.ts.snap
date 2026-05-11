@@ -46,14 +46,17 @@ exports[`exports > snapshots SVG heatmap scores and legend fidelity 1`] = `
     <rect x="0" y="0" width="260" height="140" rx="8" fill="#f5fad4" stroke="#d7eb58" stroke-width="1.5" />
     <text text-anchor="middle" class="container-label" font-size="14" font-weight="600"><tspan x="130" y="16">Root Capability</tspan></text>
     <g class="heatmap-score heatmap-score-badge">
-      <rect x="214.8" y="7" width="35.2" height="16" rx="8" fill="#ffffff" fill-opacity="0.72" stroke="#64748b" stroke-opacity="0.16" />
-      <text x="232.4" y="18" text-anchor="middle" font-size="10" font-weight="600">0.35</text>
+      <rect x="220.8" y="4" width="35.2" height="16" rx="8" fill="#ffffff" fill-opacity="0.72" stroke="#64748b" stroke-opacity="0.16" />
+      <text x="238.4" y="15" text-anchor="middle" font-size="10" font-weight="600">0.35</text>
     </g>
   </g>
   <g data-node-id="leaf">
     <rect x="24" y="72" width="120" height="40" rx="6" fill="#e0fbe9" stroke="#86efac" stroke-width="1" />
-    <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="84" y="90.2">Very long...</tspan></text>
-    <text class="heatmap-score" x="84" y="104.2" text-anchor="middle" font-size="11" font-weight="500">0.00</text>
+    <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="62.4" y="89.4">Very long</tspan><tspan x="62.4" dy="15.6">onboar...</tspan></text>
+    <g class="heatmap-score heatmap-score-badge">
+      <rect x="104.8" y="76" width="35.2" height="16" rx="8" fill="#ffffff" fill-opacity="0.72" stroke="#64748b" stroke-opacity="0.16" />
+      <text x="122.4" y="87" text-anchor="middle" font-size="10" font-weight="600">0.00</text>
+    </g>
   </g>
   <g class="heatmap-legend" data-legend-position="bottom-right">
     <rect x="50" y="164" width="210" height="58" rx="10" fill="#ffffff" stroke="#e2e8f0" />
@@ -175,14 +178,14 @@ exports[`exports > snapshots the shared render model used by PPTX 1`] = `
         "bounds": {
           "h": 16,
           "w": 35.2,
-          "x": 214.8,
-          "y": 7,
+          "x": 220.8,
+          "y": 4,
         },
         "fontSize": 10,
         "fontWeight": 600,
         "kind": "badge",
-        "textX": 232.4,
-        "textY": 18,
+        "textX": 238.4,
+        "textY": 15,
         "value": "0.35",
       },
       "strokeWidth": 1.5,
@@ -204,23 +207,30 @@ exports[`exports > snapshots the shared render model used by PPTX 1`] = `
       "id": "leaf",
       "isContainer": false,
       "label": {
-        "firstBaselineY": 90.2,
+        "firstBaselineY": 89.4,
         "fontSize": 13,
         "fontWeight": 500,
         "lineHeight": 15.6,
         "lines": [
-          "Very long...",
+          "Very long",
+          "onboar...",
         ],
-        "x": 84,
+        "x": 62.4,
       },
       "radius": 6,
       "score": {
-        "fontSize": 11,
-        "fontWeight": 500,
-        "kind": "text",
+        "bounds": {
+          "h": 16,
+          "w": 35.2,
+          "x": 104.8,
+          "y": 76,
+        },
+        "fontSize": 10,
+        "fontWeight": 600,
+        "kind": "badge",
+        "textX": 122.4,
+        "textY": 87,
         "value": "0.00",
-        "x": 84,
-        "y": 104.2,
       },
       "strokeWidth": 1,
     },

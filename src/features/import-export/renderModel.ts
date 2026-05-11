@@ -36,9 +36,10 @@ const LEAF_FONT_SIZE = 13;
 const LEAF_LINE_HEIGHT = 15.6;
 const CONTAINER_FONT_SIZE = 14;
 const CONTAINER_LINE_HEIGHT = 17;
-const LEAF_SCORE_FONT_SIZE = 11;
-const CONTAINER_SCORE_FONT_SIZE = 10;
-const LEAF_SCORE_GAP = 3;
+const SCORE_BADGE_FONT_SIZE = 10;
+const SCORE_BADGE_HEIGHT = 16;
+const SCORE_BADGE_INSET = 4;
+const SCORE_BADGE_GAP = 4;
 export const EXPORT_FONT_FAMILY = "Segoe UI";
 
 export interface VisualExportModel {
@@ -74,24 +75,15 @@ export interface VisualExportLabelModel {
   fontWeight: number;
 }
 
-export type VisualExportScoreModel =
-  | {
-      kind: "badge";
-      value: string;
-      bounds: Bounds;
-      textX: number;
-      textY: number;
-      fontSize: number;
-      fontWeight: number;
-    }
-  | {
-      kind: "text";
-      value: string;
-      x: number;
-      y: number;
-      fontSize: number;
-      fontWeight: number;
-    };
+export interface VisualExportScoreModel {
+  kind: "badge";
+  value: string;
+  bounds: Bounds;
+  textX: number;
+  textY: number;
+  fontSize: number;
+  fontWeight: number;
+}
 
 export interface VisualExportLegendModel {
   title: string;
@@ -144,10 +136,10 @@ function buildNodeModel(
 ): VisualExportNodeModel {
   const isContainer = node.type !== "leaf" && !node.isTextLabel;
   const hasScore = doc.heatmap.enabled && node.heatmapValue !== undefined;
-  const maxLines = resolveMaxLabelLines(node, isContainer, hasScore);
+  const maxLines = resolveMaxLabelLines(node, isContainer);
   const label = buildLabelModel(doc, node, isContainer, hasScore, maxLines);
   const score = hasScore
-    ? buildScoreModel(node, isContainer, label)
+    ? buildScoreModel(node)
     : undefined;
 
   return {
@@ -175,18 +167,28 @@ function buildLabelModel(
   const fontWeight = isContainer ? 600 : 500;
   const horizontalPadding = isContainer ? 28 : 12;
   const averageCharWidth = isContainer ? 7.4 : 6.8;
+  const scoreClearance =
+    !isContainer && hasScore
+      ? scoreBadgeWidth(node.heatmapValue?.toFixed(2) ?? "") +
+        SCORE_BADGE_INSET +
+        SCORE_BADGE_GAP
+      : 0;
   const maxChars = Math.max(
     4,
-    Math.floor((node.w - horizontalPadding) / averageCharWidth),
+    Math.floor((node.w - horizontalPadding - scoreClearance) / averageCharWidth),
   );
   const lines = wrapLabel(node.label, maxChars, maxLines);
   const firstBaselineY = isContainer
     ? node.y + Math.max(0, doc.settings.containerLabelOffsetTop) + 12
-    : leafLabelBaselineY(node, lines.length, hasScore, fontSize, lineHeight);
+    : leafLabelBaselineY(node, lines.length, fontSize, lineHeight);
+  const x =
+    !isContainer && hasScore
+      ? node.x + horizontalPadding / 2 + (node.w - horizontalPadding - scoreClearance) / 2
+      : node.x + node.w / 2;
 
   return {
     lines,
-    x: node.x + node.w / 2,
+    x,
     firstBaselineY,
     lineHeight,
     fontSize,
@@ -194,43 +196,28 @@ function buildLabelModel(
   };
 }
 
-function buildScoreModel(
-  node: CapabilityNode,
-  isContainer: boolean,
-  label: VisualExportLabelModel,
-): VisualExportScoreModel {
+function buildScoreModel(node: CapabilityNode): VisualExportScoreModel {
   const value = node.heatmapValue?.toFixed(2) ?? "";
-  if (isContainer) {
-    const width = Math.max(28, value.length * 5.8 + 12);
-    const bounds = {
-      x: node.x + node.w - width - 10,
-      y: node.y + 7,
-      w: width,
-      h: 16,
-    };
-    return {
-      kind: "badge",
-      value,
-      bounds,
-      textX: bounds.x + bounds.w / 2,
-      textY: bounds.y + 11,
-      fontSize: CONTAINER_SCORE_FONT_SIZE,
-      fontWeight: 600,
-    };
-  }
-
-  return {
-    kind: "text",
-    value,
-    x: node.x + node.w / 2,
-    y:
-      label.firstBaselineY +
-      (label.lines.length - 1) * label.lineHeight +
-      LEAF_SCORE_GAP +
-      LEAF_SCORE_FONT_SIZE,
-    fontSize: LEAF_SCORE_FONT_SIZE,
-    fontWeight: 500,
+  const width = scoreBadgeWidth(value);
+  const bounds = {
+    x: node.x + node.w - width - SCORE_BADGE_INSET,
+    y: node.y + SCORE_BADGE_INSET,
+    w: width,
+    h: SCORE_BADGE_HEIGHT,
   };
+  return {
+    kind: "badge",
+    value,
+    bounds,
+    textX: bounds.x + bounds.w / 2,
+    textY: bounds.y + 11,
+    fontSize: SCORE_BADGE_FONT_SIZE,
+    fontWeight: 600,
+  };
+}
+
+function scoreBadgeWidth(value: string): number {
+  return Math.max(28, value.length * 5.8 + 12);
 }
 
 function buildLegendModel(
@@ -268,13 +255,9 @@ function buildLegendModel(
 function resolveMaxLabelLines(
   node: CapabilityNode,
   isContainer: boolean,
-  hasScore: boolean,
 ): number {
   if (isContainer) return 2;
-  const reservedForScore = hasScore
-    ? LEAF_SCORE_FONT_SIZE + LEAF_SCORE_GAP + 4
-    : 4;
-  const availableHeight = Math.max(LEAF_LINE_HEIGHT, node.h - reservedForScore);
+  const availableHeight = Math.max(LEAF_LINE_HEIGHT, node.h - 4);
   return Math.max(
     1,
     Math.min(3, Math.floor(availableHeight / LEAF_LINE_HEIGHT)),
@@ -284,12 +267,10 @@ function resolveMaxLabelLines(
 function leafLabelBaselineY(
   node: CapabilityNode,
   lineCount: number,
-  hasScore: boolean,
   fontSize: number,
   lineHeight: number,
 ): number {
-  const scoreHeight = hasScore ? LEAF_SCORE_GAP + LEAF_SCORE_FONT_SIZE : 0;
-  const totalHeight = lineCount * lineHeight + scoreHeight;
+  const totalHeight = lineCount * lineHeight;
   const top = node.y + Math.max(0, (node.h - totalHeight) / 2);
   return top + fontSize;
 }

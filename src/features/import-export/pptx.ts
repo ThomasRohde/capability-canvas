@@ -104,41 +104,24 @@ function renderNode(
   });
 
   if (node.score) {
-    if (node.score.kind === 'badge') {
-      const scoreBounds = mapBounds(mapper, node.score.bounds);
-      slide.addShape(deck.ShapeType.roundRect, {
-        ...scoreBounds,
-        rectRadius: scoreBounds.h / 2,
-        fill: { color: 'FFFFFF', transparency: 28 },
-        line: { color: '64748B', transparency: 84, width: 0.4 },
-      });
-      slide.addText(node.score.value, {
-        ...scoreBounds,
-        fontFace: model.fontFamily,
-        fontSize: mapper.font(node.score.fontSize),
-        bold: true,
-        align: 'center',
-        valign: 'middle',
-        color: '475569',
-        fit: 'shrink',
-        margin: 0,
-      });
-    } else {
-      slide.addText(node.score.value, {
-        x: mapper.x(node.score.x - node.bounds.w / 2),
-        y: mapper.y(node.score.y - node.score.fontSize),
-        w: mapper.w(node.bounds.w),
-        h: mapper.h(node.score.fontSize + 2),
-        fontFace: model.fontFamily,
-        fontSize: mapper.font(node.score.fontSize),
-        bold: false,
-        align: 'center',
-        valign: 'middle',
-        color: '475569',
-        fit: 'shrink',
-        margin: 0,
-      });
-    }
+    const scoreBounds = mapBounds(mapper, node.score.bounds);
+    slide.addShape(deck.ShapeType.roundRect, {
+      ...scoreBounds,
+      rectRadius: scoreBounds.h / 2,
+      fill: { color: 'FFFFFF', transparency: 28 },
+      line: { color: '64748B', transparency: 84, width: 0.4 },
+    });
+    slide.addText(node.score.value, {
+      ...scoreBounds,
+      fontFace: model.fontFamily,
+      fontSize: mapper.font(node.score.fontSize),
+      bold: true,
+      align: 'center',
+      valign: 'middle',
+      color: '475569',
+      fit: 'shrink',
+      margin: 0,
+    });
   }
 }
 

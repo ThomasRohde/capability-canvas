@@ -35,7 +35,11 @@ describe("editor canvas workflows", () => {
     });
     expect(heatmapToggle).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(heatmapToggle);
-    expect(within(canvas).getByText("0.72")).toHaveClass("leaf-score");
+    const leafScore = within(canvas).getByText("0.72");
+    expect(leafScore).toHaveClass("leaf-score");
+    expect(getComputedStyle(leafScore).position).toBe("absolute");
+    expect(getComputedStyle(leafScore).top).toBe("4px");
+    expect(getComputedStyle(leafScore).right).toBe("4px");
     expect(
       canvas.querySelector(".cc-node-score.container-score"),
     ).toBeInTheDocument();

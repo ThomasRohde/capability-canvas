@@ -73,6 +73,11 @@ export const CanvasNode = memo(function CanvasNode({
   const selectedState = selected.includes(node.id);
   const fill = resolveNodeFill(node, viewDoc.heatmap);
   const isContainer = node.type !== "leaf" && !node.isTextLabel;
+  const heatmapScore =
+    viewDoc.heatmap.enabled && node.heatmapValue !== undefined
+      ? node.heatmapValue.toFixed(2)
+      : null;
+  const hasHeatmapScore = heatmapScore !== null;
   const selectedNodeClass = selectedState && !isContainer ? "selected" : "";
   const selectionModeClass = selectedState
     ? selected.length > 1
@@ -90,7 +95,7 @@ export const CanvasNode = memo(function CanvasNode({
   return (
     <div
       ref={(element) => onNodeRef(node.id, element)}
-      className={`cc-node ${isContainer ? "cc-node-container" : ""} ${selectedNodeClass} ${selectionModeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(node.id) ? "dragging" : ""} ${reparentTargetId === node.id ? "drop-target" : ""}`}
+      className={`cc-node ${isContainer ? "cc-node-container" : ""} ${hasHeatmapScore ? "has-heatmap-score" : ""} ${selectedNodeClass} ${selectionModeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(node.id) ? "dragging" : ""} ${reparentTargetId === node.id ? "drop-target" : ""}`}
       role="button"
       tabIndex={selectedState ? 0 : -1}
       aria-label={canvasNodeAriaLabel(
@@ -142,12 +147,12 @@ export const CanvasNode = memo(function CanvasNode({
           onStartEdit={onStartLabelEdit}
         />
       )}
-      {viewDoc.heatmap.enabled && node.heatmapValue !== undefined && (
+      {hasHeatmapScore && (
         <span
           className={`cc-node-score ${isContainer ? "container-score" : "leaf-score"}`}
-          aria-label={`Heatmap score ${node.heatmapValue.toFixed(2)}`}
+          aria-label={`Heatmap score ${heatmapScore}`}
         >
-          {node.heatmapValue.toFixed(2)}
+          {heatmapScore}
         </span>
       )}
       {!readonly && selectedState && !isEditing && (
