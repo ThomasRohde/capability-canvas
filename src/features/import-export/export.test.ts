@@ -28,6 +28,104 @@ describe('exports', () => {
     expect(archimateExport(doc).data).toContain('xsi:type="Capability"');
   });
 
+  it('exports ArchiMate identifiers as XML NCNames with valid references', () => {
+    const rootId = '14d27f0bc36a6810bc9fd9462f5d75ea';
+    const spacedId = 'child capability';
+    const collisionId = 'child-capability';
+    const doc = createEmptyDocument('2026 Capability Map');
+    const root = createNode({
+      id: rootId,
+      label: 'Root',
+      type: 'root',
+    });
+    const spaced = createNode({
+      id: spacedId,
+      parentId: rootId,
+      label: 'Child',
+    });
+    const collision = createNode({
+      id: collisionId,
+      parentId: rootId,
+      label: 'Collision',
+    });
+
+    doc.nodesById = {
+      [root.id]: root,
+      [spaced.id]: spaced,
+      [collision.id]: collision,
+    };
+    doc.childrenByParentId = {
+      [ROOT_PARENT_ID]: [root.id],
+      [root.id]: [spaced.id, collision.id],
+      [spaced.id]: [],
+      [collision.id]: [],
+    };
+
+    const xml = archimateExport(doc).data as string;
+    const identifiers = [...xml.matchAll(/\bidentifier="([^"]+)"/g)].map(
+      (match) => match[1]!,
+    );
+    const references = [...xml.matchAll(/\b(?:source|target)="([^"]+)"/g)].map(
+      (match) => match[1]!,
+    );
+    const elementReferences = [
+      ...xml.matchAll(/\b(?:elementRef|relationshipRef)="([^"]+)"/g),
+    ].map((match) => match[1]!);
+    const identifierSet = new Set(identifiers);
+
+    expect(identifierSet.size).toBe(identifiers.length);
+    expect(identifierSet).toContain('cc-model-2026-capability-map');
+    expect(identifierSet).toContain('cc-node-14d27f0bc36a6810bc9fd9462f5d75ea');
+    expect(identifierSet).toContain('cc-node-child-capability');
+    expect(identifierSet).toContain('cc-node-child-capability-2');
+    expect(identifierSet).toContain(
+      'cc-rel-cc-node-14d27f0bc36a6810bc9fd9462f5d75ea-cc-node-child-capability',
+    );
+    expect(identifierSet).toContain(
+      'cc-rel-cc-node-14d27f0bc36a6810bc9fd9462f5d75ea-cc-node-child-capability-2',
+    );
+    expect(identifiers.every(isTestNcName)).toBe(true);
+    expect(references.every((reference) => identifierSet.has(reference))).toBe(true);
+    expect(elementReferences.every((reference) => identifierSet.has(reference))).toBe(true);
+    expect(xml).toContain('xsi:type="Composition"');
+    expect(xml).not.toContain('CompositionRelationship');
+  });
+
+  it('exports app visual views as ArchiMate diagram views', () => {
+    const doc = createExportFixture();
+    const defaultView = doc.visual.viewsById[doc.visual.activeViewId]!;
+    const rootOnlyView = {
+      ...defaultView,
+      id: 'view-root-only',
+      name: 'Root only',
+      nodeStatesById: {
+        ...defaultView.nodeStatesById,
+        leaf: {
+          ...defaultView.nodeStatesById.leaf,
+          isOnCanvas: false,
+        },
+      },
+    };
+    doc.visual.viewOrder = [defaultView.id, rootOnlyView.id];
+    doc.visual.viewsById[rootOnlyView.id] = rootOnlyView;
+
+    const xml = archimateExport(doc).data as string;
+    const defaultViewXml = viewXmlByName(xml, 'Default view');
+    const rootOnlyViewXml = viewXmlByName(xml, 'Root only');
+
+    expect(xml).toContain('<views><diagrams>');
+    expect(xml).toContain('xsi:schemaLocation=');
+    expect(defaultViewXml).toContain('xsi:type="Diagram"');
+    expect(defaultViewXml).toContain('viewpoint="Capability Map"');
+    expect(defaultViewXml).toContain('elementRef="cc-node-root"');
+    expect(defaultViewXml).toContain('elementRef="cc-node-leaf"');
+    expect(defaultViewXml).toContain('relationshipRef="cc-rel-cc-node-root-cc-node-leaf"');
+    expect(defaultViewXml).toContain('xsi:type="Relationship"');
+    expect(rootOnlyViewXml).toContain('elementRef="cc-node-root"');
+    expect(rootOnlyViewXml).not.toContain('elementRef="cc-node-leaf"');
+    expect(rootOnlyViewXml).not.toContain('relationshipRef=');
+  });
+
   it('exports PPTX native shapes without snapshotting binary output', async () => {
     const result = await pptxExport(createExportFixture());
 
@@ -322,6 +420,22 @@ function createExportFixture(): CapabilityDocument {
   };
   doc.visual = createVisualWorkspaceFromDocument(doc);
   return materializeActiveViewMetadata(doc);
+}
+
+function isTestNcName(value: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(value);
+}
+
+function viewXmlByName(xml: string, name: string): string {
+  const match = xml.match(
+    new RegExp(`<view\\b[^>]*><name>${escapeRegExp(name)}</name>[\\s\\S]*?</view>`),
+  );
+  expect(match).toBeTruthy();
+  return match![0];
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function createWideExportFixture(): CapabilityDocument {
