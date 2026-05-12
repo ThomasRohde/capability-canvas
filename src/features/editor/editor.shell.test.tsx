@@ -76,6 +76,9 @@ describe("editor shell", () => {
     expect(
       within(menu).getByRole("menuitem", { name: "Import pasted JSON" }),
     ).toBeEnabled();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Import CSV" }),
+    ).toBeEnabled();
 
     await waitFor(() =>
       expect(

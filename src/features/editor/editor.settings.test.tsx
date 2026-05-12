@@ -2,7 +2,6 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import { useUiStore } from "../../app/stores/uiStore";
 import { createVisualView } from "../../domain/commands/operations";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
@@ -158,7 +157,6 @@ describe("editor settings workflows", () => {
       "Active view",
       "Heatmap data",
       "Export defaults",
-      "Local UI preferences",
     ]) {
       expect(
         within(drawer).getByText(title, {
@@ -167,6 +165,17 @@ describe("editor settings workflows", () => {
       ).toBeInTheDocument();
     }
 
+    expect(
+      within(drawer).queryByText("Local UI preferences", {
+        selector: ".cc-section-heading span",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(drawer).queryByLabelText("Last export format"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(drawer).queryByRole("button", { name: "Import CSV" }),
+    ).not.toBeInTheDocument();
     expect(drawer.querySelector(".cc-scope-badge")).not.toBeInTheDocument();
   });
 
@@ -222,34 +231,6 @@ describe("editor settings workflows", () => {
     expect(
       doc.visual.viewsById[firstViewId]?.export.pagePreset,
     ).toBeUndefined();
-  });
-
-  it("persists local UI settings without dirtying the document", async () => {
-    renderEditor();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Open settings" }),
-    );
-    const drawer = screen.getByRole("complementary", { name: "Settings" });
-    expect(useDocumentStore.getState().dirty).toBe(false);
-
-    await userEvent.click(
-      within(drawer).getByRole("checkbox", { name: /Show outline/ }),
-    );
-    await userEvent.selectOptions(
-      within(drawer).getByLabelText("Last export format"),
-      "svg",
-    );
-
-    expect(useUiStore.getState().outlineOpen).toBe(false);
-    expect(useUiStore.getState().exportFormat).toBe("svg");
-    expect(window.localStorage.getItem("capability-canvas.outlineOpen")).toBe(
-      "false",
-    );
-    expect(window.localStorage.getItem("capability-canvas.exportFormat")).toBe(
-      "svg",
-    );
-    expect(useDocumentStore.getState().dirty).toBe(false);
-    expect(useDocumentStore.getState().past).toHaveLength(0);
   });
 
   it("commits numeric settings on blur without history spam while typing", async () => {
@@ -327,12 +308,10 @@ describe("editor settings workflows", () => {
 
   it("preserves heatmap CSV diagnostics after applying valid rows", async () => {
     renderEditor();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Open settings" }),
-    );
-    const drawer = screen.getByRole("complementary", { name: "Settings" });
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    const menu = screen.getByRole("menu", { name: "Import" });
     expect(
-      within(drawer).getByRole("button", { name: "Import CSV" }),
+      within(menu).getByRole("menuitem", { name: "Import CSV" }),
     ).toBeInTheDocument();
     const input = document.querySelector("#heatmap-csv") as HTMLInputElement;
     expect(input).toHaveAttribute("aria-hidden", "true");

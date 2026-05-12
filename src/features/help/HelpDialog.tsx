@@ -143,7 +143,7 @@ Return only valid JSON. targetId is the existing capability to expand. Capabilit
     summary:
       "Updates heatmap scores on existing capabilities. Values must be numbers from 0 to 1.",
     accepts:
-      "Settings > Heatmap data > Import CSV. Default matching uses id and value columns.",
+      "Import > Import CSV. Default matching uses id and value columns.",
     copyLabel: "Copy CSV format",
     body: `Create Capability Canvas heatmap CSV.
 

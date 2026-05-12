@@ -3,10 +3,8 @@ import {
   Grid3X3,
   LayoutTemplate,
   Palette,
-  PanelLeft,
   Settings2,
   SlidersHorizontal,
-  Upload,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -25,18 +23,9 @@ import type {
   LayoutAspectRatioPreset,
   LayoutMode,
 } from "../../domain/document/types";
-import {
-  EXPORT_FORMAT_OPTIONS,
-  type ExportFormat,
-} from "../../app/exportFormats";
 import { useActiveVisualState } from "../../app/activeVisualState";
-import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
-import {
-  MAX_OUTLINE_WIDTH,
-  MIN_OUTLINE_WIDTH,
-  useUiStore,
-} from "../../app/stores/uiStore";
-import { importHeatmapCsv } from "../heatmap/csvImport";
+import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
 import { useFocusReturn } from "../shared/a11y";
 import { ColorSwatchMatrix } from "../shared/ColorSwatchMatrix";
 import { IconButton } from "../shared/IconButton";
@@ -106,22 +95,12 @@ export function SettingsDrawer() {
   const execute = useDocumentStore((state) => state.execute);
   const updateSettings = useDocumentStore((state) => state.updateSettings);
   const autoLayout = useDocumentStore((state) => state.autoLayout);
-  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const isAutoLayoutRunning = useDocumentStore(
     (state) => state.isAutoLayoutRunning,
   );
   const open = useUiStore((state) => state.activeDrawer === "settings");
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
-  const outlineOpen = useUiStore((state) => state.outlineOpen);
-  const setOutlineOpen = useUiStore((state) => state.setOutlineOpen);
-  const outlineWidth = useUiStore((state) => state.outlineWidth);
-  const setOutlineWidth = useUiStore((state) => state.setOutlineWidth);
-  const inspectorOpen = useUiStore((state) => state.inspectorOpen);
-  const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
-  const exportFormat = useUiStore((state) => state.exportFormat);
-  const setExportFormat = useUiStore((state) => state.setExportFormat);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const heatmapCsvInputRef = useRef<HTMLInputElement>(null);
   const { activeView } = useActiveVisualState({ doc });
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
@@ -392,51 +371,6 @@ export function SettingsDrawer() {
               execute(updateHeatmapSettings({ fallbackColor }))
             }
           />
-          <SettingField
-            label="Node scores"
-            hint="CSV import updates heatmap values stored on capabilities."
-          >
-            <button
-              className="cc-btn cc-file-label"
-              type="button"
-              onClick={() => heatmapCsvInputRef.current?.click()}
-            >
-              <Upload /> Import CSV
-            </button>
-            <input
-              ref={heatmapCsvInputRef}
-              id="heatmap-csv"
-              className="cc-file-input-hidden"
-              type="file"
-              accept=".csv,text/csv"
-              tabIndex={-1}
-              aria-hidden="true"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.currentTarget.value = "";
-                if (!file) return;
-                void file.text().then((csv) => {
-                  const result = importHeatmapCsv(doc, csv);
-                  const transactionDiagnostics =
-                    result.transactions.length > 0
-                      ? executeMany(
-                          "Import heatmap CSV",
-                          result.transactions,
-                          "import",
-                        )
-                      : [];
-                  if (result.transactions.length > 0) {
-                    setDiagnostics([
-                      ...result.diagnostics,
-                      ...transactionDiagnostics,
-                    ]);
-                  } else {
-                    setDiagnostics(result.diagnostics);
-                  }
-                });
-              }}
-            />
-          </SettingField>
         </SettingsSection>
 
         <SettingsSection icon={<FileDown size={16} />} title="Export defaults">
@@ -495,45 +429,6 @@ export function SettingsDrawer() {
           />
         </SettingsSection>
 
-        <SettingsSection icon={<PanelLeft size={16} />} title="Local UI preferences">
-          <CheckSetting
-            label="Show outline"
-            checked={outlineOpen}
-            onChange={setOutlineOpen}
-          />
-          <CheckSetting
-            label="Show inspector"
-            checked={inspectorOpen}
-            onChange={setInspectorOpen}
-          />
-          <NumberSetting
-            id="outline-width"
-            label="Outline width"
-            value={outlineWidth}
-            min={MIN_OUTLINE_WIDTH}
-            max={MAX_OUTLINE_WIDTH}
-            onChange={setOutlineWidth}
-          />
-          <SettingField
-            id="last-export-format"
-            label="Last export format"
-          >
-            <select
-              id="last-export-format"
-              className="cc-select"
-              value={exportFormat}
-              onChange={(event) =>
-                setExportFormat(event.target.value as ExportFormat)
-              }
-            >
-              {EXPORT_FORMAT_OPTIONS.map((format) => (
-                <option key={format.value} value={format.value}>
-                  {format.label}
-                </option>
-              ))}
-            </select>
-          </SettingField>
-        </SettingsSection>
       </div>
     </aside>
   );

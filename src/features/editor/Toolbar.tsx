@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
@@ -31,11 +32,12 @@ import { error, warning } from "../../domain/validation/diagnostics";
 import { openDocumentFile, saveDocumentFile } from "../../app/fileSystem";
 import { applyImportedDocument } from "../../app/importDocument";
 import { createImportReview, type ImportReview } from "../../app/importReview";
-import { useDocumentStore } from "../../app/stores/documentStore";
+import { executeMany, useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { CommandPalette } from "../commands/CommandPalette";
 import { getEditorCommandAvailability } from "../commands/editorCommands";
 import { useEditorActions } from "../commands/useEditorActions";
+import { importHeatmapCsv } from "../heatmap/csvImport";
 import { HelpDialog } from "../help/HelpDialog";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
 import {
@@ -59,6 +61,7 @@ export function Toolbar() {
   const [importBusy, setImportBusy] = useState(false);
   const pasteDialogRef = useRef<HTMLElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const heatmapCsvInputRef = useRef<HTMLInputElement>(null);
   const {
     commands: commandRegistry,
     context: commandContext,
@@ -189,6 +192,41 @@ export function Toolbar() {
     setPasteOpen(true);
   }
 
+  function importHeatmapCsvFile() {
+    heatmapCsvInputRef.current?.click();
+  }
+
+  function handleHeatmapCsvSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    void file
+      .text()
+      .then((csv) => {
+        const currentDoc = useDocumentStore.getState().doc;
+        const result = importHeatmapCsv(currentDoc, csv);
+        const transactionDiagnostics =
+          result.transactions.length > 0
+            ? executeMany("Import heatmap CSV", result.transactions, "import")
+            : [];
+        setDiagnostics(
+          result.transactions.length > 0
+            ? [...result.diagnostics, ...transactionDiagnostics]
+            : result.diagnostics,
+        );
+      })
+      .catch((csvError: unknown) => {
+        setDiagnostics([
+          warning(
+            "csv-read-failed",
+            `CSV file could not be read. ${
+              csvError instanceof Error ? csvError.message : String(csvError)
+            }`,
+          ),
+        ]);
+      });
+  }
+
   const closePastedJsonImport = () => setPasteOpen(false);
 
   useFocusTrap({
@@ -287,6 +325,13 @@ export function Toolbar() {
                   closeMenu={closeMenu}
                   onSelect={editorActions.importPastedJson}
                 />
+                <ToolbarMenuItem
+                  icon={Upload}
+                  label="Import CSV"
+                  disabled={importBusy}
+                  closeMenu={closeMenu}
+                  onSelect={importHeatmapCsvFile}
+                />
               </>
             )}
           </ToolbarMenu>
@@ -301,6 +346,16 @@ export function Toolbar() {
           </button>
         </div>
       </header>
+      <input
+        ref={heatmapCsvInputRef}
+        id="heatmap-csv"
+        className="cc-file-input-hidden"
+        type="file"
+        accept=".csv,text/csv"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={handleHeatmapCsvSelected}
+      />
       {pasteOpen && (
         <div
           className="cc-modal-backdrop"
