@@ -35,7 +35,7 @@ export const CATEGORY_STYLES: Record<CapabilityColor, NodeFill> = {
   peach: fill('#fff7ed', '#fdba74', '#f97316'),
   teal: fill('#f0fdfa', '#14b8a6', '#0f766e'),
   slate: fill('#f1f5f9', '#64748b', '#475569'),
-  stone: fill('#f5f5f4', '#78716c', '#57534e'),
+  stone: fill('#d7d7d7', '#78716c', '#57534e'),
   transparent: transparentFill()
 };
 
