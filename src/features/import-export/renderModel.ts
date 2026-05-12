@@ -135,7 +135,10 @@ function buildNodeModel(
   node: CapabilityNode,
 ): VisualExportNodeModel {
   const isContainer = node.type !== "leaf" && !node.isTextLabel;
-  const hasScore = doc.heatmap.enabled && node.heatmapValue !== undefined;
+  const hasScore =
+    doc.heatmap.enabled &&
+    doc.heatmap.showValuePills &&
+    node.heatmapValue !== undefined;
   const maxLines = resolveMaxLabelLines(node, isContainer);
   const label = buildLabelModel(doc, node, isContainer, hasScore, maxLines);
   const score = hasScore

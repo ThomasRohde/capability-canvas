@@ -31,7 +31,7 @@ describe("editor import workflows", () => {
       screen.getByRole("menuitem", { name: "Import JSON file" }),
     );
     const input = document.querySelector(
-      'input[type="file"]',
+      'input[type="file"][accept=".json,application/json"]',
     ) as HTMLInputElement;
     expect(input).toBeInTheDocument();
     expect(input.accept).toBe(".json,application/json");

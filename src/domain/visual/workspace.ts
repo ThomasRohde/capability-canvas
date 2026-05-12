@@ -125,6 +125,8 @@ export function createVisualViewFromDocument(
       enabled: options.heatmap?.enabled ?? doc.heatmap.enabled,
       activeLensId: options.heatmap?.activeLensId,
       showLegend: options.heatmap?.showLegend ?? doc.heatmap.showLegend,
+      showValuePills:
+        options.heatmap?.showValuePills ?? doc.heatmap.showValuePills,
       legendPosition: options.heatmap?.legendPosition,
       legendBounds: cloneBounds(options.heatmap?.legendBounds),
     },
@@ -209,6 +211,8 @@ export function normalizeVisualWorkspace(
         ...rawView.heatmap,
         enabled: rawView.heatmap?.enabled ?? doc.heatmap.enabled,
         showLegend: rawView.heatmap?.showLegend ?? doc.heatmap.showLegend,
+        showValuePills:
+          rawView.heatmap?.showValuePills ?? doc.heatmap.showValuePills,
         legendBounds: cloneBounds(rawView.heatmap?.legendBounds),
       },
       export: { ...(rawView.export ?? {}) },
@@ -500,6 +504,7 @@ export function applyResolvedVisualDocument(
     ...view.heatmap,
     enabled: resolved.heatmap.enabled,
     showLegend: resolved.heatmap.showLegend,
+    showValuePills: resolved.heatmap.showValuePills,
   };
   view.updatedAt = now();
 
@@ -657,6 +662,7 @@ function resolveViewHeatmap(
     ...fallback,
     enabled: view.heatmap.enabled,
     showLegend: view.heatmap.showLegend,
+    showValuePills: view.heatmap.showValuePills,
   };
 }
 

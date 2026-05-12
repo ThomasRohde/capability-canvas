@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEFAULT_SETTINGS } from "./defaults";
+import { DEFAULT_HEATMAP, DEFAULT_SETTINGS } from "./defaults";
 import { DOCUMENT_SCHEMA, DOCUMENT_VERSION } from "./types";
 
 const finiteNumber = z.number().finite();
@@ -153,6 +153,7 @@ export const HeatmapSchema = z
   .object({
     enabled: z.boolean(),
     showLegend: z.boolean(),
+    showValuePills: z.boolean().default(DEFAULT_HEATMAP.showValuePills),
     palette: z.enum(["green-yellow-red", "mint-amber-coral"]),
     fallbackColor: capabilityColorSchema,
   })
@@ -228,6 +229,7 @@ export const VisualViewSchema = z
         enabled: z.boolean(),
         activeLensId: z.string().optional(),
         showLegend: z.boolean(),
+        showValuePills: z.boolean().default(DEFAULT_HEATMAP.showValuePills),
         legendPosition: z
           .enum([
             "top-right",

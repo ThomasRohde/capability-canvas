@@ -354,7 +354,7 @@ function heatmapCopy(adapter: ExportAdapter): string {
     return "Includes heatmap values and settings as source data.";
   }
   if (adapter.heatmap === "active-view-display") {
-    return "Uses active view heatmap colors and scores when enabled.";
+    return "Uses active view heatmap colors and value pills when enabled.";
   }
   return "Does not include heatmap data.";
 }

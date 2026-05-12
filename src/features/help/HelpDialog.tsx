@@ -224,6 +224,7 @@ Return only valid JSON. Every node requires geometry, timestamps, type, color, a
   "heatmap": {
     "enabled": false,
     "showLegend": true,
+    "showValuePills": true,
     "palette": "green-yellow-red",
     "fallbackColor": "mint"
   },

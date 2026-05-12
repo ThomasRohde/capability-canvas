@@ -78,7 +78,9 @@ export const CanvasNode = memo(function CanvasNode({
   );
   const isContainer = node.type !== "leaf" && !node.isTextLabel;
   const heatmapScore =
-    viewDoc.heatmap.enabled && node.heatmapValue !== undefined
+    viewDoc.heatmap.enabled &&
+    viewDoc.heatmap.showValuePills &&
+    node.heatmapValue !== undefined
       ? node.heatmapValue.toFixed(2)
       : null;
   const hasHeatmapScore = heatmapScore !== null;

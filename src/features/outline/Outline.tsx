@@ -547,14 +547,16 @@ export function Outline({
                     onAfterAction={() => setSelection([node.id])}
                   />
                 )}
-                {viewDoc.heatmap.enabled && node.heatmapValue !== undefined && (
-                  <span
-                    className="cc-tree-score"
-                    aria-label={`Heatmap score ${node.heatmapValue.toFixed(2)}`}
-                  >
-                    {node.heatmapValue.toFixed(2)}
-                  </span>
-                )}
+                {viewDoc.heatmap.enabled &&
+                  viewDoc.heatmap.showValuePills &&
+                  node.heatmapValue !== undefined && (
+                    <span
+                      className="cc-tree-score"
+                      aria-label={`Heatmap score ${node.heatmapValue.toFixed(2)}`}
+                    >
+                      {node.heatmapValue.toFixed(2)}
+                    </span>
+                  )}
                 {!readonly && (
                   <button
                     className="cc-tree-actions"

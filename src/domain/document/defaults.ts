@@ -54,6 +54,7 @@ export const DEFAULT_LAYOUT = {
 export const DEFAULT_HEATMAP = {
   enabled: false,
   showLegend: true,
+  showValuePills: true,
   palette: "green-yellow-red" as const,
   fallbackColor: "mint" as const,
 };

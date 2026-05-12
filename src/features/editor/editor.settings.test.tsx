@@ -44,6 +44,7 @@ describe("editor settings workflows", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Title area")).toHaveValue(28);
     expect(screen.getByLabelText("Label top offset")).toHaveValue(4);
+    expect(screen.getByLabelText("Show value pills")).toBeChecked();
   });
 
   it("keeps document title editing in settings", async () => {
@@ -197,6 +198,11 @@ describe("editor settings workflows", () => {
         name: /Enable heatmap colors/,
       }),
     );
+    await userEvent.click(
+      within(drawer).getByRole("checkbox", {
+        name: /Show value pills/,
+      }),
+    );
     await userEvent.selectOptions(
       within(drawer).getByLabelText("Color palette"),
       "darker",
@@ -223,7 +229,13 @@ describe("editor settings workflows", () => {
     expect(doc.heatmap.palette).toBe("mint-amber-coral");
     expect(doc.heatmap.fallbackColor).toBe("transparent");
     expect(doc.visual.viewsById[secondViewId]?.heatmap.enabled).toBe(true);
+    expect(doc.visual.viewsById[secondViewId]?.heatmap.showValuePills).toBe(
+      false,
+    );
     expect(doc.visual.viewsById[firstViewId]?.heatmap.enabled).toBe(false);
+    expect(doc.visual.viewsById[firstViewId]?.heatmap.showValuePills).toBe(
+      true,
+    );
     expect(doc.visual.viewsById[secondViewId]?.export).toMatchObject({
       pagePreset: "16:9",
       showFooter: true,

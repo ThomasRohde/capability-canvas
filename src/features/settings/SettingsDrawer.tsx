@@ -343,6 +343,13 @@ export function SettingsDrawer() {
               execute(updateActiveViewHeatmapSettings({ showLegend }))
             }
           />
+          <CheckSetting
+            label="Show value pills"
+            checked={doc.heatmap.showValuePills}
+            onChange={(showValuePills) =>
+              execute(updateActiveViewHeatmapSettings({ showValuePills }))
+            }
+          />
         </SettingsSection>
 
         <SettingsSection icon={<Grid3X3 size={16} />} title="Heatmap data">

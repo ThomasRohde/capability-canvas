@@ -186,6 +186,26 @@ describe('exports', () => {
     expect(svgExport(doc).data).toMatchSnapshot();
   });
 
+  it('omits heatmap score pills from visual exports when disabled', () => {
+    const doc = createExportFixture();
+    const view = doc.visual.viewsById[doc.visual.activeViewId]!;
+    view.heatmap = {
+      ...view.heatmap,
+      enabled: true,
+      showLegend: true,
+      showValuePills: false,
+    };
+
+    const model = buildVisualExportModel(doc);
+    const svg = svgExport(doc).data as string;
+    const html = htmlExport(doc).data as string;
+
+    expect(model.nodes.some((node) => node.score)).toBe(false);
+    expect(svg).not.toContain('heatmap-score-badge');
+    expect(svg).not.toContain('>0.00</text>');
+    expect(html).not.toContain('heatmap-score-badge');
+  });
+
   it('snapshots SVG active-view visibility filtering', () => {
     const doc = createExportFixture();
     doc.visual.viewsById[doc.visual.activeViewId]!.nodeStatesById.leaf = {

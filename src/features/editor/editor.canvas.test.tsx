@@ -14,6 +14,7 @@ import {
   lockSubtree,
   reparentNode,
   runTransaction,
+  updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
 import { stringifyDocument } from "../../domain/document/serialize";
 import { warning } from "../../domain/validation/diagnostics";
@@ -46,6 +47,29 @@ describe("editor canvas workflows", () => {
     expect(
       screen.getByRole("button", { name: "Toggle heatmap" }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("hides heatmap score pills when the active-view setting is off", () => {
+    useDocumentStore
+      .getState()
+      .execute(
+        updateActiveViewHeatmapSettings({
+          enabled: true,
+          showValuePills: false,
+        }),
+      );
+
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+
+    expect(
+      screen.queryByLabelText("Heatmap score 0.72"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(canvas).getByRole("button", {
+        name: /Digital Onboarding, leaf capability, selected, Score 0\.72/,
+      }),
+    ).toBeInTheDocument();
   });
 
   it("positions the heatmap legend from the active view", () => {

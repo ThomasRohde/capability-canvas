@@ -110,6 +110,7 @@ export interface LayoutMetadata {
 export interface HeatmapState {
   enabled: boolean;
   showLegend: boolean;
+  showValuePills: boolean;
   palette: "green-yellow-red" | "mint-amber-coral";
   fallbackColor: CapabilityColor;
 }
@@ -170,6 +171,7 @@ export interface VisualView {
     enabled: boolean;
     activeLensId?: string;
     showLegend: boolean;
+    showValuePills: boolean;
     legendPosition?: LegendPosition;
     legendBounds?: Bounds;
   };

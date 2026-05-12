@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createNode, DEFAULT_SETTINGS } from "./defaults";
+import { createNode, DEFAULT_HEATMAP, DEFAULT_SETTINGS } from "./defaults";
 import { parseDocument } from "./parse";
 import { serializeDocument } from "./serialize";
 import {
@@ -298,6 +298,9 @@ describe("document JSON adapter", () => {
     delete legacySettings.childGapY;
     delete legacySettings.leafColor;
     delete legacySettings.colorPalette;
+    delete (wire.heatmap as Partial<typeof wire.heatmap>).showValuePills;
+    const view = wire.visual!.viewsById[wire.visual!.activeViewId]!;
+    delete (view.heatmap as Partial<typeof view.heatmap>).showValuePills;
 
     const parsed = parseDocument(wire);
     expect(parsed.doc).not.toBeNull();
@@ -329,6 +332,13 @@ describe("document JSON adapter", () => {
     expect(parsed.doc!.settings.colorPalette).toBe(
       DEFAULT_SETTINGS.colorPalette,
     );
+    expect(parsed.doc!.heatmap.showValuePills).toBe(
+      DEFAULT_HEATMAP.showValuePills,
+    );
+    expect(
+      parsed.doc!.visual.viewsById[parsed.doc!.visual.activeViewId]?.heatmap
+        .showValuePills,
+    ).toBe(DEFAULT_HEATMAP.showValuePills);
   });
 
   it("defaults legacy nodes without canvas membership to visible", () => {

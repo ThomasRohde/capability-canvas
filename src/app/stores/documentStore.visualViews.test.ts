@@ -60,11 +60,18 @@ describe("document store visual views", () => {
 
     useDocumentStore
       .getState()
-      .execute(updateActiveViewHeatmapSettings({ enabled: true }));
+      .execute(
+        updateActiveViewHeatmapSettings({
+          enabled: true,
+          showValuePills: false,
+        }),
+      );
 
     const { viewsById } = useDocumentStore.getState().doc.visual;
     expect(viewsById[secondViewId]?.heatmap.enabled).toBe(true);
+    expect(viewsById[secondViewId]?.heatmap.showValuePills).toBe(false);
     expect(viewsById[firstViewId]?.heatmap.enabled).toBe(false);
+    expect(viewsById[firstViewId]?.heatmap.showValuePills).toBe(true);
   });
 
   it("stores export defaults on the active view only", () => {
