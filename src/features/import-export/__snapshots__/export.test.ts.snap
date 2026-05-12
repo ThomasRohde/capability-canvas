@@ -21,7 +21,7 @@ exports[`exports > snapshots SVG active-view visibility filtering 1`] = `
   </style>
   <rect x="-48" y="-48" width="356" height="236" fill="#f1f5f9" />
   <g data-node-id="root">
-    <rect x="0" y="0" width="260" height="140" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
+    <rect x="0" y="0" width="260" height="140" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1" />
     <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="130" y="75.2">Root Capability</tspan></text>
     
   </g>
@@ -87,7 +87,7 @@ exports[`exports > snapshots SVG normal color mode fidelity 1`] = `
     
   </g>
   <g data-node-id="leaf">
-    <rect x="24" y="72" width="120" height="40" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
+    <rect x="24" y="72" width="120" height="40" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1" />
     <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="84" y="89.4">Very long</tspan><tspan x="84" dy="15.6">onboarding...</tspan></text>
     
   </g>

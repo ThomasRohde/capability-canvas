@@ -74,15 +74,25 @@
   gap: 8px;
 }
 
-.cc-color-row {
-  display: flex;
-  flex-wrap: wrap;
+.cc-color-stack {
+  display: grid;
   gap: 8px;
+  justify-items: start;
+}
+
+.cc-color-matrix {
+  display: grid;
+  grid-template-columns: repeat(var(--cc-color-matrix-columns, 5), 28px);
+  gap: 8px;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
 }
 
 .cc-color-swatch {
   width: 28px;
   height: 28px;
+  padding: 0;
   border-radius: 6px;
   border: 1.5px solid currentColor;
 }

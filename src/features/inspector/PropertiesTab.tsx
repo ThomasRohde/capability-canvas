@@ -7,11 +7,7 @@ import type {
   VisualNodeState,
 } from "../../domain/document/types";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import {
-  CAPABILITY_COLORS,
-  categoryStyle,
-  swatchBackgroundForFill,
-} from "../heatmap/resolveNodeFill";
+import { ColorSwatchMatrix } from "../shared/ColorSwatchMatrix";
 import {
   CommitNumberInput,
   CommitTextarea,
@@ -107,7 +103,7 @@ function ColorEditor({
   return (
     <div className="cc-field">
       <span className="cc-section-title">Color</span>
-      <div className="cc-color-row">
+      <div className="cc-color-stack">
         {usesLeafDefault && node.colorOverride && (
           <button
             type="button"
@@ -120,25 +116,12 @@ function ColorEditor({
             Default
           </button>
         )}
-        {CAPABILITY_COLORS.map((color) => {
-          const style = categoryStyle(color, colorPalette);
-          return (
-            <button
-              key={color}
-              type="button"
-              aria-label={`Set color ${color}`}
-              aria-pressed={activeColor === color}
-              className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
-              style={{
-                color: style.isTransparent
-                  ? "var(--cc-slate-400)"
-                  : style.border,
-                background: swatchBackgroundForFill(style),
-              }}
-              onClick={() => execute(updateNode(node.id, { color }))}
-            />
-          );
-        })}
+        <ColorSwatchMatrix
+          activeColor={activeColor}
+          colorPalette={colorPalette}
+          labelForColor={(color) => `Set color ${color}`}
+          onSelect={(color) => execute(updateNode(node.id, { color }))}
+        />
       </div>
     </div>
   );

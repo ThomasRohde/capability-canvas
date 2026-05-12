@@ -11,12 +11,8 @@ import type {
 } from "../../domain/document/types";
 import { canMultiSelect } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
-import {
-  CAPABILITY_COLORS,
-  categoryStyle,
-  swatchBackgroundForFill,
-} from "../heatmap/resolveNodeFill";
 import { BulkNumberField, CommitNumberInput } from "../shared/CommitTextInput";
+import { ColorSwatchMatrix } from "../shared/ColorSwatchMatrix";
 import { commonValue } from "./inspectorUtils";
 
 type InspectorTab = "inspector" | "layout" | "data";
@@ -111,27 +107,12 @@ export function BulkColorEditor({
       <div className="cc-bulk-field-head">
         <span>{activeColor === "" ? "Mixed" : activeColor}</span>
       </div>
-      <div className="cc-color-row">
-        {CAPABILITY_COLORS.map((color) => {
-          const style = categoryStyle(color, viewDoc.settings.colorPalette);
-          return (
-            <button
-              key={color}
-              type="button"
-              aria-label={`Set selected color ${color}`}
-              aria-pressed={activeColor === color}
-              className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
-              style={{
-                color: style.isTransparent
-                  ? "var(--cc-slate-400)"
-                  : style.border,
-                background: swatchBackgroundForFill(style),
-              }}
-              onClick={() => execute(updateNodeColors(selected, color))}
-            />
-          );
-        })}
-      </div>
+      <ColorSwatchMatrix
+        activeColor={activeColor}
+        colorPalette={viewDoc.settings.colorPalette}
+        labelForColor={(color) => `Set selected color ${color}`}
+        onSelect={(color) => execute(updateNodeColors(selected, color))}
+      />
     </div>
   );
 }

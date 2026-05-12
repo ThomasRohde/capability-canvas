@@ -37,12 +37,8 @@ import {
   useUiStore,
 } from "../../app/stores/uiStore";
 import { importHeatmapCsv } from "../heatmap/csvImport";
-import {
-  CAPABILITY_COLORS,
-  categoryStyle,
-  swatchBackgroundForFill,
-} from "../heatmap/resolveNodeFill";
 import { useFocusReturn } from "../shared/a11y";
+import { ColorSwatchMatrix } from "../shared/ColorSwatchMatrix";
 import { IconButton } from "../shared/IconButton";
 import {
   buildSettingsPatch,
@@ -674,27 +670,12 @@ function ColorSetting({
 }) {
   return (
     <SettingField label={label}>
-      <div className="cc-color-row">
-        {CAPABILITY_COLORS.map((color) => {
-          const style = categoryStyle(color, colorPalette);
-          return (
-            <button
-              key={color}
-              type="button"
-              aria-label={`Set ${label.toLowerCase()} ${color}`}
-              aria-pressed={value === color}
-              className={`cc-color-swatch ${value === color ? "on" : ""}`}
-              style={{
-                color: style.isTransparent
-                  ? "var(--cc-slate-400)"
-                  : style.border,
-                background: swatchBackgroundForFill(style),
-              }}
-              onClick={() => onChange(color)}
-            />
-          );
-        })}
-      </div>
+      <ColorSwatchMatrix
+        activeColor={value}
+        colorPalette={colorPalette}
+        labelForColor={(color) => `Set ${label.toLowerCase()} ${color}`}
+        onSelect={onChange}
+      />
     </SettingField>
   );
 }
