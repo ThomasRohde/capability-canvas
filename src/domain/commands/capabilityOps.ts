@@ -321,6 +321,11 @@ export function deleteNodes(nodeIds: NodeId[]): Transaction {
           for (const descendantId of descendantsOf(next, id))
             toDelete.add(descendantId);
         }
+        const affectedParentIds = new Set<NodeId>();
+        for (const id of toDelete) {
+          const parentId = next.nodesById[id]?.parentId;
+          if (parentId) affectedParentIds.add(parentId);
+        }
         for (const id of toDelete) delete next.nodesById[id];
         for (const [parentId, children] of Object.entries(
           next.childrenByParentId,
@@ -329,7 +334,12 @@ export function deleteNodes(nodeIds: NodeId[]): Transaction {
             (childId) => !toDelete.has(childId),
           );
         }
-        return ok(rebuildChildren(next));
+        return ok(
+          collapseEmptiedParentsToLeafSize(
+            rebuildChildren(next),
+            affectedParentIds,
+          ),
+        );
       }),
     ],
     {
@@ -377,6 +387,7 @@ export function reparentNode(
             "A node cannot be moved into its descendant.",
           );
         const next = cloneDocument(doc);
+        const oldParentId = node.parentId;
         next.nodesById[nodeId] = {
           ...node,
           parentId,
@@ -386,7 +397,12 @@ export function reparentNode(
               : node.type
             : "root",
         };
-        return ok(rebuildChildren(next));
+        return ok(
+          collapseEmptiedParentsToLeafSize(
+            rebuildChildren(next),
+            oldParentId ? [oldParentId] : [],
+          ),
+        );
       }),
     ],
     {
@@ -437,4 +453,62 @@ export function duplicateNodes(nodeIds: NodeId[]): Transaction {
       return ok(rebuildChildren(next));
     }),
   ]);
+}
+
+function collapseEmptiedParentsToLeafSize(
+  doc: CapabilityDocument,
+  parentIds: Iterable<NodeId>,
+): CapabilityDocument {
+  const collapsedIds: NodeId[] = [];
+  const timestamp = now();
+  for (const parentId of parentIds) {
+    const node = doc.nodesById[parentId];
+    if (
+      !node ||
+      node.parentId === null ||
+      node.isTextLabel ||
+      node.type === "text"
+    ) {
+      continue;
+    }
+    if (childrenOf(doc, parentId).length > 0) continue;
+    if (
+      node.type === "leaf" &&
+      node.w === doc.settings.fixedLeafWidth &&
+      node.h === doc.settings.fixedLeafHeight
+    ) {
+      continue;
+    }
+    doc.nodesById[parentId] = {
+      ...node,
+      type: "leaf",
+      w: doc.settings.fixedLeafWidth,
+      h: doc.settings.fixedLeafHeight,
+      updatedAt: timestamp,
+    };
+    collapsedIds.push(parentId);
+  }
+  if (collapsedIds.length === 0) return doc;
+
+  for (const view of Object.values(doc.visual.viewsById)) {
+    let changed = false;
+    for (const nodeId of collapsedIds) {
+      const state = view.nodeStatesById[nodeId];
+      if (!state) continue;
+      if (
+        state.w === doc.settings.fixedLeafWidth &&
+        state.h === doc.settings.fixedLeafHeight
+      ) {
+        continue;
+      }
+      view.nodeStatesById[nodeId] = {
+        ...state,
+        w: doc.settings.fixedLeafWidth,
+        h: doc.settings.fixedLeafHeight,
+      };
+      changed = true;
+    }
+    if (changed) view.updatedAt = timestamp;
+  }
+  return doc;
 }

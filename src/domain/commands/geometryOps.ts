@@ -220,6 +220,7 @@ export function alignNodes(
         const nodes = nodeIds.map((id) => doc.nodesById[id]!);
         const next = cloneDocument(doc);
         const target = alignTarget(nodes, direction);
+        const movedNodeIds = new Set<NodeId>();
         for (const node of nodes) {
           const patch =
             direction === "left"
@@ -233,7 +234,9 @@ export function alignNodes(
                     : direction === "middle"
                       ? { y: target - node.h / 2 }
                       : { y: target - node.h };
-          next.nodesById[node.id] = { ...node, ...patch, updatedAt: now() };
+          const dx = (patch.x ?? node.x) - node.x;
+          const dy = (patch.y ?? node.y) - node.y;
+          translateSubtree(next, node.id, dx, dy, movedNodeIds);
         }
         return ok({
           ...next,
@@ -569,6 +572,27 @@ function updateOnly(
     );
   next.nodesById[nodeId] = { ...node, ...patch, updatedAt: now() };
   return ok(next);
+}
+
+function translateSubtree(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+  dx: number,
+  dy: number,
+  movedNodeIds: Set<NodeId>,
+) {
+  for (const id of [nodeId, ...descendantsOf(doc, nodeId)]) {
+    if (movedNodeIds.has(id)) continue;
+    const node = doc.nodesById[id];
+    if (!node) continue;
+    doc.nodesById[id] = {
+      ...node,
+      x: node.x + dx,
+      y: node.y + dy,
+      updatedAt: now(),
+    };
+    movedNodeIds.add(id);
+  }
 }
 
 function alignTarget(

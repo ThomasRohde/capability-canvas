@@ -25,8 +25,12 @@ import {
 import { createEmptyDocument, createNode } from "../document/defaults";
 import { createSampleDocument } from "../fixtures/sample";
 import { childrenOf, ROOT_PARENT_ID } from "../document/types";
-import { ensureParentContainment } from "../layout/containment";
+import {
+  ensureParentContainment,
+  findParentContainmentViolations,
+} from "../layout/containment";
 import { applyLayoutPatches, layoutDocument } from "../layout/engine";
+import { resolveVisualDocument } from "../visual/workspace";
 import {
   PROMPT_MERGE_SCHEMA,
   PROMPT_MERGE_VERSION,
@@ -88,6 +92,51 @@ describe("commands", () => {
       result.doc.nodesById["fraud-risk"]!.y,
     );
   });
+
+  it.each(["left", "center", "right", "top", "middle", "bottom"] as const)(
+    "aligns parent containers %s without resizing their subtrees",
+    (direction) => {
+      const doc = createSampleDocument();
+      const before: Record<
+        string,
+        { w: number; h: number; childDx: number; childDy: number }
+      > = {};
+      for (const [parentId, childId] of [
+        ["risk", "credit-risk"],
+        ["operations", "process-management"],
+      ] as const) {
+        const parent = doc.nodesById[parentId]!;
+        const child = doc.nodesById[childId]!;
+        before[parentId] = {
+          w: parent.w,
+          h: parent.h,
+          childDx: child.x - parent.x,
+          childDy: child.y - parent.y,
+        };
+      }
+
+      const result = runTransaction(
+        doc,
+        alignNodes(["risk", "operations"], direction),
+      );
+
+      expect(result.diagnostics).toHaveLength(0);
+      for (const [parentId, childId] of [
+        ["risk", "credit-risk"],
+        ["operations", "process-management"],
+      ] as const) {
+        const parent = result.doc.nodesById[parentId]!;
+        const child = result.doc.nodesById[childId]!;
+        expect(parent).toMatchObject({
+          w: before[parentId]!.w,
+          h: before[parentId]!.h,
+        });
+        expect(child.x - parent.x).toBe(before[parentId]!.childDx);
+        expect(child.y - parent.y).toBe(before[parentId]!.childDy);
+      }
+      expect(findParentContainmentViolations(result.doc)).toEqual([]);
+    },
+  );
 
   it("updates selected capability colors as one transaction", () => {
     const doc = createSampleDocument();
@@ -238,6 +287,30 @@ describe("commands", () => {
     const result = runTransaction(oversized, fitParentToChildren("risk"));
     expect(result.doc.nodesById.risk!.w).toBeLessThan(before.w + 400);
     expect(result.doc.nodesById.risk!.h).toBeLessThan(before.h + 200);
+  });
+
+  it("resizes a parent to leaf dimensions when its last child is deleted", () => {
+    const oneChild = runTransaction(
+      createSampleDocument(),
+      deleteNodes(["fraud-risk", "operational-risk"]),
+    ).doc;
+    const before = oneChild.nodesById.risk!;
+
+    const result = runTransaction(oneChild, deleteNodes(["credit-risk"]));
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(childrenOf(result.doc, "risk")).toEqual([]);
+    expect(resolveVisualDocument(result.doc).nodesById.risk).toMatchObject({
+      w: oneChild.settings.fixedLeafWidth,
+      h: oneChild.settings.fixedLeafHeight,
+    });
+    expect(result.doc.nodesById.risk).toMatchObject({
+      type: "leaf",
+      x: before.x,
+      y: before.y,
+      w: oneChild.settings.fixedLeafWidth,
+      h: oneChild.settings.fixedLeafHeight,
+    });
   });
 
   it("keeps a snapped auto-laid parent stable when fitting to children", async () => {
