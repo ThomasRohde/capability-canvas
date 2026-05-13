@@ -1014,6 +1014,55 @@ describe("editor canvas workflows", () => {
     expect(align).toBeDisabled();
   });
 
+  it("reduces Ctrl-click multi-selection when capabilities have different parents", () => {
+    useUiStore.setState({ selectedNodeIds: ["credit-risk"] });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const processManagement = within(canvas)
+      .getByText("Process Management")
+      .closest(".cc-node") as HTMLElement;
+
+    fireEvent(
+      processManagement,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        ctrlKey: true,
+      }),
+    );
+
+    expect(useUiStore.getState().selectedNodeIds).toEqual([
+      "process-management",
+    ]);
+    expect(
+      screen.getByText("Bulk operations require sibling capabilities."),
+    ).toBeInTheDocument();
+  });
+
+  it("allows Ctrl-click multi-selection of root capabilities with no parent", () => {
+    useDocumentStore.setState({ doc: threeSingleChildContainers() });
+    useUiStore.setState({ selectedNodeIds: ["rootA"] });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const rootB = within(canvas)
+      .getByText("Root B")
+      .closest(".cc-node") as HTMLElement;
+
+    fireEvent(
+      rootB,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        ctrlKey: true,
+      }),
+    );
+
+    expect(useUiStore.getState().selectedNodeIds).toEqual(["rootA", "rootB"]);
+    expect(
+      screen.queryByText("Bulk operations require sibling capabilities."),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows PowerPoint-style bulk alignment and sizing actions", () => {
     useUiStore.setState({
       selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],

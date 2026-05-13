@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createNode } from "../document/defaults";
-import { childrenOf } from "../document/types";
+import { createEmptyDocument, createNode } from "../document/defaults";
+import { childrenOf, ROOT_PARENT_ID } from "../document/types";
 import { createSampleDocument } from "../fixtures/sample";
 import {
   canAlign,
   canMultiSelect,
   resolveSelectAllSelection,
   resolveSiblingSelection,
+  resolveToggleSelection,
   TEXT_LABEL_SELECTION_REASON,
   MIXED_PARENT_SELECTION_REASON,
 } from "./rules";
@@ -17,6 +18,28 @@ describe("selection rules", () => {
     const result = canMultiSelect(doc, ["credit-risk", "process-management"]);
     expect(result.valid).toBe(false);
     expect(result.reason).toBe(MIXED_PARENT_SELECTION_REASON);
+  });
+
+  it("accepts multi-selection of root capabilities that share no parent", () => {
+    const doc = twoRootDocument();
+
+    const result = canMultiSelect(doc, ["root-a", "root-b"]);
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("reduces toggle selection to the clicked node when parents differ", () => {
+    const doc = createSampleDocument();
+
+    const result = resolveToggleSelection(
+      doc,
+      ["credit-risk"],
+      "process-management",
+    );
+
+    expect(result.nodeIds).toEqual(["process-management"]);
+    expect(result.reason).toBe(MIXED_PARENT_SELECTION_REASON);
+    expect(result.reduced).toBe(true);
   });
 
   it("rejects text labels from multi-selection with the exact reason", () => {
@@ -85,3 +108,21 @@ describe("selection rules", () => {
     expect(result.valid).toBe(true);
   });
 });
+
+function twoRootDocument() {
+  const doc = createEmptyDocument();
+  doc.nodesById["root-a"] = createNode({
+    id: "root-a",
+    label: "Root A",
+    type: "root",
+  });
+  doc.nodesById["root-b"] = createNode({
+    id: "root-b",
+    label: "Root B",
+    type: "root",
+  });
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root-a", "root-b"];
+  doc.childrenByParentId["root-a"] = [];
+  doc.childrenByParentId["root-b"] = [];
+  return doc;
+}
