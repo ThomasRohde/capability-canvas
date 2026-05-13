@@ -279,11 +279,11 @@ export function distributeNodes(
         const gap = (span - totalSize) / (nodes.length - 1);
         const next = cloneDocument(doc);
         let cursor = axis === "horizontal" ? first.x : first.y;
+        const movedNodeIds = new Set<NodeId>();
         for (const node of nodes) {
-          next.nodesById[node.id] =
-            axis === "horizontal"
-              ? { ...node, x: cursor, updatedAt: now() }
-              : { ...node, y: cursor, updatedAt: now() };
+          const dx = axis === "horizontal" ? cursor - node.x : 0;
+          const dy = axis === "vertical" ? cursor - node.y : 0;
+          translateSubtree(next, node.id, dx, dy, movedNodeIds);
           cursor += (axis === "horizontal" ? node.w : node.h) + gap;
         }
         return ok({
@@ -305,21 +305,44 @@ export function sameSize(
     "Same size",
     [
       command("same-size", { nodeIds, anchorId, axis }, "visual", (doc) => {
+        if (nodeIds.length === 0) return ok(doc);
+        const allowed = canBulkEditNodes(doc, nodeIds);
+        if (!allowed.valid)
+          return fail(
+            doc,
+            "invalid-selection",
+            allowed.reason ?? "Invalid selection.",
+          );
         const anchor = doc.nodesById[anchorId];
         if (!anchor)
           return fail(doc, "missing-anchor", "Anchor node no longer exists.");
         const next = cloneDocument(doc);
+        let changed = false;
         for (const id of nodeIds) {
           const node = next.nodesById[id];
           if (!node || node.isLockedAsIs) continue;
+          const minSize = minimumSizeForNode(next, node);
+          const w =
+            axis === "height" ? node.w : Math.max(anchor.w, minSize.w);
+          const h =
+            axis === "width" ? node.h : Math.max(anchor.h, minSize.h);
+          if (node.w === w && node.h === h) continue;
           next.nodesById[id] = {
             ...node,
-            w: axis === "height" ? node.w : anchor.w,
-            h: axis === "width" ? node.h : anchor.h,
+            w,
+            h,
             updatedAt: now(),
           };
+          changed = true;
         }
-        return ok(next);
+        return ok(
+          changed
+            ? {
+                ...next,
+                layout: { ...next.layout, isUserArranged: true },
+              }
+            : doc,
+        );
       }),
     ],
     { source: "bulk" },
@@ -616,4 +639,26 @@ function boundsForNodes(doc: CapabilityDocument, ids: NodeId[]) {
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
   return boundsForBoxes(nodes);
+}
+
+function minimumSizeForNode(doc: CapabilityDocument, node: CapabilityNode) {
+  const childBounds = node.isManualPositioningEnabled
+    ? null
+    : boundsForNodes(doc, canvasChildrenOf(doc, node.id));
+  return {
+    w: childBounds
+      ? childBounds.x +
+        childBounds.w -
+        node.x +
+        (node.layoutPreferences?.marginRight ??
+          doc.settings.containerPaddingRight)
+      : 80,
+    h: childBounds
+      ? childBounds.y +
+        childBounds.h -
+        node.y +
+        (node.layoutPreferences?.marginBottom ??
+          doc.settings.containerPaddingBottom)
+      : 40,
+  };
 }

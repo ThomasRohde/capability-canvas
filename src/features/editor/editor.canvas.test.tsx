@@ -22,6 +22,7 @@ import {
   ROOT_PARENT_ID,
   type CapabilityDocument,
 } from "../../domain/document/types";
+import { findParentContainmentViolations } from "../../domain/layout/containment";
 import { warning } from "../../domain/validation/diagnostics";
 import {
   createVisualWorkspaceFromDocument,
@@ -1056,6 +1057,69 @@ describe("editor canvas workflows", () => {
     ).toBeInTheDocument();
   });
 
+  it("distributes selected parent containers without detaching children", async () => {
+    const selectedNodeIds = ["customer", "risk", "operations"];
+    useUiStore.setState({ selectedNodeIds });
+    const before = parentChildOffsets(
+      resolveVisualDocument(useDocumentStore.getState().doc),
+      {
+        customer: "channels",
+        risk: "credit-risk",
+        operations: "process-management",
+      },
+    );
+    renderEditor();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Distribute horizontal" }),
+    );
+
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+    for (const [parentId, childId] of Object.entries({
+      customer: "channels",
+      risk: "credit-risk",
+      operations: "process-management",
+    })) {
+      const parent = doc.nodesById[parentId]!;
+      const child = doc.nodesById[childId]!;
+      expect(parent).toMatchObject({
+        w: before[parentId]!.w,
+        h: before[parentId]!.h,
+      });
+      expect(child.x - parent.x).toBe(before[parentId]!.childDx);
+      expect(child.y - parent.y).toBe(before[parentId]!.childDy);
+    }
+    expect(findParentContainmentViolations(doc)).toEqual([]);
+  });
+
+  it("marks same-size parent toolbar edits user-arranged in balanced mode", async () => {
+    useDocumentStore.setState({
+      doc: balancedActiveViewDocument(useDocumentStore.getState().doc),
+    });
+    useUiStore.setState({
+      selectedNodeIds: ["customer", "risk", "operations"],
+    });
+    renderEditor();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Match size to first selected" }),
+    );
+
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(doc.layout.isUserArranged).toBe(true);
+    expect(doc.layout.aspectRatioFrame).toBeUndefined();
+    expect(doc.layout.aspectRatioTarget).toBeUndefined();
+    expect(doc.nodesById.risk).toMatchObject({
+      w: doc.nodesById.customer!.w,
+      h: doc.nodesById.customer!.h,
+    });
+    expect(doc.nodesById.operations).toMatchObject({
+      w: doc.nodesById.customer!.w,
+      h: doc.nodesById.customer!.h,
+    });
+    expect(findParentContainmentViolations(doc)).toEqual([]);
+  });
+
   it("updates selected colors from the floating toolbar", async () => {
     useUiStore.setState({
       selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
@@ -1128,4 +1192,57 @@ function threeSingleChildContainers(): CapabilityDocument {
   doc.childrenByParentId[ROOT_PARENT_ID] = ["rootA", "rootB", "rootC"];
   doc.visual = createVisualWorkspaceFromDocument(doc);
   return doc;
+}
+
+function parentChildOffsets(
+  doc: CapabilityDocument,
+  parentToChild: Record<string, string>,
+) {
+  return Object.fromEntries(
+    Object.entries(parentToChild).map(([parentId, childId]) => {
+      const parent = doc.nodesById[parentId]!;
+      const child = doc.nodesById[childId]!;
+      return [
+        parentId,
+        {
+          w: parent.w,
+          h: parent.h,
+          childDx: child.x - parent.x,
+          childDy: child.y - parent.y,
+        },
+      ];
+    }),
+  );
+}
+
+function balancedActiveViewDocument(
+  doc: CapabilityDocument,
+): CapabilityDocument {
+  const viewId = doc.visual.activeViewId;
+  const view = doc.visual.viewsById[viewId]!;
+  const balancedLayout = {
+    ...doc.layout,
+    mode: "balanced" as const,
+    isUserArranged: false,
+    aspectRatioFrame: { x: 0, y: 0, w: 1280, h: 720 },
+    aspectRatioTarget: { w: 16, h: 9 },
+  };
+  return {
+    ...doc,
+    settings: { ...doc.settings, layoutMode: "balanced" },
+    layout: balancedLayout,
+    visual: {
+      ...doc.visual,
+      viewsById: {
+        ...doc.visual.viewsById,
+        [viewId]: {
+          ...view,
+          layout: {
+            ...view.layout,
+            ...balancedLayout,
+          },
+        },
+      },
+    },
+  };
 }

@@ -4,6 +4,8 @@ import {
   addSubtreeToCanvas,
   alignNodes,
   deleteNodes,
+  distributeNodes,
+  duplicateNodes,
   fitParentToChildren,
   lockSubtrees,
   lockSubtree,
@@ -15,6 +17,7 @@ import {
   reparentNode,
   resizeNode,
   runTransaction,
+  sameSize,
   setManualPositioning,
   setManualPositioningForNodes,
   updateActiveViewExportSettings,
@@ -24,13 +27,16 @@ import {
 } from "./operations";
 import { createEmptyDocument, createNode } from "../document/defaults";
 import { createSampleDocument } from "../fixtures/sample";
-import { childrenOf, ROOT_PARENT_ID } from "../document/types";
+import { childrenOf, ROOT_PARENT_ID, type LayoutMode } from "../document/types";
 import {
   ensureParentContainment,
   findParentContainmentViolations,
 } from "../layout/containment";
 import { applyLayoutPatches, layoutDocument } from "../layout/engine";
-import { resolveVisualDocument } from "../visual/workspace";
+import {
+  createVisualWorkspaceFromDocument,
+  resolveVisualDocument,
+} from "../visual/workspace";
 import {
   PROMPT_MERGE_SCHEMA,
   PROMPT_MERGE_VERSION,
@@ -137,6 +143,99 @@ describe("commands", () => {
       expect(findParentContainmentViolations(result.doc)).toEqual([]);
     },
   );
+
+  it.each(["horizontal", "vertical"] as const)(
+    "distributes parent containers %s without resizing their subtrees",
+    (axis) => {
+      const doc = parentSiblingDocument();
+      const parentIds = ["group-a", "group-b", "group-c"];
+      const before = parentSubtreeOffsets(doc, parentIds);
+
+      const result = runTransaction(doc, distributeNodes(parentIds, axis));
+
+      expect(result.diagnostics).toHaveLength(0);
+      expect(result.doc.layout.isUserArranged).toBe(true);
+      for (const parentId of parentIds) {
+        const childId = `${parentId}-child`;
+        const parent = result.doc.nodesById[parentId]!;
+        const child = result.doc.nodesById[childId]!;
+        expect(parent).toMatchObject({
+          w: before[parentId]!.w,
+          h: before[parentId]!.h,
+        });
+        expect(child.x - parent.x).toBe(before[parentId]!.childDx);
+        expect(child.y - parent.y).toBe(before[parentId]!.childDy);
+      }
+      expect(findParentContainmentViolations(result.doc)).toEqual([]);
+    },
+  );
+
+  it.each([
+    "uniform",
+    "flow",
+    "adaptive",
+    "balanced",
+    "free",
+  ] satisfies LayoutMode[])(
+    "marks same-size bulk geometry as user-arranged in %s mode",
+    (mode) => {
+      const doc = parentSiblingDocument(mode);
+
+      const result = runTransaction(
+        doc,
+        sameSize(["group-a", "group-b", "group-c"], "group-a"),
+      );
+
+      expect(result.diagnostics).toHaveLength(0);
+      expect(result.doc.layout.mode).toBe(mode);
+      expect(result.doc.layout.isUserArranged).toBe(true);
+      expect(result.doc.layout.aspectRatioFrame).toBeUndefined();
+      expect(result.doc.layout.aspectRatioTarget).toBeUndefined();
+      expect(result.doc.nodesById["group-b"]).toMatchObject({
+        w: result.doc.nodesById["group-a"]!.w,
+        h: result.doc.nodesById["group-a"]!.h,
+      });
+      expect(result.doc.nodesById["group-c"]).toMatchObject({
+        w: result.doc.nodesById["group-a"]!.w,
+        h: result.doc.nodesById["group-a"]!.h,
+      });
+      expect(findParentContainmentViolations(result.doc)).toEqual([]);
+    },
+  );
+
+  it("duplicates selected parent subtrees as manual layout edits", () => {
+    const doc = parentSiblingDocument("balanced");
+    const before = parentSubtreeOffsets(doc, ["group-a", "group-b"]);
+
+    const result = runTransaction(doc, duplicateNodes(["group-a", "group-b"]));
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.layout.isUserArranged).toBe(true);
+    expect(result.doc.layout.aspectRatioFrame).toBeUndefined();
+    expect(result.doc.layout.aspectRatioTarget).toBeUndefined();
+    for (const originalId of ["group-a", "group-b"]) {
+      const original = doc.nodesById[originalId]!;
+      const copy = Object.values(result.doc.nodesById).find(
+        (node) => node.label === `${original.label} copy`,
+      );
+      expect(copy).toBeDefined();
+      expect(copy).toMatchObject({
+        parentId: "root",
+        x: original.x + 24,
+        y: original.y + 24,
+        w: original.w,
+        h: original.h,
+      });
+      const childCopy = Object.values(result.doc.nodesById).find(
+        (node) =>
+          node.parentId === copy!.id &&
+          node.label === `${doc.nodesById[`${originalId}-child`]!.label} copy`,
+      );
+      expect(childCopy).toBeDefined();
+      expect(childCopy!.x - copy!.x).toBe(before[originalId]!.childDx);
+      expect(childCopy!.y - copy!.y).toBe(before[originalId]!.childDy);
+    }
+  });
 
   it("updates selected capability colors as one transaction", () => {
     const doc = createSampleDocument();
@@ -542,6 +641,82 @@ describe("commands", () => {
     });
   });
 });
+
+function parentSiblingDocument(mode: LayoutMode = "adaptive") {
+  const doc = createEmptyDocument();
+  doc.settings.layoutMode = mode;
+  doc.layout = {
+    ...doc.layout,
+    mode,
+    isUserArranged: false,
+    preservePositions: false,
+    aspectRatioFrame:
+      mode === "balanced" ? { x: 0, y: 0, w: 960, h: 540 } : undefined,
+    aspectRatioTarget: mode === "balanced" ? { w: 16, h: 9 } : undefined,
+  };
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Root",
+    type: "root",
+    x: 16,
+    y: 16,
+    w: 880,
+    h: 360,
+  });
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+  doc.childrenByParentId.root = [];
+
+  for (const [index, id] of ["group-a", "group-b", "group-c"].entries()) {
+    const x = 48 + index * 260;
+    const y = 72 + index * 24;
+    doc.nodesById[id] = createNode({
+      id,
+      parentId: "root",
+      label: `Group ${index + 1}`,
+      type: "parent",
+      x,
+      y,
+      w: 220 + index * 24,
+      h: 140 + index * 16,
+    });
+    doc.nodesById[`${id}-child`] = createNode({
+      id: `${id}-child`,
+      parentId: id,
+      label: `Child ${index + 1}`,
+      x: x + 24,
+      y: y + 64,
+      w: 128,
+      h: 40,
+    });
+    doc.childrenByParentId.root!.push(id);
+    doc.childrenByParentId[id] = [`${id}-child`];
+    doc.childrenByParentId[`${id}-child`] = [];
+  }
+
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
+}
+
+function parentSubtreeOffsets(
+  doc: ReturnType<typeof parentSiblingDocument>,
+  ids: string[],
+) {
+  return Object.fromEntries(
+    ids.map((parentId) => {
+      const parent = doc.nodesById[parentId]!;
+      const child = doc.nodesById[`${parentId}-child`]!;
+      return [
+        parentId,
+        {
+          w: parent.w,
+          h: parent.h,
+          childDx: child.x - parent.x,
+          childDy: child.y - parent.y,
+        },
+      ];
+    }),
+  );
+}
 
 function subGridPaddingDocument() {
   const doc = createEmptyDocument();

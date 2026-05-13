@@ -427,10 +427,12 @@ export function duplicateNodes(nodeIds: NodeId[]): Transaction {
       const idMap = new Map<NodeId, NodeId>();
       const sourceIds = new Set<NodeId>();
       for (const rootId of nodeIds) {
+        if (!doc.nodesById[rootId]) continue;
         sourceIds.add(rootId);
         for (const descendantId of descendantsOf(doc, rootId))
           sourceIds.add(descendantId);
       }
+      if (sourceIds.size === 0) return ok(doc);
       for (const id of sourceIds) idMap.set(id, makeId("copy"));
       for (const id of sourceIds) {
         const node = doc.nodesById[id]!;
@@ -450,7 +452,11 @@ export function duplicateNodes(nodeIds: NodeId[]): Transaction {
           updatedAt: now(),
         };
       }
-      return ok(rebuildChildren(next));
+      const rebuilt = rebuildChildren(next);
+      return ok({
+        ...rebuilt,
+        layout: { ...rebuilt.layout, isUserArranged: true },
+      });
     }),
   ]);
 }
