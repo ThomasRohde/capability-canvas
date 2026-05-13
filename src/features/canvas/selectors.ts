@@ -3,6 +3,7 @@ import {
   collectDescendantIds,
   computeHierarchyDepths,
   isNodeOnCanvas,
+  subtreeNodeIds,
   type Bounds,
   type CapabilityDocument,
   type CapabilityNode,
@@ -54,6 +55,24 @@ export function descendantIds(
   nodeId: NodeId,
 ): NodeId[] {
   return collectDescendantIds(doc, nodeId, { canvasOnly: true }).ids;
+}
+
+export function filterSelectionAfterViewRemoval(
+  doc: CapabilityDocument,
+  selectedNodeIds: NodeId[],
+  removedNodeIds: NodeId[],
+): NodeId[] {
+  if (selectedNodeIds.length === 0 || removedNodeIds.length === 0) {
+    return selectedNodeIds;
+  }
+
+  const removed = new Set<NodeId>();
+  for (const nodeId of removedNodeIds) {
+    for (const subtreeId of subtreeNodeIds(doc, nodeId)) {
+      removed.add(subtreeId);
+    }
+  }
+  return selectedNodeIds.filter((nodeId) => !removed.has(nodeId));
 }
 
 export function viewportToDocumentBounds(

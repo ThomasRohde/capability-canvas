@@ -1,8 +1,21 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { addChild, moveNodes } from "../../domain/commands/operations";
-import { childrenOf } from "../../domain/document/types";
+import {
+  addChild,
+  deleteNodes,
+  moveNodes,
+  removeNodesFromCanvas,
+} from "../../domain/commands/operations";
+import { createEmptyDocument, createNode } from "../../domain/document/defaults";
+import {
+  childrenOf,
+  ROOT_PARENT_ID,
+  type CapabilityDocument,
+} from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import {
+  createVisualWorkspaceFromDocument,
+  resolveVisualDocument,
+} from "../../domain/visual/workspace";
 import { geometrySnapshot } from "../../test/documentAssertions";
 import {
   resetDocumentStoreForTests,
@@ -156,4 +169,130 @@ describe("document store layout orchestration", () => {
       ).toBe(true);
     },
   );
+
+  it("keeps sibling root containers visible after removing one child from the active view", async () => {
+    resetDocumentStoreForTests(threeOneChildRootContainers());
+
+    useDocumentStore.getState().execute(removeNodesFromCanvas(["leaf-a"]));
+    await waitForStoreRelayout();
+
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(visibleNodeIds(doc)).toEqual([
+      "root-a",
+      "root-b",
+      "leaf-b",
+      "root-c",
+      "leaf-c",
+    ]);
+  });
+
+  it("keeps sibling root containers visible after deleting one child from the model", async () => {
+    resetDocumentStoreForTests(threeOneChildRootContainers());
+
+    useDocumentStore.getState().execute(deleteNodes(["leaf-a"]));
+    await waitForStoreRelayout();
+
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(visibleNodeIds(doc)).toEqual([
+      "root-a",
+      "root-b",
+      "leaf-b",
+      "root-c",
+      "leaf-c",
+    ]);
+  });
+
+  it("keeps visible containers when their source ancestor is hidden in the active view", async () => {
+    resetDocumentStoreForTests(
+      threeOneChildRootContainers({ hiddenCommonAncestor: true }),
+    );
+
+    useDocumentStore.getState().execute(removeNodesFromCanvas(["leaf-a"]));
+    await waitForStoreRelayout();
+
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(visibleNodeIds(doc)).toEqual([
+      "root-a",
+      "root-b",
+      "leaf-b",
+      "root-c",
+      "leaf-c",
+    ]);
+  });
 });
+
+function threeOneChildRootContainers(
+  options: { hiddenCommonAncestor?: boolean } = {},
+): CapabilityDocument {
+  const doc = createEmptyDocument();
+  doc.layout.preservePositions = false;
+  doc.layout.isUserArranged = false;
+  doc.settings.layoutMode = "adaptive";
+
+  for (const [index, color] of ["mint", "coral", "sky"].entries()) {
+    const suffix = String.fromCharCode("a".charCodeAt(0) + index);
+    const rootId = `root-${suffix}`;
+    const leafId = `leaf-${suffix}`;
+    const x = 48 + index * 260;
+    doc.nodesById[rootId] = createNode({
+      id: rootId,
+      label: "New capability",
+      type: "root",
+      color: color as never,
+      x,
+      y: 48,
+      w: 220,
+      h: 120,
+    });
+    doc.nodesById[leafId] = createNode({
+      id: leafId,
+      parentId: rootId,
+      label: "New capability",
+      type: "leaf",
+      x: x + 16,
+      y: 104,
+      w: 188,
+      h: 44,
+    });
+    doc.childrenByParentId[rootId] = [leafId];
+    doc.childrenByParentId[leafId] = [];
+  }
+  if (options.hiddenCommonAncestor) {
+    doc.nodesById.model = createNode({
+      id: "model",
+      label: "Model",
+      type: "root",
+      color: "amber",
+      x: 0,
+      y: 0,
+      w: 860,
+      h: 240,
+    });
+    doc.childrenByParentId[ROOT_PARENT_ID] = ["model"];
+    doc.childrenByParentId.model = ["root-a", "root-b", "root-c"];
+    for (const rootId of ["root-a", "root-b", "root-c"]) {
+      doc.nodesById[rootId] = {
+        ...doc.nodesById[rootId]!,
+        parentId: "model",
+        type: "parent",
+      };
+    }
+  } else {
+    doc.childrenByParentId[ROOT_PARENT_ID] = ["root-a", "root-b", "root-c"];
+  }
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  if (options.hiddenCommonAncestor) {
+    const view = doc.visual.viewsById[doc.visual.activeViewId]!;
+    view.nodeStatesById.model = {
+      ...view.nodeStatesById.model,
+      isOnCanvas: false,
+    };
+  }
+  return doc;
+}
+
+function visibleNodeIds(doc: CapabilityDocument): string[] {
+  return Object.values(doc.nodesById)
+    .filter((node) => node.isOnCanvas)
+    .map((node) => node.id);
+}

@@ -20,6 +20,7 @@ import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import { filterSelectionAfterViewRemoval } from "../canvas/selectors";
 import { fitViewportToBounds } from "../canvas/viewport";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import {
@@ -220,7 +221,16 @@ export function useEditorActions(
           isNodeOnCanvas(viewDoc.nodesById[nodeId]),
         );
         if (currentCanvasSelection.length === 0) return;
-        execute(removeNodesFromCanvas(currentCanvasSelection));
+        const diagnostics = execute(removeNodesFromCanvas(currentCanvasSelection));
+        if (diagnostics.some((diagnostic) => diagnostic.severity === "error"))
+          return;
+        setSelection(
+          filterSelectionAfterViewRemoval(
+            viewDoc,
+            currentSelection,
+            currentCanvasSelection,
+          ),
+        );
       },
       deleteFromModel: () =>
         requestDeleteFromModel(useUiStore.getState().selectedNodeIds),
@@ -242,6 +252,7 @@ export function useEditorActions(
       requestLabelEdit,
       selectAllVisible,
       setActiveDrawer,
+      setSelection,
       toggleInspector,
       toggleOutline,
       undo,

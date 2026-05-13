@@ -16,9 +16,17 @@ import {
   runTransaction,
   updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
+import { createEmptyDocument, createNode } from "../../domain/document/defaults";
 import { stringifyDocument } from "../../domain/document/serialize";
+import {
+  ROOT_PARENT_ID,
+  type CapabilityDocument,
+} from "../../domain/document/types";
 import { warning } from "../../domain/validation/diagnostics";
-import { resolveVisualDocument } from "../../domain/visual/workspace";
+import {
+  createVisualWorkspaceFromDocument,
+  resolveVisualDocument,
+} from "../../domain/visual/workspace";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { normalizeCssColor } from "../../test/documentAssertions";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
@@ -913,6 +921,29 @@ describe("editor canvas workflows", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("removes one selected child on Delete without hiding sibling containers", async () => {
+    useDocumentStore.setState({ doc: threeSingleChildContainers() });
+    useUiStore.setState({ selectedNodeIds: [] });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    expect(canvas.querySelectorAll(".cc-container-frame")).toHaveLength(3);
+
+    await userEvent.click(within(canvas).getByText("Leaf A"));
+    await userEvent.keyboard("{Delete}");
+
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById.rootA,
+    ).toBeDefined();
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById.leafA
+        ?.isOnCanvas,
+    ).toBe(false);
+    expect(canvas.querySelectorAll(".cc-container-frame")).toHaveLength(2);
+    expect(within(canvas).getByText("Root A")).toBeInTheDocument();
+    expect(within(canvas).getByText("Root B")).toBeInTheDocument();
+    expect(within(canvas).getByText("Root C")).toBeInTheDocument();
+  });
+
   it("confirms and deletes the selected source node on Shift+Delete", async () => {
     renderEditor();
 
@@ -1063,3 +1094,38 @@ describe("editor canvas workflows", () => {
     expect(distribute).toBeDisabled();
   });
 });
+
+function threeSingleChildContainers(): CapabilityDocument {
+  const doc = createEmptyDocument();
+  for (const [index, color] of ["mint", "coral", "sky"].entries()) {
+    const suffix = String.fromCharCode("A".charCodeAt(0) + index);
+    const x = 48 + index * 260;
+    const rootId = `root${suffix}`;
+    const leafId = `leaf${suffix}`;
+    doc.nodesById[rootId] = createNode({
+      id: rootId,
+      label: `Root ${suffix}`,
+      type: "root",
+      color: color as never,
+      x,
+      y: 48,
+      w: 220,
+      h: 120,
+    });
+    doc.nodesById[leafId] = createNode({
+      id: leafId,
+      parentId: rootId,
+      label: `Leaf ${suffix}`,
+      type: "leaf",
+      x: x + 16,
+      y: 104,
+      w: 188,
+      h: 44,
+    });
+    doc.childrenByParentId[rootId] = [leafId];
+    doc.childrenByParentId[leafId] = [];
+  }
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["rootA", "rootB", "rootC"];
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
+}

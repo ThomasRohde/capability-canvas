@@ -31,15 +31,18 @@ import {
 } from "../../domain/selection/rules";
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
 import { IconButton } from "../shared/IconButton";
 import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import { BulkColorPicker } from "./BulkColorPicker";
+import { filterSelectionAfterViewRemoval } from "./selectors";
 
 export function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const doc = useDocumentStore((state) => state.doc);
   const { visualDocument: viewDoc } = useActiveVisualState({ doc });
   const execute = useDocumentStore((state) => state.execute);
+  const setSelection = useUiStore((state) => state.setSelection);
   const { requestDeleteFromModel, deleteFromModelDialog } =
     useModelDeleteConfirmation(doc);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -168,7 +171,14 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
       <IconButton
         icon={EyeOff}
         label="Remove from active view"
-        onClick={() => execute(removeNodesFromCanvas(selected))}
+        onClick={() => {
+          const diagnostics = execute(removeNodesFromCanvas(selected));
+          if (diagnostics.some((diagnostic) => diagnostic.severity === "error"))
+            return;
+          setSelection(
+            filterSelectionAfterViewRemoval(viewDoc, selected, selected),
+          );
+        }}
       />
       <div
         ref={moreRef}

@@ -42,7 +42,10 @@ import { isCanvasBackgroundTarget } from "./canvasGeometry";
 import { ContainerFrame } from "./ContainerFrame";
 import { HeatmapLegend } from "./HeatmapLegend";
 import { Minimap } from "./Minimap";
-import { createNodeViewModels } from "./selectors";
+import {
+  createNodeViewModels,
+  filterSelectionAfterViewRemoval,
+} from "./selectors";
 import { useCanvasLabelEditing } from "./useCanvasLabelEditing";
 import { useCanvasMarquee } from "./useCanvasMarquee";
 import { useCanvasNodeInteractions } from "./useCanvasNodeInteractions";
@@ -452,7 +455,16 @@ export function Canvas({
             closeContextMenu();
           }}
           onRemoveFromView={(nodeId) => {
-            execute(removeNodesFromCanvas([nodeId]));
+            const diagnostics = execute(removeNodesFromCanvas([nodeId]));
+            if (
+              !diagnostics.some(
+                (diagnostic) => diagnostic.severity === "error",
+              )
+            ) {
+              setSelection(
+                filterSelectionAfterViewRemoval(viewDoc, selected, [nodeId]),
+              );
+            }
             closeContextMenu();
           }}
           onDeleteFromModel={(nodeId) => {
