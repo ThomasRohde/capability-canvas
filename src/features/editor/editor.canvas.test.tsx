@@ -841,6 +841,11 @@ describe("editor canvas workflows", () => {
       const resolved = resolveVisualDocument(useDocumentStore.getState().doc);
       expect(resolved.nodesById.drag?.parentId).toBeNull();
       expect(resolved.nodesById.drag?.y).toBeGreaterThan(280);
+      expect(resolved.nodesById.middle).toMatchObject({
+        type: "leaf",
+        w: resolved.settings.fixedLeafWidth,
+        h: resolved.settings.fixedLeafHeight,
+      });
     });
 
     expect(within(canvas).getByText("Drag this outside")).toBeInTheDocument();

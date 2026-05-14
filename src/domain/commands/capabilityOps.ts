@@ -469,12 +469,7 @@ function collapseEmptiedParentsToLeafSize(
   const timestamp = now();
   for (const parentId of parentIds) {
     const node = doc.nodesById[parentId];
-    if (
-      !node ||
-      node.parentId === null ||
-      node.isTextLabel ||
-      node.type === "text"
-    ) {
+    if (!node || node.isTextLabel || node.type === "text") {
       continue;
     }
     if (childrenOf(doc, parentId).length > 0) continue;

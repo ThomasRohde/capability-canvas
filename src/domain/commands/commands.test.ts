@@ -412,6 +412,51 @@ describe("commands", () => {
     });
   });
 
+  it("resizes an emptied root container to leaf dimensions when its child is reparented out", () => {
+    const doc = createEmptyDocument();
+    doc.nodesById.parent = createNode({
+      id: "parent",
+      label: "Parent",
+      type: "root",
+      color: "sky",
+      x: 24,
+      y: 24,
+      w: 288,
+      h: 130,
+    });
+    doc.nodesById.child = createNode({
+      id: "child",
+      parentId: "parent",
+      label: "Child",
+      x: 36,
+      y: 76,
+      w: 264,
+      h: 58,
+    });
+    doc.childrenByParentId[ROOT_PARENT_ID] = ["parent"];
+    doc.childrenByParentId.parent = ["child"];
+    doc.childrenByParentId.child = [];
+    doc.visual = createVisualWorkspaceFromDocument(doc);
+
+    const result = runTransaction(doc, reparentNode("child", null));
+    const resolved = resolveVisualDocument(result.doc);
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(childrenOf(result.doc, "parent")).toEqual([]);
+    expect(result.doc.nodesById.parent).toMatchObject({
+      type: "root",
+      x: 24,
+      y: 24,
+      w: doc.settings.fixedLeafWidth,
+      h: doc.settings.fixedLeafHeight,
+    });
+    expect(resolved.nodesById.parent).toMatchObject({
+      type: "leaf",
+      w: doc.settings.fixedLeafWidth,
+      h: doc.settings.fixedLeafHeight,
+    });
+  });
+
   it("keeps a snapped auto-laid parent stable when fitting to children", async () => {
     const doc = subGridPaddingDocument();
     const layout = await layoutDocument({
