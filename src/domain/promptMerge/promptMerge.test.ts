@@ -39,14 +39,16 @@ describe("BCM prompt merge contract", () => {
     );
   });
 
-  it("requires raw json output only", () => {
+  it("requires fenced json output only", () => {
     const prompt = buildBcmPrompt(createSampleDocument(), "risk");
 
     expect(prompt).toContain(
-      "Return raw JSON only. Do not wrap it in Markdown. Do not include commentary before or after the JSON.",
+      "Return exactly one Markdown fenced code block using json, and no text outside the fence.",
     );
-    expect(prompt).toContain("The JSON object must be shaped like this:");
-    expect(prompt).not.toContain("```");
+    expect(prompt).toContain(
+      "The code block content must be a JSON object shaped like this:",
+    );
+    expect(prompt).toContain("```json");
   });
 
   it("discourages repetitive ability-based descriptions", () => {

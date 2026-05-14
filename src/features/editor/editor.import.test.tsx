@@ -309,7 +309,7 @@ describe("editor import workflows", () => {
     expect(prompt).toContain("Create 8 direct child capabilities");
     expect(prompt).toContain(PROMPT_MERGE_SCHEMA);
     expect(prompt).toContain('"targetId": "digital-onboarding"');
-    expect(prompt).not.toContain("```");
+    expect(prompt).toContain("```json");
   });
 
   it("copies a non-leaf AI prompt with merge context", async () => {

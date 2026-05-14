@@ -94,9 +94,11 @@ export function buildBcmPrompt(
     JSON.stringify(context, null, 2),
     "",
     "# Output",
-    "Return raw JSON only. Do not wrap it in Markdown. Do not include commentary before or after the JSON.",
-    "The JSON object must be shaped like this:",
+    "Return exactly one Markdown fenced code block using json, and no text outside the fence.",
+    "The code block content must be a JSON object shaped like this:",
+    "```json",
     JSON.stringify(outputShape, null, 2),
+    "```",
   ].join("\n");
 }
 
