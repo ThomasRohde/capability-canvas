@@ -178,10 +178,7 @@ export function useCanvasNodeInteractions({
               transaction(
                 "Reparent capability",
                 [...reparentTxn.commands, ...moveTxn.commands],
-                {
-                  source: "drag",
-                  relayout: reparentTxn.meta?.relayout,
-                },
+                { source: "drag" },
               ),
             );
           } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {

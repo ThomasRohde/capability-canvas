@@ -753,6 +753,8 @@ describe("editor canvas workflows", () => {
       Math.round((parentBefore.y + 21) / before.settings.gridSize) *
         before.settings.gridSize -
       parentBefore.y;
+    const startX = parentBefore.x + 20;
+    const startY = parentBefore.y + 20;
 
     fireEvent(
       operations,
@@ -760,8 +762,8 @@ describe("editor canvas workflows", () => {
         bubbles: true,
         button: 0,
         buttons: 1,
-        clientX: 0,
-        clientY: 0,
+        clientX: startX,
+        clientY: startY,
       }),
     );
     fireEvent(
@@ -769,8 +771,8 @@ describe("editor canvas workflows", () => {
       new MouseEvent("pointermove", {
         bubbles: true,
         buttons: 1,
-        clientX: 21,
-        clientY: 21,
+        clientX: startX + 21,
+        clientY: startY + 21,
       }),
     );
 
@@ -782,7 +784,7 @@ describe("editor canvas workflows", () => {
     expect(processManagement.style.top).toBe(`${childBefore.y + expectedDy}px`);
 
     fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
-    const after = useDocumentStore.getState().doc;
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.nodesById.operations!.x - parentBefore.x).toBe(expectedDx);
     expect(after.nodesById.operations!.y - parentBefore.y).toBe(expectedDy);
     expect(after.nodesById["process-management"]!.x - childBefore.x).toBe(
@@ -794,12 +796,64 @@ describe("editor canvas workflows", () => {
     expect(after.nodesById.operations!.x % before.settings.gridSize).toBe(0);
   });
 
+  it("keeps the canvas populated and preserves drop position when dragging a child outside its parent", async () => {
+    useDocumentStore.setState({
+      doc: dragOutsideParentDocument(),
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    useUiStore.setState({
+      selectedNodeIds: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
+      canvasSize: { w: 1400, h: 460 },
+    });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const dragNode = within(canvas)
+      .getByText("Drag this outside")
+      .closest(".cc-node") as HTMLElement;
+
+    fireEvent(
+      dragNode,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: 760,
+        clientY: 145,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        buttons: 1,
+        clientX: 760,
+        clientY: 360,
+      }),
+    );
+    fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
+
+    await waitFor(() => {
+      const resolved = resolveVisualDocument(useDocumentStore.getState().doc);
+      expect(resolved.nodesById.drag?.parentId).toBeNull();
+      expect(resolved.nodesById.drag?.y).toBeGreaterThan(280);
+    });
+
+    expect(within(canvas).getByText("Drag this outside")).toBeInTheDocument();
+    expect(canvas.querySelectorAll(".cc-node").length).toBeGreaterThan(0);
+    expect(
+      findParentContainmentViolations(
+        resolveVisualDocument(useDocumentStore.getState().doc),
+      ),
+    ).toEqual([]);
+  });
+
   it("allows locked capabilities to be dragged inside their parent", () => {
-    const lockedDoc = runTransaction(
-      useDocumentStore.getState().doc,
-      lockSubtree("risk", true),
-    ).doc;
-    useDocumentStore.setState({ doc: lockedDoc });
+    useDocumentStore.getState().execute(lockSubtree("risk", true));
     useUiStore.setState({ selectedNodeIds: ["risk"] });
     renderEditor();
     const canvas = screen.getByTestId("canvas");
@@ -809,7 +863,7 @@ describe("editor canvas workflows", () => {
     const creditRisk = within(canvas)
       .getByText("Credit Risk")
       .closest(".cc-node") as HTMLElement;
-    const before = useDocumentStore.getState().doc;
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
     const parentBefore = before.nodesById.risk!;
     const childBefore = before.nodesById["credit-risk"]!;
     const expectedDx =
@@ -820,6 +874,8 @@ describe("editor canvas workflows", () => {
       Math.round((parentBefore.y + 21) / before.settings.gridSize) *
         before.settings.gridSize -
       parentBefore.y;
+    const startX = parentBefore.x + 20;
+    const startY = parentBefore.y + 20;
 
     fireEvent(
       risk,
@@ -827,8 +883,8 @@ describe("editor canvas workflows", () => {
         bubbles: true,
         button: 0,
         buttons: 1,
-        clientX: 0,
-        clientY: 0,
+        clientX: startX,
+        clientY: startY,
       }),
     );
     fireEvent(
@@ -836,8 +892,8 @@ describe("editor canvas workflows", () => {
       new MouseEvent("pointermove", {
         bubbles: true,
         buttons: 1,
-        clientX: 21,
-        clientY: 21,
+        clientX: startX + 21,
+        clientY: startY + 21,
       }),
     );
 
@@ -847,7 +903,7 @@ describe("editor canvas workflows", () => {
     expect(creditRisk.style.top).toBe(`${childBefore.y + expectedDy}px`);
 
     fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
-    const after = useDocumentStore.getState().doc;
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.nodesById.risk!.isLockedAsIs).toBe(true);
     expect(after.nodesById.risk!.x - parentBefore.x).toBe(expectedDx);
     expect(after.nodesById.risk!.y - parentBefore.y).toBe(expectedDy);
@@ -1239,6 +1295,95 @@ function threeSingleChildContainers(): CapabilityDocument {
     doc.childrenByParentId[leafId] = [];
   }
   doc.childrenByParentId[ROOT_PARENT_ID] = ["rootA", "rootB", "rootC"];
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
+}
+
+function dragOutsideParentDocument(): CapabilityDocument {
+  const doc = createEmptyDocument();
+  doc.layout = {
+    ...doc.layout,
+    isUserArranged: true,
+    preservePositions: true,
+    boundingBox: { x: 40, y: 56, w: 1184, h: 130 },
+  };
+
+  for (const node of [
+    createNode({
+      id: "left",
+      label: "New capability",
+      type: "root",
+      color: "mint",
+      x: 40,
+      y: 56,
+      w: 560,
+      h: 130,
+    }),
+    createNode({
+      id: "left-a",
+      parentId: "left",
+      label: "New capability",
+      x: 56,
+      y: 116,
+      w: 260,
+      h: 58,
+    }),
+    createNode({
+      id: "left-b",
+      parentId: "left",
+      label: "New capability 2",
+      x: 324,
+      y: 116,
+      w: 260,
+      h: 58,
+    }),
+    createNode({
+      id: "middle",
+      label: "New capability",
+      type: "root",
+      color: "sky",
+      x: 624,
+      y: 56,
+      w: 288,
+      h: 130,
+    }),
+    createNode({
+      id: "drag",
+      parentId: "middle",
+      label: "Drag this outside",
+      x: 636,
+      y: 116,
+      w: 264,
+      h: 58,
+    }),
+    createNode({
+      id: "right",
+      label: "New capability copy",
+      type: "root",
+      color: "sky",
+      x: 936,
+      y: 56,
+      w: 288,
+      h: 130,
+    }),
+    createNode({
+      id: "right-a",
+      parentId: "right",
+      label: "New capability copy",
+      x: 948,
+      y: 116,
+      w: 264,
+      h: 58,
+    }),
+  ]) {
+    doc.nodesById[node.id] = node;
+    doc.childrenByParentId[node.id] = [];
+  }
+
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["left", "middle", "right"];
+  doc.childrenByParentId.left = ["left-a", "left-b"];
+  doc.childrenByParentId.middle = ["drag"];
+  doc.childrenByParentId.right = ["right-a"];
   doc.visual = createVisualWorkspaceFromDocument(doc);
   return doc;
 }
