@@ -6,7 +6,7 @@
     {
       "id": "enterprise-platform-capability-model",
       "parentId": null,
-      "label": "Enterprise Platform Capability Model",
+      "label": "Customer and digital channel platforms",
       "x": 48,
       "y": 48,
       "w": 1540,
@@ -488,12 +488,12 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741477353
     },
     {
       "id": "g0-platform-governance-and-portfolio-management",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G0. Platform governance and portfolio management",
+      "label": "Platform governance and portfolio management",
       "x": 80,
       "y": 120,
       "w": 680,
@@ -511,7 +511,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741459252
     },
     {
       "id": "g0-platform-classification-and-designation",
@@ -700,7 +700,7 @@
     {
       "id": "g1-customer-and-digital-channel-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G1. Customer and digital channel platforms",
+      "label": "Customer and digital channel platforms",
       "x": 810,
       "y": 120,
       "w": 680,
@@ -718,7 +718,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741472751
     },
     {
       "id": "g1-journey-orchestration-and-front-end-composition",
@@ -884,7 +884,7 @@
     {
       "id": "g2-core-banking-product-and-transaction-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G2. Core banking, product and transaction platforms",
+      "label": "Core banking, product and transaction platforms",
       "x": 80,
       "y": 604,
       "w": 680,
@@ -902,7 +902,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741483499
     },
     {
       "id": "g2-account-balance-and-ledger-services",
@@ -1068,7 +1068,7 @@
     {
       "id": "g3-process-workflow-case-and-rules-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G3. Process, workflow, case and rules platforms",
+      "label": "Process, workflow, case and rules platforms",
       "x": 810,
       "y": 604,
       "w": 680,
@@ -1086,7 +1086,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741531861
     },
     {
       "id": "g3-business-process-orchestration",
@@ -1252,7 +1252,7 @@
     {
       "id": "g4-enterprise-service-management-and-operational-workflow-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G4. Enterprise service management and operational workflow platforms",
+      "label": "Enterprise service management and operational workflow platforms",
       "x": 80,
       "y": 1040,
       "w": 680,
@@ -1270,7 +1270,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741604557
     },
     {
       "id": "g4-incident-problem-and-change-management",
@@ -1436,7 +1436,7 @@
     {
       "id": "g5-developer-low-code-and-automation-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G5. Developer, low-code and automation platforms",
+      "label": "Developer, low-code and automation platforms",
       "x": 810,
       "y": 1040,
       "w": 680,
@@ -1454,7 +1454,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741615969
     },
     {
       "id": "g5-internal-developer-portal-and-service-catalogue",
@@ -1620,7 +1620,7 @@
     {
       "id": "g6-hosting-runtime-and-workload-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G6. Hosting, runtime and workload platforms",
+      "label": "Hosting, runtime and workload platforms",
       "x": 80,
       "y": 1476,
       "w": 680,
@@ -1638,7 +1638,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778741627699
     },
     {
       "id": "g6-mainframe-and-high-integrity-transaction-runtime",
@@ -1804,7 +1804,7 @@
     {
       "id": "g7-integration-api-and-event-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G7. Integration, API and event platforms",
+      "label": "Integration, API and event platforms",
       "x": 810,
       "y": 1476,
       "w": 680,
@@ -1822,7 +1822,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742070522
     },
     {
       "id": "g7-api-management-and-developer-portal",
@@ -1988,7 +1988,7 @@
     {
       "id": "g8-data-analytics-and-reporting-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G8. Data, analytics and reporting platforms",
+      "label": "Data, analytics and reporting platforms",
       "x": 80,
       "y": 1912,
       "w": 680,
@@ -2006,7 +2006,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742084815
     },
     {
       "id": "g8-data-ingestion-and-landing",
@@ -2172,7 +2172,7 @@
     {
       "id": "g9-ai-decision-and-agentic-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G9. AI, decision and agentic platforms",
+      "label": "AI, decision and agentic platforms",
       "x": 810,
       "y": 1912,
       "w": 680,
@@ -2190,7 +2190,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742088640
     },
     {
       "id": "g9-foundation-model-access-and-model-catalogue",
@@ -2356,7 +2356,7 @@
     {
       "id": "g10-security-identity-and-trust-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G10. Security, identity and trust platforms",
+      "label": "Security, identity and trust platforms",
       "x": 80,
       "y": 2348,
       "w": 680,
@@ -2374,7 +2374,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742093419
     },
     {
       "id": "g10-workforce-identity-and-access-management",
@@ -2540,7 +2540,7 @@
     {
       "id": "g11-observability-resilience-and-it-operations-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G11. Observability, resilience and IT operations platforms",
+      "label": "Observability, resilience and IT operations platforms",
       "x": 810,
       "y": 2348,
       "w": 680,
@@ -2558,7 +2558,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742096965
     },
     {
       "id": "g11-metrics-logs-and-traces",
@@ -2724,7 +2724,7 @@
     {
       "id": "g12-workplace-productivity-and-collaboration-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G12. Workplace, productivity and collaboration platforms",
+      "label": "Workplace, productivity and collaboration platforms",
       "x": 80,
       "y": 2784,
       "w": 680,
@@ -2742,7 +2742,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742100985
     },
     {
       "id": "g12-collaboration-messaging-and-meetings",
@@ -2908,7 +2908,7 @@
     {
       "id": "g13-corporate-and-enterprise-management-platforms",
       "parentId": "enterprise-platform-capability-model",
-      "label": "G13. Corporate and enterprise management platforms",
+      "label": "Corporate and enterprise management platforms",
       "x": 810,
       "y": 2784,
       "w": 680,
@@ -2926,7 +2926,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778742104922
     },
     {
       "id": "g13-crm-and-relationship-management",
@@ -3154,7 +3154,7 @@
         "id": "view-default",
         "name": "Default view",
         "createdAt": 1778739721445,
-        "updatedAt": 1778739883316,
+        "updatedAt": 1778741410560,
         "templateId": "full-model-default@1",
         "nodeStatesById": {
           "enterprise-platform-capability-model": {
@@ -4185,9 +4185,9 @@
           }
         },
         "viewport": {
-          "zoom": 1,
-          "x": 14.277554782527432,
-          "y": 24.6666259765625
+          "x": 40,
+          "y": 127.28744939271256,
+          "zoom": 0.9919028340080972
         },
         "layout": {
           "mode": "balanced",
@@ -4219,5 +4219,5 @@
       }
     }
   },
-  "timestamp": 1778739883316
+  "timestamp": 1778742104923
 }
