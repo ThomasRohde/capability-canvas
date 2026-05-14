@@ -42,6 +42,8 @@ export function useAiPromptWorkflow(doc: CapabilityDocument) {
   const [promptChildCount, setPromptChildCount] = useState(
     DEFAULT_PROMPT_CHILD_COUNT,
   );
+  const [promptAdditionalInstructions, setPromptAdditionalInstructions] =
+    useState("");
   const [aiJsonImportNodeId, setAiJsonImportNodeId] = useState<NodeId | null>(
     null,
   );
@@ -72,6 +74,7 @@ export function useAiPromptWorkflow(doc: CapabilityDocument) {
 
   const openAiPromptDialog = useCallback((nodeId: NodeId) => {
     setPromptChildCount(DEFAULT_PROMPT_CHILD_COUNT);
+    setPromptAdditionalInstructions("");
     setPromptDialogNodeId(nodeId);
   }, []);
 
@@ -80,6 +83,7 @@ export function useAiPromptWorkflow(doc: CapabilityDocument) {
     try {
       const prompt = buildBcmPrompt(doc, promptDialogNodeId, {
         childCount: promptChildCount,
+        additionalInstructions: promptAdditionalInstructions,
       });
       void copyTextToClipboard(prompt)
         .then(() => {
@@ -109,6 +113,7 @@ export function useAiPromptWorkflow(doc: CapabilityDocument) {
   }, [
     closePromptDialog,
     doc,
+    promptAdditionalInstructions,
     promptChildCount,
     promptDialogNodeId,
     setDiagnostics,
@@ -257,6 +262,24 @@ export function useAiPromptWorkflow(doc: CapabilityDocument) {
                 onKeyDown={(event) => {
                   if (event.key === "Escape") closePromptDialog();
                   if (event.key === "Enter") {
+                    event.preventDefault();
+                    copyAiPrompt();
+                  }
+                }}
+              />
+            </label>
+            <label className="cc-field">
+              <span>Additional instructions</span>
+              <textarea
+                className="cc-textarea cc-ai-prompt-additions"
+                aria-label="Additional instructions"
+                value={promptAdditionalInstructions}
+                onChange={(event) =>
+                  setPromptAdditionalInstructions(event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") closePromptDialog();
+                  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
                     event.preventDefault();
                     copyAiPrompt();
                   }

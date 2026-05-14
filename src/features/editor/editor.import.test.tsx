@@ -298,7 +298,13 @@ describe("editor import workflows", () => {
     );
     const dialog = screen.getByRole("dialog", { name: "Copy AI prompt" });
     const count = within(dialog).getByLabelText("Direct capabilities");
+    const additions = within(dialog).getByLabelText("Additional instructions");
     fireEvent.change(count, { target: { value: "8" } });
+    fireEvent.change(additions, {
+      target: {
+        value: "Use card onboarding examples and make the rationale specific.",
+      },
+    });
     await userEvent.click(within(dialog).getByRole("button", { name: "Copy" }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
@@ -309,6 +315,10 @@ describe("editor import workflows", () => {
     expect(prompt).toContain("Create 8 direct child capabilities");
     expect(prompt).toContain(PROMPT_MERGE_SCHEMA);
     expect(prompt).toContain('"targetId": "digital-onboarding"');
+    expect(prompt).toContain("# Additional instructions");
+    expect(prompt).toContain(
+      "Use card onboarding examples and make the rationale specific.",
+    );
     expect(prompt).toContain("```json");
   });
 

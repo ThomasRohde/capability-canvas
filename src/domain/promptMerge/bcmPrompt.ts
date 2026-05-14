@@ -13,6 +13,7 @@ export const MAX_PROMPT_CHILD_COUNT = 12;
 
 export interface BcmPromptOptions {
   childCount?: number;
+  additionalInstructions?: string;
 }
 
 export function buildBcmPrompt(
@@ -29,6 +30,9 @@ export function buildBcmPrompt(
   const childIds = childrenOf(doc, targetId);
   const isLeaf = childIds.length === 0;
   const childCount = normalizePromptChildCount(options.childCount);
+  const additionalInstructions = normalizePromptAdditionalInstructions(
+    options.additionalInstructions,
+  );
   const context = {
     documentTitle: doc.title,
     selectedPath: capabilityPath(doc, targetId),
@@ -92,6 +96,14 @@ export function buildBcmPrompt(
     "",
     "Current context:",
     JSON.stringify(context, null, 2),
+    ...(additionalInstructions
+      ? [
+          "",
+          "# Additional instructions",
+          "Apply these user-provided details unless they conflict with the success criteria, constraints, schema, targetId, capability count, or output contract:",
+          additionalInstructions,
+        ]
+      : []),
     "",
     "# Output",
     "Return exactly one Markdown fenced code block using json, and no text outside the fence.",
@@ -100,6 +112,10 @@ export function buildBcmPrompt(
     JSON.stringify(outputShape, null, 2),
     "```",
   ].join("\n");
+}
+
+function normalizePromptAdditionalInstructions(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 export function normalizePromptChildCount(value: unknown): number {

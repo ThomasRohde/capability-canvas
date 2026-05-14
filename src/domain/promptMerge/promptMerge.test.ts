@@ -39,6 +39,24 @@ describe("BCM prompt merge contract", () => {
     );
   });
 
+  it("appends additional user instructions without weakening the output contract", () => {
+    const prompt = buildBcmPrompt(createSampleDocument(), "risk", {
+      additionalInstructions:
+        "Emphasize regulatory reporting boundaries and include concise rationale details.",
+    });
+
+    expect(prompt).toContain("# Additional instructions");
+    expect(prompt).toContain(
+      "Apply these user-provided details unless they conflict with the success criteria, constraints, schema, targetId, capability count, or output contract:",
+    );
+    expect(prompt).toContain(
+      "Emphasize regulatory reporting boundaries and include concise rationale details.",
+    );
+    expect(prompt).toContain(
+      "Return exactly one Markdown fenced code block using json, and no text outside the fence.",
+    );
+  });
+
   it("requires fenced json output only", () => {
     const prompt = buildBcmPrompt(createSampleDocument(), "risk");
 
