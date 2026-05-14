@@ -8,27 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { Copy, Upload, X } from "lucide-react";
 import {
   addChild,
   duplicateNodes,
   fitParentToChildren,
-  mergePromptCapabilities,
   removeNodesFromCanvas,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
-import {
-  buildBcmPrompt,
-  DEFAULT_PROMPT_CHILD_COUNT,
-  MAX_PROMPT_CHILD_COUNT,
-  MIN_PROMPT_CHILD_COUNT,
-  normalizePromptChildCount,
-} from "../../domain/promptMerge/bcmPrompt";
-import {
-  isPromptMergePayloadShape,
-  parsePromptMergePayload,
-} from "../../domain/promptMerge/payload";
-import { error, warning } from "../../domain/validation/diagnostics";
 import {
   hasCanvasChildren,
   isNodeOnCanvas,
@@ -41,15 +27,9 @@ import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { type ViewportState, useUiStore } from "../../app/stores/uiStore";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
-import {
-  useDismissableLayer,
-  useFocusTrap,
-  useMenuKeyboardNavigation,
-} from "../shared/a11y";
-import { copyTextToClipboard } from "../shared/clipboard";
-import { IconButton } from "../shared/IconButton";
+import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
+import { useAiPromptWorkflow } from "../shared/useAiPromptWorkflow";
 import { useEditorActions } from "../commands/useEditorActions";
-import { parsePastedJsonText } from "../import/pastedJson";
 import { BulkToolbar } from "./BulkToolbar";
 import {
   CanvasContextMenu,
@@ -83,7 +63,6 @@ export function Canvas({
   const storeDoc = useDocumentStore((state) => state.doc);
   const doc = displayDoc ?? storeDoc;
   const execute = useDocumentStore((state) => state.execute);
-  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const { visualDocument: viewDoc, activeView } = useActiveVisualState({ doc });
   const displayBounds = useMemo(() => layoutDisplayBounds(viewDoc), [viewDoc]);
   const selected = useUiStore((state) => state.selectedNodeIds);
@@ -100,28 +79,12 @@ export function Canvas({
   const nodeRefs = useRef(new Map<NodeId, HTMLDivElement>());
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const contextMenuTriggerRef = useRef<HTMLElement | null>(null);
-  const promptDialogRef = useRef<HTMLElement>(null);
-  const promptCountInputRef = useRef<HTMLInputElement>(null);
-  const aiJsonDialogRef = useRef<HTMLElement>(null);
-  const aiJsonTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const promptCopyNoticeTimeout = useRef<number | null>(null);
   const [contextMenu, setContextMenu] = useState<CanvasContextMenuState | null>(
     null,
   );
-  const [promptDialogNodeId, setPromptDialogNodeId] = useState<NodeId | null>(
-    null,
-  );
-  const [promptChildCount, setPromptChildCount] = useState(
-    DEFAULT_PROMPT_CHILD_COUNT,
-  );
-  const [aiJsonImportNodeId, setAiJsonImportNodeId] = useState<NodeId | null>(
-    null,
-  );
-  const [aiJsonDraft, setAiJsonDraft] = useState("");
-  const [promptCopyNoticeVisible, setPromptCopyNoticeVisible] = useState(false);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
-  const closePromptDialog = useCallback(() => setPromptDialogNodeId(null), []);
-  const closeAiJsonImport = useCallback(() => setAiJsonImportNodeId(null), []);
+  const { openAiPromptDialog, openAiJsonImport, aiPromptWorkflow } =
+    useAiPromptWorkflow(doc);
   const {
     viewport,
     docViewport,
@@ -163,126 +126,6 @@ export function Canvas({
       showSelectionNotice,
     },
   );
-
-  useEffect(() => {
-    return () => {
-      if (promptCopyNoticeTimeout.current !== null) {
-        window.clearTimeout(promptCopyNoticeTimeout.current);
-      }
-    };
-  }, []);
-
-  const showPromptCopyNotice = useCallback(() => {
-    setPromptCopyNoticeVisible(true);
-    if (promptCopyNoticeTimeout.current !== null) {
-      window.clearTimeout(promptCopyNoticeTimeout.current);
-    }
-    promptCopyNoticeTimeout.current = window.setTimeout(() => {
-      setPromptCopyNoticeVisible(false);
-      promptCopyNoticeTimeout.current = null;
-    }, 2400);
-  }, []);
-
-  const openAiPromptDialog = useCallback(
-    (nodeId: NodeId) => {
-      setPromptChildCount(DEFAULT_PROMPT_CHILD_COUNT);
-      setPromptDialogNodeId(nodeId);
-      closeContextMenu();
-    },
-    [closeContextMenu],
-  );
-
-  const copyAiPrompt = useCallback(() => {
-    if (!promptDialogNodeId) return;
-    try {
-      const prompt = buildBcmPrompt(doc, promptDialogNodeId, {
-        childCount: promptChildCount,
-      });
-      void copyTextToClipboard(prompt)
-        .then(() => {
-          closePromptDialog();
-          showPromptCopyNotice();
-        })
-        .catch((copyError: unknown) => {
-          setDiagnostics([
-            warning(
-              "prompt-copy-failed",
-              `Prompt could not be copied. ${
-                copyError instanceof Error ? copyError.message : String(copyError)
-              }`,
-            ),
-          ]);
-        });
-    } catch (promptError) {
-      setDiagnostics([
-        warning(
-          "prompt-build-failed",
-          promptError instanceof Error
-            ? promptError.message
-            : "Prompt could not be built.",
-        ),
-      ]);
-    }
-  }, [
-    closePromptDialog,
-    doc,
-    promptChildCount,
-    promptDialogNodeId,
-    setDiagnostics,
-    showPromptCopyNotice,
-  ]);
-
-  const openAiJsonImport = useCallback(
-    (nodeId: NodeId) => {
-      setAiJsonDraft("");
-      setAiJsonImportNodeId(nodeId);
-      closeContextMenu();
-    },
-    [closeContextMenu],
-  );
-
-  const importAiJson = useCallback(() => {
-    if (!aiJsonImportNodeId || aiJsonDraft.trim().length === 0) return;
-    const pasted = parsePastedJsonText(aiJsonDraft);
-    if (pasted.diagnostics.length > 0) {
-      setDiagnostics(pasted.diagnostics);
-      return;
-    }
-    if (!isPromptMergePayloadShape(pasted.input)) {
-      setDiagnostics([
-        error(
-          "prompt-merge-required",
-          "Import AI JSON expects prompt-merge JSON for the selected capability.",
-        ),
-      ]);
-      return;
-    }
-    const parsed = parsePromptMergePayload(pasted.input);
-    if (!parsed.payload) {
-      setDiagnostics(parsed.diagnostics);
-      return;
-    }
-    if (parsed.payload.targetId !== aiJsonImportNodeId) {
-      setDiagnostics([
-        error(
-          "prompt-merge-target-mismatch",
-          `Pasted AI JSON targetId "${parsed.payload.targetId}" does not match selected capability "${aiJsonImportNodeId}".`,
-        ),
-      ]);
-      return;
-    }
-    const diagnostics = execute(mergePromptCapabilities(parsed.payload));
-    if (!diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
-      closeAiJsonImport();
-      setAiJsonDraft("");
-    }
-  }, [
-    aiJsonDraft,
-    aiJsonImportNodeId,
-    closeAiJsonImport,
-    execute,
-    setDiagnostics,
-  ]);
 
   const { handleNodePointerDown, handleResizePointerDown } =
     useCanvasNodeInteractions({
@@ -388,20 +231,6 @@ export function Canvas({
       if (reason === "escape") closeContextMenuAndRestoreFocus();
       else closeContextMenu();
     },
-  });
-
-  useFocusTrap({
-    active: promptDialogNodeId !== null,
-    containerRef: promptDialogRef,
-    initialFocusRef: promptCountInputRef,
-    onEscape: closePromptDialog,
-  });
-
-  useFocusTrap({
-    active: aiJsonImportNodeId !== null,
-    containerRef: aiJsonDialogRef,
-    initialFocusRef: aiJsonTextareaRef,
-    onEscape: closeAiJsonImport,
   });
 
   const handleNodeKeyDown = useCallback(
@@ -556,8 +385,14 @@ export function Canvas({
             execute(duplicateNodes([nodeId]));
             closeContextMenu();
           }}
-          onCopyAiPrompt={openAiPromptDialog}
-          onImportAiJson={openAiJsonImport}
+          onCopyAiPrompt={(nodeId) => {
+            openAiPromptDialog(nodeId);
+            closeContextMenu();
+          }}
+          onImportAiJson={(nodeId) => {
+            openAiJsonImport(nodeId);
+            closeContextMenu();
+          }}
           onFitParent={(nodeId) => {
             execute(fitParentToChildren(nodeId));
             closeContextMenu();
@@ -641,136 +476,7 @@ export function Canvas({
         onZoomOut={() => zoomBy(-0.1)}
         onCenter={centerOnDocumentPoint}
       />
-      {promptDialogNodeId && (
-        <div
-          className="cc-modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closePromptDialog();
-          }}
-        >
-          <section
-            ref={promptDialogRef}
-            className="cc-modal cc-ai-prompt-dialog"
-            role="dialog"
-            aria-label="Copy AI prompt"
-          >
-            <div className="cc-modal-head">
-              <div className="cc-panel-title">Copy AI prompt</div>
-              <IconButton
-                icon={X}
-                label="Close AI prompt"
-                onClick={closePromptDialog}
-              />
-            </div>
-            <label className="cc-field">
-              <span>Direct capabilities</span>
-              <input
-                ref={promptCountInputRef}
-                className="cc-input"
-                type="number"
-                min={MIN_PROMPT_CHILD_COUNT}
-                max={MAX_PROMPT_CHILD_COUNT}
-                step={1}
-                value={promptChildCount}
-                onChange={(event) =>
-                  setPromptChildCount(
-                    normalizePromptChildCount(event.currentTarget.valueAsNumber),
-                  )
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") closePromptDialog();
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    copyAiPrompt();
-                  }
-                }}
-              />
-            </label>
-            <div className="cc-modal-actions">
-              <button
-                className="cc-btn"
-                type="button"
-                onClick={closePromptDialog}
-              >
-                Cancel
-              </button>
-              <button
-                className="cc-btn cc-btn-primary"
-                type="button"
-                onClick={copyAiPrompt}
-              >
-                <Copy /> Copy
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-      {aiJsonImportNodeId && (
-        <div
-          className="cc-modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeAiJsonImport();
-          }}
-        >
-          <section
-            ref={aiJsonDialogRef}
-            className="cc-modal"
-            role="dialog"
-            aria-label="Import AI JSON"
-          >
-            <div className="cc-modal-head">
-              <div className="cc-panel-title">Import AI JSON</div>
-              <IconButton
-                icon={X}
-                label="Close AI JSON import"
-                onClick={closeAiJsonImport}
-              />
-            </div>
-            <textarea
-              ref={aiJsonTextareaRef}
-              className="cc-textarea cc-paste-json"
-              aria-label="AI JSON"
-              value={aiJsonDraft}
-              onChange={(event) => setAiJsonDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") closeAiJsonImport();
-                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                  event.preventDefault();
-                  importAiJson();
-                }
-              }}
-            />
-            <div className="cc-modal-actions">
-              <button
-                className="cc-btn"
-                type="button"
-                onClick={closeAiJsonImport}
-              >
-                Cancel
-              </button>
-              <button
-                className="cc-btn cc-btn-primary"
-                type="button"
-                onClick={importAiJson}
-              >
-                <Upload /> Import
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-      {promptCopyNoticeVisible && (
-        <div
-          className="cc-toast"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          Prompt copied
-        </div>
-      )}
+      {aiPromptWorkflow}
       {deleteFromModelDialog}
     </main>
   );

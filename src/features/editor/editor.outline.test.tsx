@@ -13,6 +13,11 @@ import {
   removeNodesFromCanvas,
   updateVisualNodeState,
 } from "../../domain/commands/operations";
+import { childrenOf } from "../../domain/document/types";
+import {
+  PROMPT_MERGE_SCHEMA,
+  PROMPT_MERGE_VERSION,
+} from "../../domain/promptMerge/payload";
 import {
   installEditorTestHooks,
   renderEditor,
@@ -218,6 +223,12 @@ describe("editor outline workflows", () => {
       within(menu).getByRole("menuitem", { name: "Duplicate" }),
     ).toBeInTheDocument();
     expect(
+      within(menu).getByRole("menuitem", { name: "Copy AI prompt..." }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Import AI JSON..." }),
+    ).toBeInTheDocument();
+    expect(
       within(menu).getByRole("menuitem", { name: "Fit parent" }),
     ).toBeInTheDocument();
     expect(
@@ -237,6 +248,45 @@ describe("editor outline workflows", () => {
     expect(
       within(screen.getByTestId("canvas")).queryByText("New capability"),
     ).not.toBeInTheDocument();
+  });
+
+  it("imports outline AI JSON directly from the clipboard", async () => {
+    const payload = {
+      schema: PROMPT_MERGE_SCHEMA,
+      version: PROMPT_MERGE_VERSION,
+      targetId: "digital-onboarding",
+      capabilities: [
+        {
+          id: "document-capture",
+          name: "Document Capture",
+          description: "Collects customer documents for onboarding.",
+        },
+      ],
+    };
+    const restoreClipboard = stubClipboard({
+      readText: async () => JSON.stringify(payload),
+    });
+
+    try {
+      renderEditor();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Actions for Digital Onboarding" }),
+      );
+      await userEvent.click(
+        screen.getByRole("menuitem", { name: "Import AI JSON..." }),
+      );
+
+      await waitFor(() =>
+        expect(
+          childrenOf(useDocumentStore.getState().doc, "digital-onboarding"),
+        ).toContain("document-capture"),
+      );
+      expect(
+        screen.queryByRole("dialog", { name: "Import AI JSON" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      restoreClipboard();
+    }
   });
 
   it("adds root capabilities to the outline without drawing them on the canvas", async () => {
@@ -288,3 +338,17 @@ describe("editor outline workflows", () => {
     expect(within(canvas).queryByText("Customer")).not.toBeInTheDocument();
   });
 });
+
+function stubClipboard(value: Partial<Clipboard>): () => void {
+  const previous = navigator.clipboard;
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value,
+  });
+  return () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: previous,
+    });
+  };
+}

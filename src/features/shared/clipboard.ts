@@ -26,3 +26,12 @@ export async function copyTextToClipboard(text: string): Promise<void> {
     textarea.remove();
   }
 }
+
+export async function readTextFromClipboard(): Promise<string | null> {
+  if (!navigator.clipboard?.readText) return null;
+  try {
+    return await navigator.clipboard.readText();
+  } catch {
+    return null;
+  }
+}

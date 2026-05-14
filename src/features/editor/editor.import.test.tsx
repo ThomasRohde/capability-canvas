@@ -429,7 +429,9 @@ describe("editor import workflows", () => {
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Import AI JSON..." }),
     );
-    const dialog = screen.getByRole("dialog", { name: "Import AI JSON" });
+    const dialog = await screen.findByRole("dialog", {
+      name: "Import AI JSON",
+    });
     const payload = {
       schema: PROMPT_MERGE_SCHEMA,
       version: PROMPT_MERGE_VERSION,
@@ -458,6 +460,45 @@ describe("editor import workflows", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("imports scoped AI JSON directly from clipboard without opening the dialog", async () => {
+    const payload = {
+      schema: PROMPT_MERGE_SCHEMA,
+      version: PROMPT_MERGE_VERSION,
+      targetId: "digital-onboarding",
+      capabilities: [
+        {
+          id: "consent-capture",
+          name: "Consent Capture",
+          description: "Records customer consent during onboarding.",
+        },
+      ],
+    };
+    const restoreClipboard = stubClipboardReadText(JSON.stringify(payload));
+
+    try {
+      renderEditor();
+      const canvas = screen.getByTestId("canvas");
+      const node = within(canvas)
+        .getByText("Digital Onboarding")
+        .closest(".cc-node") as HTMLElement;
+      fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
+      await userEvent.click(
+        screen.getByRole("menuitem", { name: "Import AI JSON..." }),
+      );
+
+      await waitFor(() =>
+        expect(
+          childrenOf(useDocumentStore.getState().doc, "digital-onboarding"),
+        ).toContain("consent-capture"),
+      );
+      expect(
+        screen.queryByRole("dialog", { name: "Import AI JSON" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      restoreClipboard();
+    }
+  });
+
   it("rejects scoped AI JSON with a different targetId", async () => {
     renderEditor();
     const canvas = screen.getByTestId("canvas");
@@ -468,7 +509,9 @@ describe("editor import workflows", () => {
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Import AI JSON..." }),
     );
-    const dialog = screen.getByRole("dialog", { name: "Import AI JSON" });
+    const dialog = await screen.findByRole("dialog", {
+      name: "Import AI JSON",
+    });
     const payload = {
       schema: PROMPT_MERGE_SCHEMA,
       version: PROMPT_MERGE_VERSION,
@@ -504,7 +547,9 @@ describe("editor import workflows", () => {
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Import AI JSON..." }),
     );
-    const dialog = screen.getByRole("dialog", { name: "Import AI JSON" });
+    const dialog = await screen.findByRole("dialog", {
+      name: "Import AI JSON",
+    });
     const importedDoc = {
       ...useDocumentStore.getState().doc,
       title: "Should not replace",
@@ -540,4 +585,20 @@ function stubClipboard() {
     value: { writeText },
   });
   return writeText;
+}
+
+function stubClipboardReadText(text: string): () => void {
+  const previous = navigator.clipboard;
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      readText: async () => text,
+    },
+  });
+  return () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: previous,
+    });
+  };
 }

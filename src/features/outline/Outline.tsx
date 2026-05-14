@@ -73,6 +73,7 @@ import {
   swatchBackgroundForFill,
 } from "../heatmap/resolveNodeFill";
 import { useDismissableLayer, useMenuKeyboardNavigation } from "../shared/a11y";
+import { useAiPromptWorkflow } from "../shared/useAiPromptWorkflow";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 
 export function Outline({
@@ -107,6 +108,8 @@ export function Outline({
   const setSearchQuery = useUiStore((state) => state.setSearchQuery);
   const [menuNodeId, setMenuNodeId] = useState<NodeId | null>(null);
   const [filterToSelection, setFilterToSelection] = useState(false);
+  const { openAiPromptDialog, openAiJsonImport, aiPromptWorkflow } =
+    useAiPromptWorkflow(doc);
   const searchCursorIndexRef = useRef(-1);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLElement | null>(null);
@@ -578,6 +581,7 @@ export function Outline({
                     nodeId={node.id}
                     viewId={activeViewId}
                     canAddChild={!node.isTextLabel && node.type !== "text"}
+                    canUseAi={!node.isTextLabel && node.type !== "text"}
                     canAddToCanvas={hasHiddenCanvasNodes}
                     canRemoveFromCanvas={hasVisibleCanvasNodes}
                     isCollapsed={!!activeViewState?.isCollapsed}
@@ -588,6 +592,8 @@ export function Outline({
                     canvasTargetCenter={canvasTargetCenter}
                     menuRef={menuRef}
                     onMenuKeyDown={handleOutlineMenuKeyDown}
+                    onCopyAiPrompt={openAiPromptDialog}
+                    onImportAiJson={openAiJsonImport}
                     requestDeleteFromModel={requestDeleteFromModel}
                     onClose={() => setMenuNodeId(null)}
                   />
@@ -621,6 +627,7 @@ export function Outline({
         onPointerDown={startOutlineResize}
         onKeyDown={resizeOutlineFromKeyboard}
       />
+      {aiPromptWorkflow}
       {deleteFromModelDialog}
     </aside>
   );
@@ -828,6 +835,7 @@ function OutlineActionsMenu({
   nodeId,
   viewId,
   canAddChild,
+  canUseAi,
   canAddToCanvas,
   canRemoveFromCanvas,
   isCollapsed,
@@ -835,12 +843,15 @@ function OutlineActionsMenu({
   canvasTargetCenter,
   menuRef,
   onMenuKeyDown,
+  onCopyAiPrompt,
+  onImportAiJson,
   requestDeleteFromModel,
   onClose,
 }: {
   nodeId: NodeId;
   viewId: string;
   canAddChild: boolean;
+  canUseAi: boolean;
   canAddToCanvas: boolean;
   canRemoveFromCanvas: boolean;
   isCollapsed: boolean;
@@ -848,6 +859,8 @@ function OutlineActionsMenu({
   canvasTargetCenter: { x: number; y: number };
   menuRef: RefObject<HTMLDivElement | null>;
   onMenuKeyDown: KeyboardEventHandler<HTMLDivElement>;
+  onCopyAiPrompt: (nodeId: NodeId) => void;
+  onImportAiJson: (nodeId: NodeId) => void;
   requestDeleteFromModel: (nodeIds: NodeId[]) => void;
   onClose: () => void;
 }) {
@@ -923,6 +936,24 @@ function OutlineActionsMenu({
       >
         Duplicate
       </button>
+      {canUseAi && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => run(() => onCopyAiPrompt(nodeId))}
+        >
+          Copy AI prompt...
+        </button>
+      )}
+      {canUseAi && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => run(() => onImportAiJson(nodeId))}
+        >
+          Import AI JSON...
+        </button>
+      )}
       {canFitParent && (
         <button
           type="button"
