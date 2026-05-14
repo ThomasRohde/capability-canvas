@@ -77,6 +77,7 @@ export function useCanvasNodeInteractions({
           viewDoc,
           ui.selectedNodeIds,
           nodeId,
+          { hierarchy: "canvas" },
         );
         ui.setSelection(resolution.nodeIds);
         if (resolution.reason) ui.showSelectionNotice(resolution.reason);

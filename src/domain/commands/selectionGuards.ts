@@ -1,7 +1,11 @@
 import type { CapabilityDocument, NodeId } from "../document/types";
-import { canMultiSelect } from "../selection/rules";
+import { canMultiSelect, type SelectionRuleOptions } from "../selection/rules";
 
-export function canBulkEditNodes(doc: CapabilityDocument, nodeIds: NodeId[]) {
+export function canBulkEditNodes(
+  doc: CapabilityDocument,
+  nodeIds: NodeId[],
+  options?: SelectionRuleOptions,
+) {
   const nodes = nodeIds.map((id) => doc.nodesById[id]).filter(Boolean);
   if (nodes.length !== nodeIds.length) {
     return { valid: false, reason: "One or more selected nodes are missing." };
@@ -12,5 +16,5 @@ export function canBulkEditNodes(doc: CapabilityDocument, nodeIds: NodeId[]) {
       reason: "Text labels are excluded from multi-selection.",
     };
   }
-  return canMultiSelect(doc, nodeIds);
+  return canMultiSelect(doc, nodeIds, options);
 }

@@ -153,6 +153,7 @@ export function useEditorActions(
       viewDoc,
       visibleSelectableNodeIds,
       useUiStore.getState().selectedNodeIds,
+      { hierarchy: "canvas" },
     );
     setSelection(resolution.nodeIds);
     if (resolution.reason) showSelectionNotice(resolution.reason);

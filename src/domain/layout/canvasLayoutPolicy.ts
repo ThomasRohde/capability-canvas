@@ -1,9 +1,11 @@
 import {
   isHierarchyAncestorOf,
+  ROOT_PARENT_ID,
   type CapabilityDocument,
   type LayoutMode,
   type NodeId,
 } from "../document/types";
+import { canvasSelectionParentId } from "../selection/rules";
 
 export type CanvasLayoutAction =
   | "move"
@@ -83,7 +85,10 @@ export function evaluateCanvasLayoutIntent(
     const rejected = validateMoveRoots(input);
     if (rejected) return rejected;
     const parentIds = input.rootNodeIds
-      .map((nodeId) => input.doc.nodesById[nodeId]?.parentId ?? null)
+      .map((nodeId) => {
+        const node = input.doc.nodesById[nodeId];
+        return node ? canvasSelectionParentId(input.doc, node) : null;
+      })
       .filter((parentId): parentId is NodeId => !!parentId);
     return okIntent({
       manualParentIdsToEnable: manualParentsForIds(input.doc, parentIds, mode),
@@ -125,7 +130,7 @@ function validateMoveRoots(
   for (const nodeId of input.rootNodeIds) {
     const node = input.doc.nodesById[nodeId];
     if (!node) return rejectIntent("missing-node", "A selected node is missing.");
-    parentKeys.add(node.parentId ?? "__root__");
+    parentKeys.add(canvasSelectionParentId(input.doc, node) ?? ROOT_PARENT_ID);
   }
   if (parentKeys.size > 1) {
     return rejectIntent(

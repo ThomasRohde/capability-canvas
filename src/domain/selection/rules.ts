@@ -1,6 +1,8 @@
 import {
+  isNodeOnCanvas,
   ROOT_PARENT_ID,
   type CapabilityDocument,
+  type CapabilityNode,
   type NodeId,
 } from "../document/types";
 
@@ -15,6 +17,10 @@ export interface SelectionResolution {
   reduced: boolean;
 }
 
+export interface SelectionRuleOptions {
+  hierarchy?: "source" | "canvas";
+}
+
 export const MIXED_PARENT_SELECTION_REASON =
   "Bulk operations require sibling capabilities.";
 export const TEXT_LABEL_SELECTION_REASON =
@@ -23,6 +29,7 @@ export const TEXT_LABEL_SELECTION_REASON =
 export function canMultiSelect(
   doc: CapabilityDocument,
   nodeIds: NodeId[],
+  options: SelectionRuleOptions = {},
 ): SelectionRuleResult {
   if (nodeIds.length <= 1) return { valid: true };
   const nodes = nodeIds.map((id) => doc.nodesById[id]).filter(Boolean);
@@ -34,8 +41,8 @@ export function canMultiSelect(
       reason: TEXT_LABEL_SELECTION_REASON,
     };
   }
-  const parentId = nodes[0]!.parentId ?? null;
-  if (nodes.every((node) => (node.parentId ?? null) === parentId))
+  const parentKey = selectionParentKey(doc, nodes[0]!, options);
+  if (nodes.every((node) => selectionParentKey(doc, node, options) === parentKey))
     return { valid: true };
   return { valid: false, reason: MIXED_PARENT_SELECTION_REASON };
 }
@@ -44,11 +51,12 @@ export function resolveToggleSelection(
   doc: CapabilityDocument,
   currentNodeIds: NodeId[],
   nodeId: NodeId,
+  options: SelectionRuleOptions = {},
 ): SelectionResolution {
   const candidate = currentNodeIds.includes(nodeId)
     ? currentNodeIds.filter((id) => id !== nodeId)
     : uniqueNodeIds([...currentNodeIds, nodeId]);
-  const result = canMultiSelect(doc, candidate);
+  const result = canMultiSelect(doc, candidate, options);
   if (result.valid) {
     return { nodeIds: candidate, reduced: false };
   }
@@ -62,14 +70,15 @@ export function resolveToggleSelection(
 export function resolveSiblingSelection(
   doc: CapabilityDocument,
   candidateNodeIds: NodeId[],
+  options: SelectionRuleOptions = {},
 ): SelectionResolution {
   const candidate = uniqueNodeIds(candidateNodeIds);
-  const result = canMultiSelect(doc, candidate);
+  const result = canMultiSelect(doc, candidate, options);
   if (result.valid) {
     return { nodeIds: candidate, reduced: false };
   }
   return {
-    nodeIds: largestSelectableSiblingGroup(doc, candidate),
+    nodeIds: largestSelectableSiblingGroup(doc, candidate, options),
     reason: result.reason,
     reduced: true,
   };
@@ -79,6 +88,7 @@ export function resolveSelectAllSelection(
   doc: CapabilityDocument,
   candidateNodeIds: NodeId[],
   anchorNodeIds: NodeId[],
+  options: SelectionRuleOptions = {},
 ): SelectionResolution {
   const candidate = uniqueNodeIds(candidateNodeIds);
   const anchor = anchorNodeIds
@@ -90,16 +100,16 @@ export function resolveSelectAllSelection(
         node.type !== "text" &&
         candidate.includes(node.id),
     );
-  if (!anchor) return resolveSiblingSelection(doc, candidate);
+  if (!anchor) return resolveSiblingSelection(doc, candidate, options);
 
-  const anchorParentId = anchor.parentId ?? null;
+  const anchorParentKey = selectionParentKey(doc, anchor, options);
   const anchoredSiblings = candidate.filter((id) => {
     const node = doc.nodesById[id];
     return (
       !!node &&
       !node.isTextLabel &&
       node.type !== "text" &&
-      (node.parentId ?? null) === anchorParentId
+      selectionParentKey(doc, node, options) === anchorParentKey
     );
   });
   return {
@@ -111,12 +121,13 @@ export function resolveSelectAllSelection(
 export function largestSelectableSiblingGroup(
   doc: CapabilityDocument,
   nodeIds: NodeId[],
+  options: SelectionRuleOptions = {},
 ): NodeId[] {
   const buckets = new Map<string, NodeId[]>();
   for (const id of uniqueNodeIds(nodeIds)) {
     const node = doc.nodesById[id];
     if (!node || node.isTextLabel || node.type === "text") continue;
-    const key = String(node.parentId ?? ROOT_PARENT_ID);
+    const key = selectionParentKey(doc, node, options);
     const bucket = buckets.get(key) ?? [];
     bucket.push(id);
     buckets.set(key, bucket);
@@ -131,8 +142,9 @@ export function largestSelectableSiblingGroup(
 export function canAlign(
   doc: CapabilityDocument,
   nodeIds: NodeId[],
+  options: SelectionRuleOptions = {},
 ): SelectionRuleResult {
-  const base = canMultiSelect(doc, nodeIds);
+  const base = canMultiSelect(doc, nodeIds, options);
   if (!base.valid) return base;
   return nodeIds.length >= 2
     ? { valid: true }
@@ -142,8 +154,9 @@ export function canAlign(
 export function canDistribute(
   doc: CapabilityDocument,
   nodeIds: NodeId[],
+  options: SelectionRuleOptions = {},
 ): SelectionRuleResult {
-  const base = canMultiSelect(doc, nodeIds);
+  const base = canMultiSelect(doc, nodeIds, options);
   if (!base.valid) return base;
   return nodeIds.length >= 3
     ? { valid: true }
@@ -159,4 +172,41 @@ function uniqueNodeIds(nodeIds: NodeId[]): NodeId[] {
     result.push(nodeId);
   }
   return result;
+}
+
+function selectionParentKey(
+  doc: CapabilityDocument,
+  node: CapabilityNode,
+  options: SelectionRuleOptions,
+): string {
+  if (options.hierarchy !== "canvas") {
+    return String(node.parentId ?? ROOT_PARENT_ID);
+  }
+  return String(canvasSelectionParentId(doc, node) ?? ROOT_PARENT_ID);
+}
+
+export function canvasSelectionParentId(
+  doc: CapabilityDocument,
+  node: CapabilityNode,
+): NodeId | null {
+  let parentId = node.parentId;
+  while (parentId) {
+    const parent = doc.nodesById[parentId];
+    if (!parent) return null;
+    if (isNodeOnCanvas(parent) && containsBounds(parent, node)) {
+      return parent.id;
+    }
+    parentId = parent.parentId;
+  }
+  return null;
+}
+
+function containsBounds(parent: CapabilityNode, child: CapabilityNode): boolean {
+  const epsilon = 0.0001;
+  return (
+    child.x + epsilon >= parent.x &&
+    child.y + epsilon >= parent.y &&
+    child.x + child.w <= parent.x + parent.w + epsilon &&
+    child.y + child.h <= parent.y + parent.h + epsilon
+  );
 }

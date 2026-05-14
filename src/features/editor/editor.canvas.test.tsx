@@ -1303,6 +1303,42 @@ describe("editor canvas workflows", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("allows Ctrl-click multi-selection of canvas-level peer containers", () => {
+    useDocumentStore.setState({ doc: detachedCanvasPeerContainers() });
+    useUiStore.setState({ selectedNodeIds: ["root"] });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const peer = within(canvas)
+      .getByText("Detached peer")
+      .closest(".cc-node") as HTMLElement;
+
+    fireEvent(
+      peer,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        ctrlKey: true,
+      }),
+    );
+
+    expect(useUiStore.getState().selectedNodeIds).toEqual(["root", "peer"]);
+    expect(
+      screen.queryByText("Bulk operations require sibling capabilities."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("expands Ctrl+A from a canvas-level peer container", () => {
+    useDocumentStore.setState({ doc: detachedCanvasPeerContainers() });
+    useUiStore.setState({ selectedNodeIds: ["root"] });
+    renderEditor();
+
+    fireEvent.keyDown(window, { key: "a", ctrlKey: true });
+
+    expect(useUiStore.getState().selectedNodeIds.sort()).toEqual(
+      ["root", "peer"].sort(),
+    );
+  });
+
   it("shows PowerPoint-style bulk alignment and sizing actions", () => {
     useUiStore.setState({
       selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
@@ -1479,6 +1515,56 @@ function threeSingleChildContainers(): CapabilityDocument {
     doc.childrenByParentId[leafId] = [];
   }
   doc.childrenByParentId[ROOT_PARENT_ID] = ["rootA", "rootB", "rootC"];
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
+}
+
+function detachedCanvasPeerContainers(): CapabilityDocument {
+  const doc = createEmptyDocument();
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Visible root",
+    type: "root",
+    color: "mint",
+    x: 48,
+    y: 48,
+    w: 320,
+    h: 128,
+  });
+  doc.nodesById.peer = createNode({
+    id: "peer",
+    label: "Detached peer",
+    parentId: "root",
+    type: "parent",
+    color: "sky",
+    x: 48,
+    y: 224,
+    w: 320,
+    h: 128,
+  });
+  doc.nodesById["root-leaf"] = createNode({
+    id: "root-leaf",
+    label: "Root leaf",
+    parentId: "root",
+    x: 72,
+    y: 104,
+    w: 240,
+    h: 44,
+  });
+  doc.nodesById["peer-leaf"] = createNode({
+    id: "peer-leaf",
+    label: "Peer leaf",
+    parentId: "peer",
+    x: 72,
+    y: 280,
+    w: 240,
+    h: 44,
+  });
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+  doc.childrenByParentId.root = ["root-leaf", "peer"];
+  doc.childrenByParentId.peer = ["peer-leaf"];
+  doc.childrenByParentId["root-leaf"] = [];
+  doc.childrenByParentId["peer-leaf"] = [];
   doc.visual = createVisualWorkspaceFromDocument(doc);
   return doc;
 }

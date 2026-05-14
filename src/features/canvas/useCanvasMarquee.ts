@@ -39,7 +39,9 @@ export function useCanvasMarquee({
           intersectsBounds(node, selectionRect),
       )
       .map((node) => node.id);
-    return resolveSiblingSelection(viewDoc, ids).nodeIds.length;
+    return resolveSiblingSelection(viewDoc, ids, {
+      hierarchy: "canvas",
+    }).nodeIds.length;
   }, [selectionRect, viewDoc]);
 
   const startMarquee = useCallback(
@@ -88,7 +90,9 @@ export function useCanvasMarquee({
           if (!additive) useUiStore.getState().clearSelection();
           return;
         }
-        const resolution = resolveSiblingSelection(viewDoc, ids);
+        const resolution = resolveSiblingSelection(viewDoc, ids, {
+          hierarchy: "canvas",
+        });
         useUiStore.getState().setSelection(resolution.nodeIds);
         if (resolution.reason) showSelectionNotice(resolution.reason);
       };

@@ -34,7 +34,7 @@ export function BulkInspector({
   const selectedViewNodes = selected
     .map((nodeId) => viewDoc.nodesById[nodeId])
     .filter((node): node is CapabilityNode => !!node);
-  const allowed = canMultiSelect(viewDoc, selected);
+  const allowed = canMultiSelect(viewDoc, selected, { hierarchy: "canvas" });
 
   return (
     <>

@@ -28,6 +28,28 @@ describe("selection rules", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("accepts canvas-level peers even when source parents differ", () => {
+    const doc = detachedCanvasPeerDocument();
+
+    expect(canMultiSelect(doc, ["root", "detached"]).valid).toBe(false);
+    expect(
+      canMultiSelect(doc, ["root", "detached"], { hierarchy: "canvas" }).valid,
+    ).toBe(true);
+  });
+
+  it("expands Ctrl+A from a canvas-level peer to visible canvas peers", () => {
+    const doc = detachedCanvasPeerDocument();
+
+    const result = resolveSelectAllSelection(
+      doc,
+      ["root", "detached", "root-leaf", "detached-leaf"],
+      ["root"],
+      { hierarchy: "canvas" },
+    );
+
+    expect(result.nodeIds).toEqual(["root", "detached"]);
+  });
+
   it("reduces toggle selection to the clicked node when parents differ", () => {
     const doc = createSampleDocument();
 
@@ -124,5 +146,54 @@ function twoRootDocument() {
   doc.childrenByParentId[ROOT_PARENT_ID] = ["root-a", "root-b"];
   doc.childrenByParentId["root-a"] = [];
   doc.childrenByParentId["root-b"] = [];
+  return doc;
+}
+
+function detachedCanvasPeerDocument() {
+  const doc = createEmptyDocument();
+  doc.nodesById.root = createNode({
+    id: "root",
+    label: "Root",
+    type: "root",
+    x: 0,
+    y: 0,
+    w: 240,
+    h: 120,
+  });
+  doc.nodesById.detached = createNode({
+    id: "detached",
+    label: "Detached child",
+    parentId: "root",
+    type: "parent",
+    x: 0,
+    y: 180,
+    w: 240,
+    h: 120,
+  });
+  doc.nodesById["root-leaf"] = createNode({
+    id: "root-leaf",
+    label: "Root leaf",
+    parentId: "root",
+    type: "leaf",
+    x: 24,
+    y: 64,
+    w: 160,
+    h: 40,
+  });
+  doc.nodesById["detached-leaf"] = createNode({
+    id: "detached-leaf",
+    label: "Detached leaf",
+    parentId: "detached",
+    type: "leaf",
+    x: 24,
+    y: 244,
+    w: 160,
+    h: 40,
+  });
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["root"];
+  doc.childrenByParentId.root = ["root-leaf", "detached"];
+  doc.childrenByParentId.detached = ["detached-leaf"];
+  doc.childrenByParentId["root-leaf"] = [];
+  doc.childrenByParentId["detached-leaf"] = [];
   return doc;
 }

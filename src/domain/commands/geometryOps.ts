@@ -315,7 +315,7 @@ export function alignNodes(
     `Align ${direction}`,
     [
       command("align-nodes", { nodeIds, direction }, "visual", (doc) => {
-        const allowed = canAlign(doc, nodeIds);
+        const allowed = canAlign(doc, nodeIds, { hierarchy: "canvas" });
         if (!allowed.valid)
           return fail(
             doc,
@@ -361,7 +361,7 @@ export function distributeNodes(
     `Distribute ${axis}`,
     [
       command("distribute-nodes", { nodeIds, axis }, "visual", (doc) => {
-        const allowed = canDistribute(doc, nodeIds);
+        const allowed = canDistribute(doc, nodeIds, { hierarchy: "canvas" });
         if (!allowed.valid)
           return fail(
             doc,
@@ -411,7 +411,9 @@ export function sameSize(
     [
       command("same-size", { nodeIds, anchorId, axis }, "visual", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
-        const allowed = canBulkEditNodes(doc, nodeIds);
+        const allowed = canBulkEditNodes(doc, nodeIds, {
+          hierarchy: "canvas",
+        });
         if (!allowed.valid)
           return fail(
             doc,

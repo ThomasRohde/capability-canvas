@@ -48,9 +48,10 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
-  const bulkAllowed = canMultiSelect(viewDoc, selected);
-  const alignAllowed = canAlign(viewDoc, selected);
-  const distributeAllowed = canDistribute(viewDoc, selected);
+  const selectionOptions = { hierarchy: "canvas" } as const;
+  const bulkAllowed = canMultiSelect(viewDoc, selected, selectionOptions);
+  const alignAllowed = canAlign(viewDoc, selected, selectionOptions);
+  const distributeAllowed = canDistribute(viewDoc, selected, selectionOptions);
   const sameSizeAllowed = bulkAllowed;
   const anchor = selected[0];
   const anchorNode = anchor ? viewDoc.nodesById[anchor] : undefined;
