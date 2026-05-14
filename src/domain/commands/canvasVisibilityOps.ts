@@ -1,5 +1,6 @@
 import { cloneDocument } from "../document/normalize";
 import {
+  canvasChildrenOf,
   isNodeOnCanvas,
   now,
   subtreeNodeIds,
@@ -66,13 +67,8 @@ export function addSubtreeToCanvas(
     ],
     {
       relayout: {
-        scope: (_beforeDoc, afterDoc) => {
-          const node = afterDoc.nodesById[nodeId];
-          const parent = node?.parentId
-            ? afterDoc.nodesById[node.parentId]
-            : undefined;
-          return parent && isNodeOnCanvas(parent) ? [parent.id] : [];
-        },
+        scope: (_beforeDoc, afterDoc) =>
+          canvasAdditionRelayoutScope(afterDoc, nodeId),
         force: true,
       },
     },
@@ -165,6 +161,17 @@ function canvasRemovalRelayoutScope(
     if (parent && isNodeOnCanvas(parent)) parents.add(parent.id);
   }
   return [...parents];
+}
+
+function canvasAdditionRelayoutScope(
+  doc: CapabilityDocument,
+  nodeId: NodeId,
+): NodeId[] {
+  const node = doc.nodesById[nodeId];
+  if (!node || !isNodeOnCanvas(node)) return [];
+  const parent = node.parentId ? doc.nodesById[node.parentId] : undefined;
+  if (parent && isNodeOnCanvas(parent)) return [parent.id];
+  return canvasChildrenOf(doc, node.id);
 }
 
 function boundsForNodesIncludingHidden(doc: CapabilityDocument, ids: NodeId[]) {

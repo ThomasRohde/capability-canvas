@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  addSubtreeToCanvas,
   addChild,
   deleteNodes,
   moveNodes,
@@ -16,7 +17,10 @@ import {
   createVisualWorkspaceFromDocument,
   resolveVisualDocument,
 } from "../../domain/visual/workspace";
-import { geometrySnapshot } from "../../test/documentAssertions";
+import {
+  expectChildrenInsideParent,
+  geometrySnapshot,
+} from "../../test/documentAssertions";
 import {
   resetDocumentStoreForTests,
   SCOPED_RELAYOUT_CASES,
@@ -219,6 +223,33 @@ describe("document store layout orchestration", () => {
       "leaf-c",
     ]);
   });
+
+  it("lays out a subtree added as an active-view root without moving existing roots", async () => {
+    resetDocumentStoreForTests(hiddenTopLevelSubtreeDocument());
+    const beforeOther = geometrySnapshot(
+      resolveVisualDocument(useDocumentStore.getState().doc),
+      ["other"],
+    );
+
+    useDocumentStore
+      .getState()
+      .execute(addSubtreeToCanvas("section", { x: 520, y: 220 }));
+    await waitForStoreRelayout();
+
+    const state = useDocumentStore.getState();
+    const doc = resolveVisualDocument(state.doc);
+    const leafA = doc.nodesById["leaf-a"]!;
+    const leafB = doc.nodesById["leaf-b"]!;
+
+    expect(geometrySnapshot(doc, ["other"])).toEqual(beforeOther);
+    expectChildrenInsideParent(doc, "section", ["leaf-a", "leaf-b"]);
+    expect(overlaps(leafA, leafB)).toBe(false);
+    expect(
+      state.lastDiagnostics.some(
+        (diagnostic) => diagnostic.code === "layout-applied",
+      ),
+    ).toBe(true);
+  });
 });
 
 function threeOneChildRootContainers(
@@ -291,8 +322,75 @@ function threeOneChildRootContainers(
   return doc;
 }
 
+function hiddenTopLevelSubtreeDocument(): CapabilityDocument {
+  const doc = createEmptyDocument();
+  doc.layout.preservePositions = false;
+  doc.layout.isUserArranged = false;
+  doc.settings.layoutMode = "adaptive";
+
+  doc.nodesById.model = createNode({
+    id: "model",
+    label: "Source model",
+    type: "root",
+    isOnCanvas: false,
+  });
+  doc.nodesById.other = createNode({
+    id: "other",
+    label: "Other visible root",
+    type: "root",
+    color: "sky",
+    x: 32,
+    y: 32,
+    w: 220,
+    h: 120,
+  });
+  doc.nodesById.section = createNode({
+    id: "section",
+    parentId: "model",
+    label: "Hidden section",
+    type: "parent",
+    x: 120,
+    y: 120,
+    w: 120,
+    h: 60,
+    isOnCanvas: false,
+  });
+  for (const id of ["leaf-a", "leaf-b"] as const) {
+    doc.nodesById[id] = createNode({
+      id,
+      parentId: "section",
+      label: id,
+      x: 128,
+      y: 160,
+      w: 168,
+      h: 48,
+      isOnCanvas: false,
+    });
+    doc.childrenByParentId[id] = [];
+  }
+
+  doc.childrenByParentId[ROOT_PARENT_ID] = ["model", "other"];
+  doc.childrenByParentId.model = ["section"];
+  doc.childrenByParentId.other = [];
+  doc.childrenByParentId.section = ["leaf-a", "leaf-b"];
+  doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
+}
+
 function visibleNodeIds(doc: CapabilityDocument): string[] {
   return Object.values(doc.nodesById)
     .filter((node) => node.isOnCanvas)
     .map((node) => node.id);
+}
+
+function overlaps(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
 }
