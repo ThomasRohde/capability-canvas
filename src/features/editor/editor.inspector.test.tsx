@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { lockSubtree } from "../../domain/commands/operations";
+import { MANUAL_POSITIONING_NOTICE } from "../../domain/layout/canvasLayoutPolicy";
+import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
 
 describe("editor inspector workflows", () => {
@@ -67,12 +69,39 @@ describe("editor inspector workflows", () => {
       screen.getByRole("button", { name: "Preserve from auto layout" }),
     ).toHaveClass("on");
     expect(
-      screen.getByText(/Preserved nodes are skipped by auto layout/),
+      screen.getByText(/Auto layout may arrange this parent's children/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Manual keeps this parent's children/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Preserve skips this subtree during auto layout/),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("X")).not.toBeDisabled();
     expect(screen.getByLabelText("Y")).not.toBeDisabled();
     expect(screen.getByLabelText("W")).toBeDisabled();
     expect(screen.getByLabelText("H")).toBeDisabled();
+  });
+
+  it("switches the arranging parent to Manual after numeric X/Y movement", () => {
+    useUiStore.setState({
+      selectedNodeIds: ["digital-onboarding"],
+      inspectorTab: "layout",
+    });
+    renderEditor();
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const x = screen.getByLabelText("X");
+
+    fireEvent.change(x, { target: { value: String(before.nodesById["digital-onboarding"]!.x + 16) } });
+    fireEvent.blur(x);
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["digital-onboarding"]!.x).toBe(
+      before.nodesById["digital-onboarding"]!.x + 16,
+    );
+    expect(after.nodesById.digital!.isManualPositioningEnabled).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
   });
 
   it("shows source model and active view status in the inspector", () => {

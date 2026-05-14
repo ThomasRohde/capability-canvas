@@ -391,6 +391,7 @@ test('separates active view remove from source-model delete', async ({ page }) =
   await expect(page.locator('.cc-outline').getByText('Digital Onboarding')).toBeVisible();
   expect(await serializedContains('digital-onboarding')).toBe(true);
 
+  await page.locator('.cc-outline').getByText('Digital Onboarding').click();
   await page.keyboard.press('Shift+Delete');
   const dialog = page.getByRole('alertdialog');
   await expect(dialog).toContainText('Delete "Digital Onboarding" from the source model');

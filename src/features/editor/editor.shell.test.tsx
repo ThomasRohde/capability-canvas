@@ -245,6 +245,15 @@ describe("editor shell", () => {
       within(dialog).getByText("Open the selected capability context menu"),
     ).toBeInTheDocument();
     expect(
+      within(dialog).getByText(/direct parent switches to Manual/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/Freeform preserves current positions/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/Preserve locks the selected subtree/),
+    ).toBeInTheDocument();
+    expect(
       within(dialog).getByRole("heading", { name: "Data formats" }),
     ).toBeInTheDocument();
     for (const format of [

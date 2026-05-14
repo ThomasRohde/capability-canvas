@@ -366,7 +366,8 @@ export function HelpDialog<TContext>({
                 items={[
                   "Use the outline to navigate large models and restore hidden active-view results.",
                   "Select capabilities on the canvas before using Add child, duplicate, delete, layout, or bulk tools.",
-                  "Drag and resize visible capabilities for manual presentation work; document changes commit after the interaction finishes.",
+                  "Drag, nudge, or edit X/Y to place a child deliberately; in automatic modes the direct parent switches to Manual so the placement is preserved.",
+                  "Resize visible capabilities for presentation work; document changes commit after the interaction finishes.",
                   "Use the inspector for properties, layout flags, heatmap values, and metadata JSON.",
                 ]}
               />
@@ -375,8 +376,12 @@ export function HelpDialog<TContext>({
             <HelpSection id="help-layout" title="Layout and views">
               <HelpList
                 items={[
-                  "Auto layout arranges unlocked visible capabilities in the active view.",
-                  "Locked nodes and manually positioned child groups preserve their placement during layout updates.",
+                  "Automatic modes arrange eligible visible capabilities in the active view: Adaptive, Balanced, Flow, and Uniform.",
+                  "Freeform preserves current positions. Apply auto layout in Freeform reports that nothing was rearranged.",
+                  "Manual applies to children of the selected parent. A Manual parent keeps its children at their direct canvas positions during auto layout.",
+                  "Preserve locks the selected subtree out of auto layout and disables resize, but it is separate from Manual child positioning.",
+                  "Dragging a capability into a different valid parent preserves the drop position and switches the destination parent to Manual when needed.",
+                  "Adding a child under a Manual parent keeps existing children in place and places the new child deterministically.",
                   "Views store presentation state over the same source model, including visibility, collapsed branches, page framing, and heatmap display.",
                   "Deleting a view does not delete source-model capabilities.",
                 ]}

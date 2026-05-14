@@ -481,9 +481,57 @@ describe("commands", () => {
   });
 
   it("annotates addChild with relayout meta scoped to the parent", () => {
+    const doc = createSampleDocument();
     const txn = addChild("risk");
+    const result = runTransaction(doc, txn);
+
     expect(txn.meta?.relayout).toBeDefined();
-    expect(txn.meta?.relayout?.scope).toEqual(["risk"]);
+    expect(typeof txn.meta?.relayout?.scope).toBe("function");
+    expect(
+      typeof txn.meta?.relayout?.scope === "function"
+        ? txn.meta.relayout.scope(doc, result.doc)
+        : txn.meta?.relayout?.scope,
+    ).toEqual(["risk"]);
+  });
+
+  it("adds a child under a Manual parent without moving existing siblings", () => {
+    const manual = createSampleDocument();
+    manual.nodesById.risk = {
+      ...manual.nodesById.risk!,
+      isManualPositioningEnabled: true,
+    };
+    manual.visual = createVisualWorkspaceFromDocument(manual);
+    const before = geometryFor(manual, [
+      "credit-risk",
+      "fraud-risk",
+      "operational-risk",
+    ]);
+    const txn = addChild("risk");
+
+    const result = runTransaction(manual, txn);
+    const childIds = childrenOf(result.doc, "risk");
+    const newChildId = childIds.find(
+      (id) => !["credit-risk", "fraud-risk", "operational-risk"].includes(id),
+    );
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(newChildId).toBeDefined();
+    expect(
+      geometryFor(result.doc, [
+        "credit-risk",
+        "fraud-risk",
+        "operational-risk",
+      ]),
+    ).toEqual(before);
+    expect(result.doc.nodesById[newChildId!]).toMatchObject({
+      parentId: "risk",
+      isOnCanvas: true,
+    });
+    expect(
+      typeof txn.meta?.relayout?.scope === "function"
+        ? txn.meta.relayout.scope(manual, result.doc)
+        : txn.meta?.relayout?.scope,
+    ).toEqual([]);
   });
 
   it("creates children under a selected leaf from prompt merge output", () => {
@@ -759,6 +807,15 @@ function parentSubtreeOffsets(
           childDy: child.y - parent.y,
         },
       ];
+    }),
+  );
+}
+
+function geometryFor(doc: ReturnType<typeof createSampleDocument>, ids: string[]) {
+  return Object.fromEntries(
+    ids.map((id) => {
+      const node = doc.nodesById[id]!;
+      return [id, { x: node.x, y: node.y, w: node.w, h: node.h }];
     }),
   );
 }

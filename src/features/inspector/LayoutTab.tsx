@@ -2,13 +2,14 @@ import { Info, Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   lockSubtree,
-  moveNodes,
+  moveNodesWithLayoutIntent,
   resizeNode,
   setManualPositioning,
 } from "../../domain/commands/operations";
 import type { CapabilityNode } from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
 import { useDocumentStore } from "../../app/stores/documentStore";
+import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
 
 export function LayoutTab({ node }: { node: CapabilityNode }) {
   const doc = useDocumentStore((state) => state.doc);
@@ -46,8 +47,10 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
       <div className="cc-info-card">
         <Info size={16} />
         <span>
-          Preserved nodes are skipped by auto layout and cannot be resized, but
-          can still be moved manually.
+          Auto layout may arrange this parent's children. Manual keeps this
+          parent's children at direct canvas positions. Preserve skips this
+          subtree during auto layout and disables resize, but still allows
+          deliberate movement.
         </span>
       </div>
       <div className="cc-field-row">
@@ -57,7 +60,14 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           value={node.x}
           onCommit={(x) => {
             const delta = snap(x) - node.x;
-            if (delta !== 0) execute(moveNodes([node.id], delta, 0));
+            if (delta !== 0)
+              showManualPositioningNoticeForDiagnostics(
+                execute(
+                  moveNodesWithLayoutIntent([node.id], delta, 0, {
+                    action: "numeric-position",
+                  }),
+                ),
+              );
           }}
         />
         <NumberField
@@ -66,7 +76,14 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           value={node.y}
           onCommit={(y) => {
             const delta = snap(y) - node.y;
-            if (delta !== 0) execute(moveNodes([node.id], 0, delta));
+            if (delta !== 0)
+              showManualPositioningNoticeForDiagnostics(
+                execute(
+                  moveNodesWithLayoutIntent([node.id], 0, delta, {
+                    action: "numeric-position",
+                  }),
+                ),
+              );
           }}
         />
         <NumberField

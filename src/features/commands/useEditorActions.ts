@@ -3,7 +3,7 @@ import {
   addChild,
   addRoot,
   duplicateNodes,
-  moveNodes,
+  moveNodesWithLayoutIntent,
   removeNodesFromCanvas,
   updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
@@ -22,6 +22,7 @@ import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { filterSelectionAfterViewRemoval } from "../canvas/selectors";
 import { fitViewportToBounds } from "../canvas/viewport";
+import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
 import { useModelDeleteConfirmation } from "../shared/useModelDeleteConfirmation";
 import {
   createEditorCommandRegistry,
@@ -178,7 +179,13 @@ export function useEditorActions(
           : direction === "ArrowDown"
             ? step
             : 0;
-      execute(moveNodes(currentSelection, dx, dy));
+      showManualPositioningNoticeForDiagnostics(
+        execute(
+          moveNodesWithLayoutIntent(currentSelection, dx, dy, {
+            action: "keyboard-nudge",
+          }),
+        ),
+      );
     },
     [execute, viewDoc],
   );

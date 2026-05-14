@@ -4,7 +4,10 @@ import {
   addChild,
   deleteNodes,
   moveNodes,
+  moveNodesWithLayoutIntent,
   removeNodesFromCanvas,
+  reparentNodeWithLayoutIntent,
+  setManualPositioning,
 } from "../../domain/commands/operations";
 import { createEmptyDocument, createNode } from "../../domain/document/defaults";
 import {
@@ -126,6 +129,114 @@ describe("document store layout orchestration", () => {
     expect(doc.layout.aspectRatioTarget).toBeUndefined();
   });
 
+  it("groups direct movement and Manual conversion into one undoable history entry", () => {
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeX = before.nodesById["credit-risk"]!.x;
+
+    const diagnostics = useDocumentStore
+      .getState()
+      .execute(
+        moveNodesWithLayoutIntent(["credit-risk"], 16, 0, {
+          action: "keyboard-nudge",
+        }),
+      );
+
+    let after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "manual-positioning-enabled-by-move",
+        nodeId: "risk",
+      }),
+    );
+    expect(after.nodesById["credit-risk"]!.x).toBe(beforeX + 16);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+
+    useDocumentStore.getState().undo();
+    after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["credit-risk"]!.x).toBe(beforeX);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
+
+    useDocumentStore.getState().redo();
+    after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["credit-risk"]!.x).toBe(beforeX + 16);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+  });
+
+  it("expands the parent before direct movement switches it to Manual", () => {
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const parentBefore = before.nodesById.risk!;
+    const childBefore = before.nodesById["credit-risk"]!;
+    const dx =
+      parentBefore.x + parentBefore.w - (childBefore.x + childBefore.w) + 96;
+
+    useDocumentStore
+      .getState()
+      .execute(
+        moveNodesWithLayoutIntent(["credit-risk"], dx, 0, {
+          action: "keyboard-nudge",
+        }),
+      );
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+    expect(after.nodesById.risk!.w).toBeGreaterThan(parentBefore.w);
+    expect(findParentContainmentViolations(after)).toEqual([]);
+  });
+
+  it("only converts the moved root node's direct parent during parent movement", () => {
+    useDocumentStore
+      .getState()
+      .execute(moveNodesWithLayoutIntent(["operations"], 8, 0));
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById.root!.isManualPositioningEnabled).toBe(true);
+    expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(false);
+  });
+
+  it("preserves drag reparent drop position and destination Manual intent in one history entry", () => {
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeX = before.nodesById["fraud-risk"]!.x;
+    const beforeY = before.nodesById["fraud-risk"]!.y;
+
+    const diagnostics = useDocumentStore
+      .getState()
+      .execute(reparentNodeWithLayoutIntent("fraud-risk", "operations", 24, 8));
+
+    let after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "manual-positioning-enabled-by-reparent",
+        nodeId: "operations",
+      }),
+    );
+    expect(after.nodesById["fraud-risk"]).toMatchObject({
+      parentId: "operations",
+      x: beforeX + 24,
+      y: beforeY + 8,
+    });
+    expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+
+    useDocumentStore.getState().undo();
+    after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["fraud-risk"]).toMatchObject({
+      parentId: "risk",
+      x: beforeX,
+      y: beforeY,
+    });
+    expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(false);
+
+    useDocumentStore.getState().redo();
+    after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["fraud-risk"]).toMatchObject({
+      parentId: "operations",
+      x: beforeX + 24,
+      y: beforeY + 8,
+    });
+    expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(true);
+  });
+
   it("re-runs incremental layout for the parent after addChild so the new child is contained", async () => {
     useDocumentStore.getState().execute(addChild("risk"));
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -141,6 +252,34 @@ describe("document store layout orchestration", () => {
     expect(child.y).toBeGreaterThanOrEqual(parent.y);
     expect(child.x + child.w).toBeLessThanOrEqual(parent.x + parent.w);
     expect(child.y + child.h).toBeLessThanOrEqual(parent.y + parent.h);
+  });
+
+  it("adds a child under an active-view Manual parent without moving siblings", () => {
+    useDocumentStore.getState().execute(setManualPositioning("risk", true));
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const siblingIds = ["credit-risk", "fraud-risk", "operational-risk"];
+    const beforeSiblings = geometrySnapshot(before, siblingIds);
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    useDocumentStore.getState().execute(addChild("risk"));
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    const childIds = childrenOf(after, "risk");
+    const newChildId = childIds.find((id) => !siblingIds.includes(id));
+    expect(newChildId).toBeDefined();
+    expect(geometrySnapshot(after, siblingIds)).toEqual(beforeSiblings);
+    expect(overlaps(after.nodesById[newChildId!]!, after.nodesById["credit-risk"]!)).toBe(
+      false,
+    );
+    expectChildrenInsideParent(after, "risk", [newChildId!]);
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore + 1);
+
+    useDocumentStore.getState().undo();
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById[
+        newChildId!
+      ],
+    ).toBeUndefined();
   });
 
   it.each(SCOPED_RELAYOUT_CASES)(

@@ -63,7 +63,7 @@ const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = 
   {
     value: "free",
     label: "Freeform",
-    help: "Preserves manual placement unless layout is forced.",
+    help: "Preserves current positions. Choose an automatic mode to rearrange nodes.",
   },
 ];
 
@@ -105,6 +105,10 @@ export function SettingsDrawer() {
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
     "";
+  const layoutModeNotice =
+    doc.settings.layoutMode === "free"
+      ? "Freeform preserves positions; Apply auto layout will not rearrange nodes."
+      : "Layout changes may move unlocked nodes in the active view.";
   const commitNumericDocumentSetting = (
     field: NumericSettingsField,
     value: number,
@@ -275,9 +279,7 @@ export function SettingsDrawer() {
               />
             </div>
           )}
-          <div className="cc-settings-warning">
-            Layout changes may move unlocked nodes in the active view.
-          </div>
+          <div className="cc-settings-warning">{layoutModeNotice}</div>
           {isAutoLayoutRunning && (
             <div className="cc-settings-status" role="status">
               Auto layout running...

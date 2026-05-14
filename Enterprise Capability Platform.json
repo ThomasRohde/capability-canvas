@@ -1,0 +1,4223 @@
+{
+  "schema": "capability-canvas.document",
+  "version": "1.2",
+  "title": "Enterprise Platform Capability Model",
+  "nodes": [
+    {
+      "id": "enterprise-platform-capability-model",
+      "parentId": null,
+      "label": "Enterprise Platform Capability Model",
+      "x": 48,
+      "y": 48,
+      "w": 1540,
+      "h": 3180,
+      "type": "root",
+      "color": "stone",
+      "description": "Propose a practical capability model for enterprise platforms, including how platform capabilities should be grouped, how ownership should be assigned, and how RACI should be applied when products, departments, business domains, technology teams and control functions overlap.",
+      "metadata": {
+        "source": {
+          "file": "enterprise_platform_capability_model_raci.docx",
+          "documentTitle": "Enterprise Platform Capability Model",
+          "subtitle": "Capability groups, ownership model and RACI proposal",
+          "artifactType": "Enterprise Architecture position artefact",
+          "documentVersion": "Version 1.0 | 14 May 2026",
+          "convertedFrom": "docx",
+          "convertedTo": "capability-canvas.document"
+        },
+        "purpose": "Propose a practical capability model for enterprise platforms, including how platform capabilities should be grouped, how ownership should be assigned, and how RACI should be applied when products, departments, business domains, technology teams and control functions overlap.",
+        "designStance": "A platform is not a broad license, not a local system with many users, and not a technical department's default responsibility. A platform is a reusable, product-managed enterprise capability with explicit consumers, interfaces, controls, service levels, lifecycle, economics and decision rights.",
+        "scopeNote": "Scope note This document is written for a large regulated retail and commercial bank with a Scandinavian operating context. It is intentionally organization-neutral and does not refer to any named bank. Vendor names are not used as ownership anchors; they should be mapped internally as implementation products within the capability groups.",
+        "coreRecommendation": "Core recommendation Approve the capability groups in this document as the enterprise platform taxonomy. Use the taxonomy to classify current platforms, assign RACI, identify overlaps, and create platform charters for the highest-priority platform domains.",
+        "raciRoles": [
+          {
+            "role": "EGF",
+            "name": "Enterprise governance forum",
+            "role_in_platform_ownership": "Senior decision forum for platform designation, investment priority, material exceptions, and decommissioning."
+          },
+          {
+            "role": "EA",
+            "name": "Enterprise Architecture",
+            "role_in_platform_ownership": "Owns taxonomy, target-state architecture, standards, capability boundaries, and cross-platform coherence."
+          },
+          {
+            "role": "BCO",
+            "name": "Business capability owner",
+            "role_in_platform_ownership": "Owns business outcome, critical service expectations, and process/product fit for business platforms."
+          },
+          {
+            "role": "EPO",
+            "name": "Enterprise Platform Owner",
+            "role_in_platform_ownership": "Owns platform mandate, roadmap, service catalogue, adoption, platform economics, and lifecycle."
+          },
+          {
+            "role": "PEO",
+            "name": "Platform engineering and operations",
+            "role_in_platform_ownership": "Builds, configures, operates, automates, supports, and improves the platform service."
+          },
+          {
+            "role": "CON",
+            "name": "Consuming product teams",
+            "role_in_platform_ownership": "Consume the platform, build domain products on it, and own their applications, data, and operational use within guardrails."
+          },
+          {
+            "role": "SEC",
+            "name": "Security and IAM",
+            "role_in_platform_ownership": "Owns security policy, identity standards, security control interpretation, and security assurance."
+          },
+          {
+            "role": "RCL",
+            "name": "Risk, compliance, privacy and legal",
+            "role_in_platform_ownership": "Owns risk/control interpretation, regulatory alignment, privacy/legal requirements, and assurance coordination."
+          },
+          {
+            "role": "DAI",
+            "name": "Data and AI governance",
+            "role_in_platform_ownership": "Owns data governance, AI risk policy, metadata, lineage, data quality, and AI/model/agent governance."
+          },
+          {
+            "role": "SFI",
+            "name": "Sourcing, vendor, finance and FinOps",
+            "role_in_platform_ownership": "Owns sourcing, contract, vendor performance, license, cost transparency, chargeback/showback, and optimization."
+          },
+          {
+            "role": "SMR",
+            "name": "Service management and operational resilience",
+            "role_in_platform_ownership": "Owns ITSM process policy, resilience process, incident/change/problem model, recovery expectations, and evidence."
+          }
+        ],
+        "ownershipRule": "Ownership rule Assign one accountable owner for the platform service, but do not confuse this with business outcome accountability or control-function accountability. For example, a customer-channel business owner may be accountable for the business outcome, while the platform owner is accountable for reusable channel platform services and security or data functions approve relevant controls.",
+        "raciMatrix": [
+          {
+            "activity": "Platform taxonomy and classification",
+            "a": "EGF",
+            "r": "EA",
+            "c": "BCO, EPO, SEC, RCL, DAI, SFI, SMR",
+            "i": "PEO, CON"
+          },
+          {
+            "activity": "Platform designation and mandate approval",
+            "a": "EGF",
+            "r": "EA",
+            "c": "BCO, EPO, SEC, RCL, DAI, SFI, SMR",
+            "i": "PEO, CON"
+          },
+          {
+            "activity": "Capability scope and boundary definition",
+            "a": "EA",
+            "r": "EA, EPO",
+            "c": "EGF, BCO, PEO, CON, SEC, RCL, DAI, SMR",
+            "i": "SFI"
+          },
+          {
+            "activity": "Platform service catalogue and consumer segmentation",
+            "a": "EPO",
+            "r": "EPO, PEO",
+            "c": "EA, BCO, CON, SEC, RCL, DAI, SMR",
+            "i": "EGF, SFI"
+          },
+          {
+            "activity": "Roadmap and backlog prioritization",
+            "a": "EPO",
+            "r": "EPO, PEO",
+            "c": "EA, BCO, CON, SEC, RCL, DAI, SFI, SMR",
+            "i": "EGF"
+          },
+          {
+            "activity": "Funding model, cost allocation and unit economics",
+            "a": "SFI",
+            "r": "EPO, SFI",
+            "c": "EGF, EA, BCO, PEO, RCL",
+            "i": "CON, SEC, DAI, SMR"
+          },
+          {
+            "activity": "Architecture standards and integration patterns",
+            "a": "EA",
+            "r": "EA, EPO",
+            "c": "BCO, PEO, CON, SEC, RCL, DAI, SMR",
+            "i": "EGF, SFI"
+          },
+          {
+            "activity": "Platform build, configuration and release",
+            "a": "EPO",
+            "r": "PEO",
+            "c": "EA, CON, SEC, RCL, DAI, SMR",
+            "i": "EGF, BCO, SFI"
+          },
+          {
+            "activity": "Security controls, identity and privileged access",
+            "a": "SEC",
+            "r": "EPO, PEO, SEC",
+            "c": "EA, CON, RCL, DAI, SMR",
+            "i": "EGF, BCO, SFI"
+          },
+          {
+            "activity": "Data, privacy and AI controls",
+            "a": "DAI",
+            "r": "EPO, PEO, DAI",
+            "c": "EA, BCO, CON, SEC, RCL, SMR",
+            "i": "EGF, SFI"
+          },
+          {
+            "activity": "Risk acceptance and exception approval",
+            "a": "RCL",
+            "r": "EPO, RCL",
+            "c": "EA, BCO, PEO, CON, SEC, DAI, SFI, SMR",
+            "i": "EGF"
+          },
+          {
+            "activity": "Consumer onboarding, migration and adoption",
+            "a": "EPO",
+            "r": "EPO, PEO, CON",
+            "c": "EA, BCO, SEC, RCL, DAI, SMR",
+            "i": "EGF, SFI"
+          },
+          {
+            "activity": "Operations, SLOs, support model and runbooks",
+            "a": "EPO",
+            "r": "PEO, SMR",
+            "c": "EA, BCO, CON, SEC, RCL, DAI",
+            "i": "EGF, SFI"
+          },
+          {
+            "activity": "Incident, problem and change execution",
+            "a": "SMR",
+            "r": "PEO, SMR",
+            "c": "EPO, CON, SEC, RCL",
+            "i": "EGF, EA, BCO, DAI, SFI"
+          },
+          {
+            "activity": "Vendor, contract, license and supplier performance",
+            "a": "SFI",
+            "r": "EPO, SFI",
+            "c": "EA, PEO, SEC, RCL, SMR",
+            "i": "EGF, BCO, CON, DAI"
+          },
+          {
+            "activity": "Audit evidence, control reporting and assurance",
+            "a": "RCL",
+            "r": "EPO, PEO, RCL",
+            "c": "EA, SEC, DAI, SFI, SMR",
+            "i": "EGF, BCO, CON"
+          },
+          {
+            "activity": "Platform retirement, replacement or merger",
+            "a": "EGF",
+            "r": "EA, EPO",
+            "c": "BCO, PEO, CON, SEC, RCL, DAI, SFI, SMR",
+            "i": ""
+          },
+          {
+            "activity": "KPI reporting and platform performance review",
+            "a": "EPO",
+            "r": "EPO, PEO",
+            "c": "EA, BCO, CON, SEC, RCL, DAI, SFI, SMR",
+            "i": "EGF"
+          }
+        ],
+        "ownershipByPlatformType": [
+          {
+            "platform_type": "Business capability platforms",
+            "typical_examples": "Customer channels, core banking, payments, lending, CRM, corporate platforms.",
+            "accountable": "Business capability owner",
+            "responsible": "Platform owner + engineering",
+            "consulted": "EA, Security, Risk/Compliance, Data Office, consumers"
+          },
+          {
+            "platform_type": "Technology foundation platforms",
+            "typical_examples": "Hosting, runtime, mainframe, cloud landing zones, integration, developer platform, observability.",
+            "accountable": "Enterprise Platform Owner in Technology",
+            "responsible": "Platform engineering and operations",
+            "consulted": "EA, Security, Risk/Compliance, Service Management, consumers"
+          },
+          {
+            "platform_type": "Control platforms",
+            "typical_examples": "Identity, access, cryptography, GRC, operational-risk tooling, resilience tooling.",
+            "accountable": "Control owner such as Security, Risk, Compliance, Privacy or Operational Resilience",
+            "responsible": "Platform owner + operations",
+            "consulted": "EA, Data Office, Sourcing/Finance, consumers"
+          },
+          {
+            "platform_type": "Data and AI platforms",
+            "typical_examples": "Data lake/warehouse, BI, model/agent platforms, knowledge bases, data quality and lineage.",
+            "accountable": "Data/AI governance for policy; platform owner for service",
+            "responsible": "Data/AI platform engineering",
+            "consulted": "EA, Security, Risk/Compliance, Legal, consumer teams"
+          },
+          {
+            "platform_type": "Enterprise service platforms",
+            "typical_examples": "ITSM, service catalogue, configuration management, operational workflow automation.",
+            "accountable": "Service management process owner",
+            "responsible": "Service management platform owner + operations",
+            "consulted": "EA, Security, Risk/Compliance, Sourcing, all IT consumers"
+          },
+          {
+            "platform_type": "Workplace and productivity platforms",
+            "typical_examples": "Collaboration, office productivity, endpoint, information protection, employee portal.",
+            "accountable": "End-user platform owner",
+            "responsible": "Workplace engineering and support",
+            "consulted": "EA for boundary decisions, Security/Privacy, Data Office, business users"
+          }
+        ],
+        "boundaryRules": [
+          {
+            "rule": "Capability before product",
+            "implication": "Classify the platform by the enterprise capability it standardizes, not by vendor product boundaries, license scope, or local implementation history."
+          },
+          {
+            "rule": "One primary home per capability",
+            "implication": "Each major capability should have one primary platform home. Adjacent products may implement local or embedded features only under explicit scope rules."
+          },
+          {
+            "rule": "Contract ownership is not platform ownership",
+            "implication": "Owning a vendor contract creates commercial responsibility, not automatic authority over every capability in the product suite."
+          },
+          {
+            "rule": "Mandated reuse must be matched by product obligations",
+            "implication": "A platform can be mandatory only when it provides usable services, support, documentation, onboarding, evidence, and lifecycle commitments."
+          },
+          {
+            "rule": "Exceptions are managed products of governance",
+            "implication": "Exceptions are time-bound decisions with a rationale, owner, risk acceptance, review date, and migration trigger."
+          },
+          {
+            "rule": "Controls should be embedded in the platform",
+            "implication": "Security, compliance, observability, resilience, and evidence should be provided through self-service patterns rather than manual approval queues."
+          }
+        ],
+        "boundaryExample": "Practical boundary example A workflow embedded inside a service management platform can be appropriate for IT operations processes. A workflow embedded inside a CRM platform can be appropriate for sales or servicing processes. A low-code workflow can be appropriate for local productivity automation. A cross-domain, critical, long-running, auditable business process should normally be assessed against the enterprise workflow/case platform unless a documented exception exists.",
+        "adoptionApproach": [
+          {
+            "horizon": "0-30 days",
+            "action": "Create a platform inventory",
+            "expected_output": "List candidate platforms, mapped products, current owners, consumers, contracts, critical services, control dependencies and known overlaps."
+          },
+          {
+            "horizon": "0-30 days",
+            "action": "Approve the platform taxonomy",
+            "expected_output": "Use the capability groups in this document as the initial taxonomy. Allow only deliberate changes through Enterprise Architecture."
+          },
+          {
+            "horizon": "30-60 days",
+            "action": "Classify strategic platforms",
+            "expected_output": "Classify each candidate as enterprise platform, domain platform, shared service, local product, tolerated duplicate, or retiring platform."
+          },
+          {
+            "horizon": "30-60 days",
+            "action": "Assign interim RACI",
+            "expected_output": "Assign platform owner, engineering owner, business capability owner, control-function contacts, sourcing owner and financial owner."
+          },
+          {
+            "horizon": "60-90 days",
+            "action": "Create charters for priority platforms",
+            "expected_output": "Start with overlapping workflow, low-code, AI, integration, service management, hosting and customer-channel capabilities."
+          },
+          {
+            "horizon": "60-90 days",
+            "action": "Define boundary and exception rules",
+            "expected_output": "Document mandatory use cases, optional use cases, prohibited use cases, exception criteria and migration triggers."
+          },
+          {
+            "horizon": "90-180 days",
+            "action": "Build platform catalogue and onboarding",
+            "expected_output": "Expose platform services, patterns, templates, documentation, controls, service levels, support and usage metrics."
+          },
+          {
+            "horizon": "90-180 days",
+            "action": "Embed evidence and controls",
+            "expected_output": "Automate control evidence for security, change, access, resilience, data, privacy, AI, vendor and operational processes."
+          },
+          {
+            "horizon": "180+ days",
+            "action": "Rationalize duplicates",
+            "expected_output": "Use adoption data, risk, cost and strategic-fit evidence to consolidate, contain, migrate or retire duplicate capabilities."
+          }
+        ],
+        "maturityModel": [
+          {
+            "level": "1. Shared tool",
+            "description": "A product or system is used by more than one team, but there is no formal platform mandate, service catalogue, RACI or evidence model.",
+            "management_implication": "Do not mandate enterprise reuse. Stabilize ownership and classify capability scope."
+          },
+          {
+            "level": "2. Managed shared service",
+            "description": "The service has an owner, support path, basic standards and known consumers, but limited product management and self-service.",
+            "management_implication": "Can be recommended for selected use cases. Build product obligations and control evidence."
+          },
+          {
+            "level": "3. Enterprise platform",
+            "description": "The platform has a formal mandate, service catalogue, roadmap, onboarding, support, operational model, embedded controls and metrics.",
+            "management_implication": "Can become the preferred platform home for defined capabilities."
+          },
+          {
+            "level": "4. Optimized platform ecosystem",
+            "description": "The platform enables high self-service, composable APIs, automated controls, mature operations, adoption analytics, FinOps and continuous improvement.",
+            "management_implication": "Can support mandatory reuse, strategic consolidation and advanced automation."
+          },
+          {
+            "level": "5. Adaptive control plane",
+            "description": "The platform acts as a governed control plane across products, runtime environments, data, AI, security and operations with policy-as-code and automated assurance.",
+            "management_implication": "Use for critical enterprise capabilities where strong standardization and evidence automation create strategic value."
+          }
+        ],
+        "platformCapabilityChecklist": [
+          {
+            "area": "Mandate",
+            "checklist_question": "Is the platform scope formally defined by capability, consumer group, mandatory use cases and prohibited use cases?"
+          },
+          {
+            "area": "Ownership",
+            "checklist_question": "Are platform product ownership, engineering ownership, business ownership, control ownership and contract ownership explicitly separated?"
+          },
+          {
+            "area": "Consumers",
+            "checklist_question": "Are consumer personas, onboarding journeys, support channels and feedback loops defined?"
+          },
+          {
+            "area": "Interfaces",
+            "checklist_question": "Does the platform expose stable APIs, events, portals, templates, integration patterns or other consumption interfaces?"
+          },
+          {
+            "area": "Standards",
+            "checklist_question": "Are standards, golden paths, reference architectures and exception rules documented?"
+          },
+          {
+            "area": "Security",
+            "checklist_question": "Are identity, secrets, privileged access, policy enforcement, vulnerability management and logging embedded?"
+          },
+          {
+            "area": "Data and AI",
+            "checklist_question": "Are data classification, lineage, retention, privacy, model/agent controls and AI governance requirements addressed where relevant?"
+          },
+          {
+            "area": "Operations",
+            "checklist_question": "Are SLOs, monitoring, incident/change/problem processes, runbooks and resilience requirements defined?"
+          },
+          {
+            "area": "Compliance",
+            "checklist_question": "Can the platform produce evidence for access, change, risk, data, resilience, vendor and control obligations?"
+          },
+          {
+            "area": "Economics",
+            "checklist_question": "Are cost drivers, licenses, consumption metrics, showback/chargeback and optimization responsibilities visible?"
+          },
+          {
+            "area": "Lifecycle",
+            "checklist_question": "Are roadmap, lifecycle state, upgrade path, decommissioning, exit and migration triggers defined?"
+          },
+          {
+            "area": "Metrics",
+            "checklist_question": "Are adoption, value, reliability, cost, risk and consumer-satisfaction metrics reported?"
+          }
+        ],
+        "platformCharterTemplate": [
+          {
+            "section": "1. Platform name",
+            "content_to_capture": "Neutral platform name and capability group."
+          },
+          {
+            "section": "2. Platform type",
+            "content_to_capture": "Business capability platform, technology foundation platform, control platform, data/AI platform, enterprise service platform, workplace platform, or corporate platform."
+          },
+          {
+            "section": "3. Mandate",
+            "content_to_capture": "What the platform is accountable for and what it is not accountable for."
+          },
+          {
+            "section": "4. Consumers",
+            "content_to_capture": "Consumer personas, consuming teams, business domains, and critical services supported."
+          },
+          {
+            "section": "5. Service catalogue",
+            "content_to_capture": "Reusable services, interfaces, onboarding methods and support channels."
+          },
+          {
+            "section": "6. Mandatory use cases",
+            "content_to_capture": "Use cases where the platform is the preferred or mandatory platform home."
+          },
+          {
+            "section": "7. Optional or edge use cases",
+            "content_to_capture": "Use cases where the platform may be used but is not the enterprise default."
+          },
+          {
+            "section": "8. Prohibited use cases",
+            "content_to_capture": "Capabilities that must not be implemented on the platform without explicit exception."
+          },
+          {
+            "section": "9. RACI",
+            "content_to_capture": "Platform owner, business owner, engineering owner, control owners, sourcing owner, financial owner and consumers."
+          },
+          {
+            "section": "10. Controls and evidence",
+            "content_to_capture": "Security, privacy, data, AI, operational resilience, risk, compliance and audit evidence model."
+          },
+          {
+            "section": "11. Operations",
+            "content_to_capture": "SLOs, support model, incident/change/problem process, monitoring, resilience and recovery."
+          },
+          {
+            "section": "12. Economics",
+            "content_to_capture": "Funding, consumption metrics, license model, chargeback/showback and optimization obligations."
+          },
+          {
+            "section": "13. Roadmap",
+            "content_to_capture": "Current maturity, target maturity, key investments, migrations, decommissioning and dependency roadmap."
+          },
+          {
+            "section": "14. Exceptions",
+            "content_to_capture": "Current exceptions, expiry dates, owners, risks, and migration triggers."
+          }
+        ],
+        "references": [
+          "[1] CNCF / Cloud Native Platform Engineering Community, Platforms White Paper. https://cloudnativeplatforms.com/whitepapers/platforms/ Used for the platform-as-product, self-service, and embedded-governance concepts.",
+          "[2] CNCF TAG App Delivery, Platform Engineering Maturity Model. https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/ Used for the maturity and operating-model framing.",
+          "[3] Team Topologies, Platform Engineering and Fast Flow. https://teamtopologies.com/platform-engineering Used for the principle that platforms reduce cognitive load for stream-aligned teams.",
+          "[4] The Open Group, IT4IT Standard. https://www.opengroup.org/it4it Used for value-stream-based management of IT services and digital products.",
+          "[5] EIOPA, Digital Operational Resilience Act (DORA) overview. https://www.eiopa.europa.eu/digital-operational-resilience-act-dora_en Used for the regulated financial-services resilience context.",
+          "[6] European Banking Authority, Guidelines on ICT and security risk management (EBA/GL/2019/04). https://www.eba.europa.eu/sites/default/files/document_library/Publications/Guidelines/2020/GLs%20on%20ICT%20and%20security%20risk%20management/872936/Final%20draft%20Guidelines%20on%20ICT%20and%20security%20risk%20management.pdf Used for ICT governance, asset mapping, segregation of control functions, and ICT risk expectations.",
+          "[7] Basel Committee on Banking Supervision, Principles for operational resilience. https://www.bis.org/bcbs/publ/d516.htm Used for critical-operations and resilience considerations.",
+          "[8] NIST, Cybersecurity Framework 2.0. https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf Used for Govern, Identify, Protect, Detect, Respond, Recover control alignment.",
+          "[9] NIST, Zero Trust Architecture (SP 800-207). https://csrc.nist.gov/pubs/sp/800/207/final Used for identity-centric, resource-centric access principles.",
+          "[10] NIST, AI Risk Management Framework. https://www.nist.gov/itl/ai-risk-management-framework Used for AI governance, mapping, measuring, and managing risk.",
+          "[11] FinOps Foundation, FinOps Framework Phases. https://www.finops.org/framework/phases/ Used for Inform, Optimize, Operate financial-management capabilities.",
+          "[12] Microsoft Learn, Power Platform Center of Excellence Starter Kit. https://learn.microsoft.com/en-us/power-platform/guidance/coe/starter-kit Used as a vendor-neutral inspiration for low-code governance, visibility, and adoption capabilities.",
+          "[13] Amazon Web Services, Amazon Bedrock AgentCore. https://aws.amazon.com/bedrock/agentcore/ Used as vendor-neutral inspiration for agentic platform runtime, gateway, memory, identity, monitoring, and guardrail capabilities."
+        ]
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-platform-governance-and-portfolio-management",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G0. Platform governance and portfolio management",
+      "x": 80,
+      "y": 120,
+      "w": 680,
+      "h": 452,
+      "type": "parent",
+      "color": "mint",
+      "description": "Define which capabilities deserve platform treatment, who owns them, how they are funded, how they standardize reuse, and how exceptions are controlled.",
+      "metadata": {
+        "groupId": "G0",
+        "suggestedAccountability": "Enterprise Architecture for taxonomy and standards; enterprise governance forum for designation decisions; Enterprise Platform Owner for each approved platform.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-platform-classification-and-designation",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform classification and designation",
+      "x": 104,
+      "y": 164,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Evaluate whether a system is a local tool, shared service, domain platform, or enterprise platform; maintain a formal decision record.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Enterprise Architecture",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-capability-ownership-and-scope-boundaries",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Capability ownership and scope boundaries",
+      "x": 104,
+      "y": 212,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Define the business or technology capability that the platform standardizes, including adjacent capabilities it must not absorb without approval.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Enterprise Architecture + Platform Owner",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-platform-portfolio-and-target-state-roadmap",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform portfolio and target-state roadmap",
+      "x": 104,
+      "y": 260,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Maintain a portfolio view of approved platforms, overlapping capabilities, lifecycle state, and strategic target-state fit.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Enterprise Architecture",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-standards-and-exception-management",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Standards and exception management",
+      "x": 104,
+      "y": 308,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Define mandatory standards, approved patterns, and time-bound exceptions with risk, cost, and architectural rationale.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Enterprise Architecture",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-funding-and-consumption-economics",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Funding and consumption economics",
+      "x": 104,
+      "y": 356,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Define how platform investment, run cost, chargeback, showback, and unit economics are handled.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Finance/FinOps + Platform Owner",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-lifecycle-decommissioning-and-exit",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Lifecycle, decommissioning and exit",
+      "x": 104,
+      "y": 404,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Create entry, upgrade, migration, and exit criteria; ensure platform decommissioning is planned and funded.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Platform Owner",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-platform-value-and-adoption-measurement",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform value and adoption measurement",
+      "x": 104,
+      "y": 452,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Track reuse, adoption, speed, resilience, cost, satisfaction, risk reduction, and control effectiveness.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Platform Owner",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g0-regulatory-traceability",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Regulatory traceability",
+      "x": 104,
+      "y": 500,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Map platform controls, evidence, and operational dependencies to regulatory and internal-control obligations.",
+      "metadata": {
+        "groupId": "G0",
+        "primaryOwnershipAnchor": "Risk/Compliance + Platform Owner",
+        "sourceTable": 3
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-customer-and-digital-channel-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G1. Customer and digital channel platforms",
+      "x": 810,
+      "y": 120,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "sky",
+      "description": "Provide reusable capabilities for authenticated and unauthenticated customer journeys across web, mobile, advisor-assisted, branch, and contact-center channels.",
+      "metadata": {
+        "groupId": "G1",
+        "suggestedAccountability": "Business capability owner for customer/channel outcomes; platform owner for reusable channel platform services.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-journey-orchestration-and-front-end-composition",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Journey orchestration and front-end composition",
+      "x": 834,
+      "y": 164,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Reusable presentation, journey, component, and orchestration patterns for digital banking experiences.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Channel Platform Owner",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-digital-onboarding-and-servicing",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Digital onboarding and servicing",
+      "x": 834,
+      "y": 212,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Reusable flows for onboarding, self-service, account servicing, and customer lifecycle events.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Business Capability Owner",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-customer-identity-consent-and-access-experience",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Customer identity, consent and access experience",
+      "x": 834,
+      "y": 260,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Customer-facing identity, consent, authentication journeys, and secure authorization integration.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Security + Channel Platform Owner",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-advisor-branch-and-contact-center-enablement",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Advisor, branch and contact-center enablement",
+      "x": 834,
+      "y": 308,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Shared capabilities that let staff support customers consistently across assisted channels.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Business Capability Owner",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-personalization-and-content-integration",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Personalization and content integration",
+      "x": 834,
+      "y": 356,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Content, offer, campaign, and personalization capabilities with data-privacy guardrails.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Channel Platform Owner + Data Office",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-secure-messaging-and-notifications",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Secure messaging and notifications",
+      "x": 834,
+      "y": 404,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Reusable customer communication capabilities across authenticated messages, push, email, SMS, and letters.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Channel Platform Owner",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g1-channel-telemetry-and-journey-analytics",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Channel telemetry and journey analytics",
+      "x": 834,
+      "y": 452,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Experience telemetry, funnel analytics, and operational insight across customer-facing journeys.",
+      "metadata": {
+        "groupId": "G1",
+        "primaryOwnershipAnchor": "Data/Analytics Platform Owner",
+        "sourceTable": 4
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-core-banking-product-and-transaction-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G2. Core banking, product and transaction platforms",
+      "x": 80,
+      "y": 604,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "coral",
+      "description": "Support accounts, ledgers, payments, lending, product configuration, transaction processing, reconciliation, and financially material controls.",
+      "metadata": {
+        "groupId": "G2",
+        "suggestedAccountability": "Business capability owner or critical service owner for the banking capability; platform owner for the underlying platform service.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-account-balance-and-ledger-services",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Account, balance and ledger services",
+      "x": 104,
+      "y": 648,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Systems of record and transactional services for accounts, balances, postings, and ledger integrity.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Core Banking Platform Owner",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-product-and-pricing-catalogue",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Product and pricing catalogue",
+      "x": 104,
+      "y": 696,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable configuration of banking products, terms, fees, interest, and eligibility rules.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Business Capability Owner",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-payments-initiation-and-processing",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Payments initiation and processing",
+      "x": 104,
+      "y": 744,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable services for payment initiation, routing, clearing, settlement, and payment status.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Payments Platform Owner",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-credit-lending-and-collateral-servicing",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Credit, lending and collateral servicing",
+      "x": 104,
+      "y": 792,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable capabilities for loan origination, servicing, collateral, and credit lifecycle events.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Lending Platform Owner",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-cards-cash-management-and-treasury-connectivity",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Cards, cash management and treasury connectivity",
+      "x": 104,
+      "y": 840,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Capabilities for card services, corporate cash management, liquidity, and treasury integrations.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Business Capability Owner",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-reconciliation-settlement-and-control",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Reconciliation, settlement and control",
+      "x": 104,
+      "y": 888,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Financial reconciliation, exception handling, settlement controls, and evidential audit trails.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Business Capability Owner + Risk/Finance",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g2-transaction-event-and-journal-services",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Transaction event and journal services",
+      "x": 104,
+      "y": 936,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reliable event, journal, and history capabilities for downstream integration and traceability.",
+      "metadata": {
+        "groupId": "G2",
+        "primaryOwnershipAnchor": "Core Banking Platform Owner",
+        "sourceTable": 5
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-process-workflow-case-and-rules-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G3. Process, workflow, case and rules platforms",
+      "x": 810,
+      "y": 604,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "amber",
+      "description": "Provide reusable orchestration for business processes, long-running workflows, case handling, decisions, tasks, and audit trails.",
+      "metadata": {
+        "groupId": "G3",
+        "suggestedAccountability": "Enterprise process/workflow platform owner; business process owners are accountable for process outcomes.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-business-process-orchestration",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Business process orchestration",
+      "x": 834,
+      "y": 648,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Model and execute cross-system processes, including long-running, stateful, and auditable workflows.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Workflow Platform Owner",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-case-management",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Case management",
+      "x": 834,
+      "y": 696,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Manage cases, tasks, roles, queues, evidence, deadlines, and operational SLAs.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Workflow Platform Owner",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-rules-and-decision-services",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Rules and decision services",
+      "x": 834,
+      "y": 744,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Reusable rules, eligibility, routing, and decision logic where consistency and auditability are needed.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Decision Platform Owner",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-task-approval-and-delegation-management",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Task, approval and delegation management",
+      "x": 834,
+      "y": 792,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Reusable human-in-the-loop approvals, assignments, escalations, and delegation patterns.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Workflow Platform Owner",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-document-capture-and-e-signature-integration",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Document capture and e-signature integration",
+      "x": 834,
+      "y": 840,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Ingest, classify, validate, sign, archive, and link documents to business processes.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Business Process Owner",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-process-mining-and-optimization",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Process mining and optimization",
+      "x": 834,
+      "y": 888,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Measure process performance, bottlenecks, rework, compliance breaks, and improvement opportunities.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Process Excellence Owner",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g3-workflow-audit-trail-and-compliance-evidence",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Workflow audit trail and compliance evidence",
+      "x": 834,
+      "y": 936,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Generate immutable process histories, approvals, control points, and audit evidence.",
+      "metadata": {
+        "groupId": "G3",
+        "primaryOwnershipAnchor": "Workflow Platform Owner + Risk/Compliance",
+        "sourceTable": 6
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G4. Enterprise service management and operational workflow platforms",
+      "x": 80,
+      "y": 1040,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "lavender",
+      "description": "Manage IT and enterprise service processes such as incidents, changes, requests, configuration, service catalogue, knowledge, and operational workflow automation.",
+      "metadata": {
+        "groupId": "G4",
+        "suggestedAccountability": "Service management process owner for process policy; service management platform owner for platform service quality.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-incident-problem-and-change-management",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Incident, problem and change management",
+      "x": 104,
+      "y": 1084,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Standard processes, workflow, approvals, communication, and evidence for service disruption and change.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Service Management Owner",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-service-catalogue-and-request-fulfilment",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Service catalogue and request fulfilment",
+      "x": 104,
+      "y": 1132,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Self-service request catalogue, approvals, fulfilment routing, and service-level tracking.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Service Management Platform Owner",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-configuration-and-service-mapping",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Configuration and service mapping",
+      "x": 104,
+      "y": 1180,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "CMDB, service models, dependencies, technical services, business services, and criticality mapping.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Service Management Owner + Platform Owner",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-asset-license-and-configuration-control",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Asset, license and configuration control",
+      "x": 104,
+      "y": 1228,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Technology asset, software asset, license, and configuration lifecycle management.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Asset Management Owner",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-knowledge-management",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Knowledge management",
+      "x": 104,
+      "y": 1276,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Reusable knowledge articles, runbooks, known error records, and self-service knowledge discovery.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Service Management Owner",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-operational-workflow-automation",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Operational workflow automation",
+      "x": 104,
+      "y": 1324,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Controlled automation for operational tasks, remediation, approvals, and fulfilment.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Service Management Platform Owner",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g4-third-party-support-integration",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Third-party support integration",
+      "x": 104,
+      "y": 1372,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Integrations to vendors and managed service partners, including SLAs, tickets, and escalation evidence.",
+      "metadata": {
+        "groupId": "G4",
+        "primaryOwnershipAnchor": "Vendor Management + Service Management",
+        "sourceTable": 7
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-developer-low-code-and-automation-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G5. Developer, low-code and automation platforms",
+      "x": 810,
+      "y": 1040,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "peach",
+      "description": "Accelerate safe solution delivery through self-service developer platforms, low-code tooling, templates, DevSecOps pipelines, automation, and citizen-development guardrails.",
+      "metadata": {
+        "groupId": "G5",
+        "suggestedAccountability": "Developer platform owner for professional development platforms; low-code platform owner/CoE for low-code governance and enablement.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-internal-developer-portal-and-service-catalogue",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Internal developer portal and service catalogue",
+      "x": 834,
+      "y": 1084,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Single access point for platform services, documentation, templates, APIs, environments, and onboarding.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Developer Platform Owner",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-golden-paths-and-solution-templates",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Golden paths and solution templates",
+      "x": 834,
+      "y": 1132,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Reusable patterns that embed architecture, security, observability, compliance, and deployment standards by default.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Developer Platform Owner + EA",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-ci-cd-and-devsecops-automation",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "CI/CD and DevSecOps automation",
+      "x": 834,
+      "y": 1180,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Build, test, scan, release, deploy, rollback, and evidence generation through standard pipelines.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Developer Platform Owner",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-low-code-application-platform",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Low-code application platform",
+      "x": 834,
+      "y": 1228,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Governed capabilities for low-code applications, automations, and business productivity solutions.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Low-code Platform Owner/CoE",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-citizen-developer-governance",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Citizen developer governance",
+      "x": 834,
+      "y": 1276,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Makers, environments, data connectors, DLP policies, app classification, lifecycle, and support expectations.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Low-code Platform Owner + Risk/Security",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-test-quality-and-release-automation",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Test, quality and release automation",
+      "x": 834,
+      "y": 1324,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Shared testing, quality gates, performance tests, accessibility checks, and release controls.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Quality Engineering Owner",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g5-robotic-and-desktop-automation",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Robotic and desktop automation",
+      "x": 834,
+      "y": 1372,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Controlled automation for user-interface or back-office task automation where API automation is not viable.",
+      "metadata": {
+        "groupId": "G5",
+        "primaryOwnershipAnchor": "Automation Platform Owner",
+        "sourceTable": 8
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-hosting-runtime-and-workload-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G6. Hosting, runtime and workload platforms",
+      "x": 80,
+      "y": 1476,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "teal",
+      "description": "Provide standardized and resilient places to run workloads across legacy, mainframe, private infrastructure, public cloud, containers, serverless, and managed runtime services.",
+      "metadata": {
+        "groupId": "G6",
+        "suggestedAccountability": "Technology platform owner for the runtime; Enterprise Architecture for workload-placement principles and cross-runtime strategy.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-mainframe-and-high-integrity-transaction-runtime",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Mainframe and high-integrity transaction runtime",
+      "x": 104,
+      "y": 1520,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Runtime, operations, capacity, and modernization pathways for critical legacy transaction workloads.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Mainframe Platform Owner",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-private-cloud-and-infrastructure-runtime",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Private cloud and infrastructure runtime",
+      "x": 104,
+      "y": 1568,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Virtualization, storage, network, and enterprise hosting capabilities for regulated workloads.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Infrastructure Platform Owner",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-public-cloud-landing-zones",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Public cloud landing zones",
+      "x": 104,
+      "y": 1616,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Standard accounts, network, identity, guardrails, policy, logging, and workload onboarding for cloud usage.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Cloud Platform Owner",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-container-serverless-and-application-runtime",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Container, serverless and application runtime",
+      "x": 104,
+      "y": 1664,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Standardized container, function, runtime, service mesh, and deployment capabilities.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Runtime Platform Owner",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-workload-placement-and-hosting-patterns",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Workload placement and hosting patterns",
+      "x": 104,
+      "y": 1712,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Decision rules for what runs where based on criticality, latency, data gravity, cost, resilience, and compliance.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Enterprise Architecture",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-environment-provisioning-and-configuration",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Environment provisioning and configuration",
+      "x": 104,
+      "y": 1760,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Self-service provisioning of development, test, staging, production, and sandbox environments.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Runtime Platform Owner",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g6-capacity-performance-backup-and-disaster-recovery",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Capacity, performance, backup and disaster recovery",
+      "x": 104,
+      "y": 1808,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Capacity planning, performance engineering, backup, recovery, and DR automation for platform runtimes.",
+      "metadata": {
+        "groupId": "G6",
+        "primaryOwnershipAnchor": "Runtime Platform Owner + Operational Resilience",
+        "sourceTable": 9
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-integration-api-and-event-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G7. Integration, API and event platforms",
+      "x": 810,
+      "y": 1476,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "slate",
+      "description": "Enable secure, discoverable, governed and observable integration across banking systems, channels, partners, data platforms, AI agents, and operational tooling.",
+      "metadata": {
+        "groupId": "G7",
+        "suggestedAccountability": "Integration platform owner; Enterprise Architecture for integration standards and canonical patterns.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-api-management-and-developer-portal",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "API management and developer portal",
+      "x": 834,
+      "y": 1520,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "API publication, discovery, onboarding, throttling, lifecycle, subscription, and consumer analytics.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "API Platform Owner",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-integration-runtime-and-orchestration",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Integration runtime and orchestration",
+      "x": 834,
+      "y": 1568,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Reusable integration services, adapters, transformations, routing, and policy enforcement.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "Integration Platform Owner",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-event-streaming-and-messaging",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Event streaming and messaging",
+      "x": 834,
+      "y": 1616,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Event publication, subscription, schemas, replay, retention, partitioning, and operational monitoring.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "Event Platform Owner",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-managed-file-transfer-and-batch-integration",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Managed file transfer and batch integration",
+      "x": 834,
+      "y": 1664,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Secure, auditable file exchange and batch integration where event or API integration is not suitable.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "Integration Platform Owner",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-canonical-schemas-and-contract-governance",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Canonical schemas and contract governance",
+      "x": 834,
+      "y": 1712,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Data contracts, API contracts, event schemas, versioning, and backward-compatibility controls.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "Enterprise Architecture + Data Office",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-partner-and-open-banking-integration",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Partner and open-banking integration",
+      "x": 834,
+      "y": 1760,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "External integration, security, consent, throttling, regulatory interface, and partner onboarding capabilities.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "Integration Platform Owner + Business Owner",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g7-integration-observability-and-resilience",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Integration observability and resilience",
+      "x": 834,
+      "y": 1808,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Monitoring, tracing, queuing, error handling, retry, circuit breaking, and impact analysis for integrations.",
+      "metadata": {
+        "groupId": "G7",
+        "primaryOwnershipAnchor": "Integration Platform Owner",
+        "sourceTable": 10
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-data-analytics-and-reporting-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G8. Data, analytics and reporting platforms",
+      "x": 80,
+      "y": 1912,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "mint",
+      "description": "Provide trusted data, analytics, reporting, lineage, quality, access, and regulatory-reporting capabilities for decision-making and operational control.",
+      "metadata": {
+        "groupId": "G8",
+        "suggestedAccountability": "Data Office or Chief Data Owner for data policy and governance; data platform owner for platform service delivery.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-data-ingestion-and-landing",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Data ingestion and landing",
+      "x": 104,
+      "y": 1956,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Standard ingestion, validation, capture, and landing of data from operational systems and external sources.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Data Platform Owner",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-data-lake-warehouse-and-marts",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Data lake, warehouse and marts",
+      "x": 104,
+      "y": 2004,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Curated data storage, transformation, analytics, and data product publication capabilities.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Data Platform Owner",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-metadata-lineage-and-catalogue",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Metadata, lineage and catalogue",
+      "x": 104,
+      "y": 2052,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Business and technical metadata, ownership, lineage, classification, and discoverability.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Data Office",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-data-quality-and-reconciliation",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Data quality and reconciliation",
+      "x": 104,
+      "y": 2100,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Quality rules, exceptions, reconciliation, controls, and remediation workflows.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Data Office + Data Platform Owner",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-semantic-layer-and-bi-enablement",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Semantic layer and BI enablement",
+      "x": 104,
+      "y": 2148,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Common metrics, semantic models, dashboards, and governed self-service analytics.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Analytics Platform Owner",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-regulatory-and-management-reporting",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Regulatory and management reporting",
+      "x": 104,
+      "y": 2196,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Controlled report production, traceability, attestation, and regulatory data pipelines.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Reporting Platform Owner + Finance/Risk",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g8-data-access-privacy-and-retention-controls",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Data access, privacy and retention controls",
+      "x": 104,
+      "y": 2244,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Access policies, purpose limitation, consent, retention, anonymization, and data-protection controls.",
+      "metadata": {
+        "groupId": "G8",
+        "primaryOwnershipAnchor": "Data Office + Privacy/Security",
+        "sourceTable": 11
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-ai-decision-and-agentic-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G9. AI, decision and agentic platforms",
+      "x": 810,
+      "y": 1912,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "sky",
+      "description": "Enable responsible and reusable AI, model, decision, knowledge, and agent capabilities with guardrails, evaluation, monitoring, human oversight, and integration to enterprise tools and data.",
+      "metadata": {
+        "groupId": "G9",
+        "suggestedAccountability": "AI platform owner for platform service; Data/AI Governance for AI policy and risk framework; Risk/Security for control approval.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-foundation-model-access-and-model-catalogue",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Foundation model access and model catalogue",
+      "x": 834,
+      "y": 1956,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Approved access to models, model metadata, permitted use cases, risk tiers, and consumption controls.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "AI Platform Owner + AI Governance",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-retrieval-and-knowledge-base-services",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Retrieval and knowledge-base services",
+      "x": 834,
+      "y": 2004,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "RAG patterns, embeddings, vector stores, document controls, grounding, and source traceability.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "AI Platform Owner + Data Office",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-prompt-tool-and-agent-templates",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Prompt, tool and agent templates",
+      "x": 834,
+      "y": 2052,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Reusable patterns for prompts, tools, agents, evaluations, and controlled interactions with enterprise systems.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "AI Platform Owner",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-agent-runtime-and-tool-gateway",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Agent runtime and tool gateway",
+      "x": 834,
+      "y": 2100,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Secure runtime, tool access, identity propagation, session isolation, memory, and scalable agent execution.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "AI Platform Owner + Security",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-ai-guardrails-and-safety-controls",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "AI guardrails and safety controls",
+      "x": 834,
+      "y": 2148,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Content safety, data leakage prevention, hallucination checks, policy enforcement, and human escalation.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "AI Governance + Security",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-evaluation-monitoring-and-model-agent-lifecycle",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Evaluation, monitoring and model/agent lifecycle",
+      "x": 834,
+      "y": 2196,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Offline and online evaluation, drift, quality, cost, risk, usage monitoring, and retirement controls.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "AI Platform Owner + AI Governance",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g9-human-oversight-and-evidential-audit-trail",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Human oversight and evidential audit trail",
+      "x": 834,
+      "y": 2244,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Human-in-the-loop controls, explanations, approvals, traceability, and model/agent audit evidence.",
+      "metadata": {
+        "groupId": "G9",
+        "primaryOwnershipAnchor": "Risk/Compliance + AI Platform Owner",
+        "sourceTable": 12
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-security-identity-and-trust-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G10. Security, identity and trust platforms",
+      "x": 80,
+      "y": 2348,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "coral",
+      "description": "Provide reusable identity, access, cryptography, secrets, certificate, threat, vulnerability, and policy-enforcement capabilities across platforms and products.",
+      "metadata": {
+        "groupId": "G10",
+        "suggestedAccountability": "Security function/CISO for policy and control outcomes; security platform owner for service quality and adoption.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-workforce-identity-and-access-management",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Workforce identity and access management",
+      "x": 104,
+      "y": 2392,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Authentication, authorization, lifecycle, federation, privileged access integration, and access reviews.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Identity Platform Owner",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-customer-identity-and-access-management",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Customer identity and access management",
+      "x": 104,
+      "y": 2440,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable customer authentication, consent, strong customer authentication, and delegated access patterns.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Customer IAM Owner",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-privileged-access-and-secrets-management",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Privileged access and secrets management",
+      "x": 104,
+      "y": 2488,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Privileged access control, secrets, credentials, vaulting, rotation, break-glass, and audit.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Security Platform Owner",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-key-certificate-and-cryptographic-services",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Key, certificate and cryptographic services",
+      "x": 104,
+      "y": 2536,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "HSM, key management, certificate lifecycle, encryption services, and cryptographic standards.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Security Platform Owner",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-policy-as-code-and-authorization-services",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Policy-as-code and authorization services",
+      "x": 104,
+      "y": 2584,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable policy enforcement, entitlement decisions, least privilege, and context-aware controls.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Security Platform Owner + EA",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-threat-vulnerability-and-exposure-management",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Threat, vulnerability and exposure management",
+      "x": 104,
+      "y": 2632,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Scanning, prioritization, remediation workflow, threat intelligence, and exposure reporting.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Security Operations Owner",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g10-security-telemetry-and-fraud-signals",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Security telemetry and fraud signals",
+      "x": 104,
+      "y": 2680,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable security events, behavioral signals, fraud detection feeds, and integration with monitoring platforms.",
+      "metadata": {
+        "groupId": "G10",
+        "primaryOwnershipAnchor": "Security Operations Owner",
+        "sourceTable": 13
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-observability-resilience-and-it-operations-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G11. Observability, resilience and IT operations platforms",
+      "x": 810,
+      "y": 2348,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "amber",
+      "description": "Provide operational insight, service reliability, incident response, dependency mapping, resilience testing, and runbook automation across critical technology services.",
+      "metadata": {
+        "groupId": "G11",
+        "suggestedAccountability": "Service reliability or operational resilience owner for service reliability process; observability platform owner for tooling and platform service.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-metrics-logs-and-traces",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Metrics, logs and traces",
+      "x": 834,
+      "y": 2392,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Standard telemetry ingestion, retention, search, dashboards, and correlation across systems.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "Observability Platform Owner",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-service-level-objectives-and-error-budgets",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Service-level objectives and error budgets",
+      "x": 834,
+      "y": 2440,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "SLOs, SLIs, operational health metrics, and service reliability targets.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "SRE/Service Reliability Owner",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-alerting-aiops-and-event-correlation",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Alerting, AIOps and event correlation",
+      "x": 834,
+      "y": 2488,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Actionable alerting, anomaly detection, correlation, noise reduction, and operational escalation.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "Operations Platform Owner",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-incident-response-and-communication",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Incident response and communication",
+      "x": 834,
+      "y": 2536,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Incident coordination, impact assessment, communication, war rooms, and post-incident reviews.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "Service Management + Operations",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-dependency-and-critical-service-mapping",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Dependency and critical-service mapping",
+      "x": 834,
+      "y": 2584,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Map technology dependencies to business services and critical operations.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "Operational Resilience Owner",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-disaster-recovery-and-resilience-testing",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Disaster recovery and resilience testing",
+      "x": 834,
+      "y": 2632,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "DR plans, recovery testing, scenario tests, failover, and resilience evidence.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "Operational Resilience Owner",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g11-runbook-and-remediation-automation",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Runbook and remediation automation",
+      "x": 834,
+      "y": 2680,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Automated diagnostics, remediation, rollback, and operational runbooks.",
+      "metadata": {
+        "groupId": "G11",
+        "primaryOwnershipAnchor": "Operations Platform Owner",
+        "sourceTable": 14
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-workplace-productivity-and-collaboration-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G12. Workplace, productivity and collaboration platforms",
+      "x": 80,
+      "y": 2784,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "lavender",
+      "description": "Provide secure employee productivity, collaboration, knowledge, endpoint, communication, and information-protection capabilities without letting broad licenses blur platform boundaries.",
+      "metadata": {
+        "groupId": "G12",
+        "suggestedAccountability": "End-user platform owner for workplace services; Enterprise Architecture for boundary decisions when productivity tools enter development, workflow, or data-platform territory.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-collaboration-messaging-and-meetings",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Collaboration, messaging and meetings",
+      "x": 104,
+      "y": 2828,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Employee collaboration, conferencing, mail, chat, shared workspaces, and communication services.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Workplace Platform Owner",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-document-records-and-knowledge-management",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Document, records and knowledge management",
+      "x": 104,
+      "y": 2876,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Document storage, co-authoring, knowledge repositories, retention, records, and discovery.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Workplace Platform Owner + Legal/Records",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-endpoint-and-device-management",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Endpoint and device management",
+      "x": 104,
+      "y": 2924,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Device lifecycle, endpoint security, patching, configuration, application deployment, and user support.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Endpoint Platform Owner",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-enterprise-search-and-employee-portal",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Enterprise search and employee portal",
+      "x": 104,
+      "y": 2972,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Search, knowledge access, employee portal, and self-service entry points.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Workplace Platform Owner",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-productivity-automation",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Productivity automation",
+      "x": 104,
+      "y": 3020,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Automation of individual and team productivity use cases inside approved boundaries.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Workplace Platform Owner + Low-code CoE",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-information-protection-and-dlp",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Information protection and DLP",
+      "x": 104,
+      "y": 3068,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Classification, labelling, DLP, retention, eDiscovery, and content-risk controls.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Security/Privacy + Workplace Owner",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g12-workplace-analytics-and-adoption",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Workplace analytics and adoption",
+      "x": 104,
+      "y": 3116,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Adoption, usage, employee experience, accessibility, and service-quality analytics.",
+      "metadata": {
+        "groupId": "G12",
+        "primaryOwnershipAnchor": "Workplace Platform Owner",
+        "sourceTable": 15
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-corporate-and-enterprise-management-platforms",
+      "parentId": "enterprise-platform-capability-model",
+      "label": "G13. Corporate and enterprise management platforms",
+      "x": 810,
+      "y": 2784,
+      "w": 680,
+      "h": 404,
+      "type": "parent",
+      "color": "peach",
+      "description": "Support reusable platforms for CRM, HR, finance, procurement, legal, GRC, portfolio management, vendor management, and other enterprise-management functions.",
+      "metadata": {
+        "groupId": "G13",
+        "suggestedAccountability": "Business function owner for business outcomes; platform owner for service quality and integration; Enterprise Architecture for cross-enterprise reuse and boundaries.",
+        "sourceTable": 2
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-crm-and-relationship-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "CRM and relationship management",
+      "x": 834,
+      "y": 2828,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Relationship, sales, service, interaction, and customer insight capabilities for assisted channels and commercial banking.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "Business Function Owner + CRM Platform Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-finance-procurement-and-expense-platforms",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Finance, procurement and expense platforms",
+      "x": 834,
+      "y": 2876,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Financial management, procurement, invoicing, expense, and control workflows.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "Finance/Procurement Platform Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-hr-and-workforce-platforms",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "HR and workforce platforms",
+      "x": 834,
+      "y": 2924,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Employee lifecycle, workforce data, learning, talent, and organizational management capabilities.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "HR Platform Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-governance-risk-and-compliance-platforms",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Governance, risk and compliance platforms",
+      "x": 834,
+      "y": 2972,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Risk registers, controls, attestations, issues, policies, compliance workflows, and evidence management.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "Risk/Compliance Platform Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-portfolio-strategy-and-demand-platforms",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Portfolio, strategy and demand platforms",
+      "x": 834,
+      "y": 3020,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Strategic planning, funding, portfolio, demand, dependency, and benefits-management capabilities.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "Portfolio Management Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-legal-and-regulatory-case-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Legal and regulatory case management",
+      "x": 834,
+      "y": 3068,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Legal matters, regulatory requests, investigations, document holds, and compliance case workflows.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "Legal/Compliance Platform Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    },
+    {
+      "id": "g13-third-party-and-outsourcing-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Third-party and outsourcing management",
+      "x": 834,
+      "y": 3116,
+      "w": 632,
+      "h": 40,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Supplier lifecycle, outsourcing risk, criticality, due diligence, contract obligations, and ongoing monitoring.",
+      "metadata": {
+        "groupId": "G13",
+        "primaryOwnershipAnchor": "Sourcing/Vendor Platform Owner",
+        "sourceTable": 16
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778716800000,
+      "updatedAt": 1778716800000
+    }
+  ],
+  "settings": {
+    "gridEnabled": true,
+    "gridSize": 8,
+    "resizeSnapToGrid": true,
+    "fixedLeafWidth": 175,
+    "fixedLeafHeight": 45,
+    "leafColor": "slate",
+    "colorPalette": "default",
+    "defaultParentWidth": 175,
+    "defaultParentHeight": 40,
+    "containerPaddingTop": 8,
+    "containerPaddingRight": 8,
+    "containerPaddingBottom": 8,
+    "containerPaddingLeft": 8,
+    "containerTitleHeight": 35,
+    "containerLabelOffsetTop": 4,
+    "childGapX": 4,
+    "childGapY": 4,
+    "fontFamily": "Segoe UI",
+    "borderRadius": 8,
+    "layoutMode": "balanced",
+    "layoutAspectRatioPreset": "16:9",
+    "customLayoutAspectRatioWidth": 16,
+    "customLayoutAspectRatioHeight": 9
+  },
+  "layout": {
+    "mode": "balanced",
+    "isUserArranged": false,
+    "preservePositions": true,
+    "boundingBox": {
+      "x": 24,
+      "y": 24,
+      "w": 1928,
+      "h": 888
+    },
+    "aspectRatioFrame": {
+      "x": 0,
+      "y": -88,
+      "w": 1976,
+      "h": 1112
+    },
+    "aspectRatioTarget": {
+      "w": 16,
+      "h": 9
+    }
+  },
+  "heatmap": {
+    "enabled": false,
+    "showLegend": true,
+    "showValuePills": true,
+    "palette": "green-yellow-red",
+    "fallbackColor": "mint"
+  },
+  "visual": {
+    "activeViewId": "view-default",
+    "defaultViewId": "view-default",
+    "viewOrder": [
+      "view-default"
+    ],
+    "viewsById": {
+      "view-default": {
+        "id": "view-default",
+        "name": "Default view",
+        "createdAt": 1778739721445,
+        "updatedAt": 1778739883316,
+        "templateId": "full-model-default@1",
+        "nodeStatesById": {
+          "enterprise-platform-capability-model": {
+            "x": 24,
+            "y": 24,
+            "w": 1928,
+            "h": 888,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-governance-and-portfolio-management": {
+            "x": 32,
+            "y": 72,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-classification-and-designation": {
+            "x": 40,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-capability-ownership-and-scope-boundaries": {
+            "x": 224,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-portfolio-and-target-state-roadmap": {
+            "x": 40,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-standards-and-exception-management": {
+            "x": 224,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-funding-and-consumption-economics": {
+            "x": 40,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-lifecycle-decommissioning-and-exit": {
+            "x": 224,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-value-and-adoption-measurement": {
+            "x": 40,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-regulatory-traceability": {
+            "x": 224,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-customer-and-digital-channel-platforms": {
+            "x": 416,
+            "y": 72,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-journey-orchestration-and-front-end-composition": {
+            "x": 424,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-digital-onboarding-and-servicing": {
+            "x": 608,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-customer-identity-consent-and-access-experience": {
+            "x": 424,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-advisor-branch-and-contact-center-enablement": {
+            "x": 608,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-personalization-and-content-integration": {
+            "x": 424,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-secure-messaging-and-notifications": {
+            "x": 608,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-channel-telemetry-and-journey-analytics": {
+            "x": 520,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-core-banking-product-and-transaction-platforms": {
+            "x": 800,
+            "y": 72,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-account-balance-and-ledger-services": {
+            "x": 808,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-product-and-pricing-catalogue": {
+            "x": 992,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-payments-initiation-and-processing": {
+            "x": 808,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-credit-lending-and-collateral-servicing": {
+            "x": 992,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-cards-cash-management-and-treasury-connectivity": {
+            "x": 808,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-reconciliation-settlement-and-control": {
+            "x": 992,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-transaction-event-and-journal-services": {
+            "x": 904,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-process-workflow-case-and-rules-platforms": {
+            "x": 1184,
+            "y": 72,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-business-process-orchestration": {
+            "x": 1192,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-case-management": {
+            "x": 1376,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-rules-and-decision-services": {
+            "x": 1192,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-task-approval-and-delegation-management": {
+            "x": 1376,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-document-capture-and-e-signature-integration": {
+            "x": 1192,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-process-mining-and-optimization": {
+            "x": 1376,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-workflow-audit-trail-and-compliance-evidence": {
+            "x": 1288,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-enterprise-service-management-and-operational-workflow-platforms": {
+            "x": 1568,
+            "y": 72,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-incident-problem-and-change-management": {
+            "x": 1576,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-service-catalogue-and-request-fulfilment": {
+            "x": 1760,
+            "y": 120,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-configuration-and-service-mapping": {
+            "x": 1576,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-asset-license-and-configuration-control": {
+            "x": 1760,
+            "y": 176,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-knowledge-management": {
+            "x": 1576,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-operational-workflow-automation": {
+            "x": 1760,
+            "y": 232,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-third-party-support-integration": {
+            "x": 1672,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-developer-low-code-and-automation-platforms": {
+            "x": 32,
+            "y": 352,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-internal-developer-portal-and-service-catalogue": {
+            "x": 40,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-golden-paths-and-solution-templates": {
+            "x": 224,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-ci-cd-and-devsecops-automation": {
+            "x": 40,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-low-code-application-platform": {
+            "x": 224,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-citizen-developer-governance": {
+            "x": 40,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-test-quality-and-release-automation": {
+            "x": 224,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-robotic-and-desktop-automation": {
+            "x": 136,
+            "y": 568,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-hosting-runtime-and-workload-platforms": {
+            "x": 416,
+            "y": 352,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-mainframe-and-high-integrity-transaction-runtime": {
+            "x": 424,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-private-cloud-and-infrastructure-runtime": {
+            "x": 608,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-public-cloud-landing-zones": {
+            "x": 424,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-container-serverless-and-application-runtime": {
+            "x": 608,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-workload-placement-and-hosting-patterns": {
+            "x": 424,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-environment-provisioning-and-configuration": {
+            "x": 608,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-capacity-performance-backup-and-disaster-recovery": {
+            "x": 520,
+            "y": 568,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-integration-api-and-event-platforms": {
+            "x": 800,
+            "y": 352,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-api-management-and-developer-portal": {
+            "x": 808,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-integration-runtime-and-orchestration": {
+            "x": 992,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-event-streaming-and-messaging": {
+            "x": 808,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-managed-file-transfer-and-batch-integration": {
+            "x": 992,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-canonical-schemas-and-contract-governance": {
+            "x": 808,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-partner-and-open-banking-integration": {
+            "x": 992,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-integration-observability-and-resilience": {
+            "x": 904,
+            "y": 568,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-analytics-and-reporting-platforms": {
+            "x": 1184,
+            "y": 352,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-ingestion-and-landing": {
+            "x": 1192,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-lake-warehouse-and-marts": {
+            "x": 1376,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-metadata-lineage-and-catalogue": {
+            "x": 1192,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-quality-and-reconciliation": {
+            "x": 1376,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-semantic-layer-and-bi-enablement": {
+            "x": 1192,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-regulatory-and-management-reporting": {
+            "x": 1376,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-access-privacy-and-retention-controls": {
+            "x": 1288,
+            "y": 568,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-ai-decision-and-agentic-platforms": {
+            "x": 1568,
+            "y": 352,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-foundation-model-access-and-model-catalogue": {
+            "x": 1576,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-retrieval-and-knowledge-base-services": {
+            "x": 1760,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-prompt-tool-and-agent-templates": {
+            "x": 1576,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-agent-runtime-and-tool-gateway": {
+            "x": 1760,
+            "y": 456,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-ai-guardrails-and-safety-controls": {
+            "x": 1576,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-evaluation-monitoring-and-model-agent-lifecycle": {
+            "x": 1760,
+            "y": 512,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-human-oversight-and-evidential-audit-trail": {
+            "x": 1672,
+            "y": 568,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-security-identity-and-trust-platforms": {
+            "x": 224,
+            "y": 632,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-workforce-identity-and-access-management": {
+            "x": 232,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-customer-identity-and-access-management": {
+            "x": 416,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-privileged-access-and-secrets-management": {
+            "x": 232,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-key-certificate-and-cryptographic-services": {
+            "x": 416,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-policy-as-code-and-authorization-services": {
+            "x": 232,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-threat-vulnerability-and-exposure-management": {
+            "x": 416,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-security-telemetry-and-fraud-signals": {
+            "x": 328,
+            "y": 848,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-observability-resilience-and-it-operations-platforms": {
+            "x": 608,
+            "y": 632,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-metrics-logs-and-traces": {
+            "x": 616,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-service-level-objectives-and-error-budgets": {
+            "x": 800,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-alerting-aiops-and-event-correlation": {
+            "x": 616,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-incident-response-and-communication": {
+            "x": 800,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-dependency-and-critical-service-mapping": {
+            "x": 616,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-disaster-recovery-and-resilience-testing": {
+            "x": 800,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-runbook-and-remediation-automation": {
+            "x": 712,
+            "y": 848,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-workplace-productivity-and-collaboration-platforms": {
+            "x": 992,
+            "y": 632,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-collaboration-messaging-and-meetings": {
+            "x": 1000,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-document-records-and-knowledge-management": {
+            "x": 1184,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-endpoint-and-device-management": {
+            "x": 1000,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-enterprise-search-and-employee-portal": {
+            "x": 1184,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-productivity-automation": {
+            "x": 1000,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-information-protection-and-dlp": {
+            "x": 1184,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-workplace-analytics-and-adoption": {
+            "x": 1096,
+            "y": 848,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-corporate-and-enterprise-management-platforms": {
+            "x": 1376,
+            "y": 632,
+            "w": 376,
+            "h": 272,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-crm-and-relationship-management": {
+            "x": 1384,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-finance-procurement-and-expense-platforms": {
+            "x": 1568,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-hr-and-workforce-platforms": {
+            "x": 1384,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-governance-risk-and-compliance-platforms": {
+            "x": 1568,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-portfolio-strategy-and-demand-platforms": {
+            "x": 1384,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-legal-and-regulatory-case-management": {
+            "x": 1568,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-third-party-and-outsourcing-management": {
+            "x": 1480,
+            "y": 848,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          }
+        },
+        "viewport": {
+          "zoom": 1,
+          "x": 14.277554782527432,
+          "y": 24.6666259765625
+        },
+        "layout": {
+          "mode": "balanced",
+          "boundingBox": {
+            "x": 24,
+            "y": 24,
+            "w": 1928,
+            "h": 888
+          },
+          "aspectRatioFrame": {
+            "x": 0,
+            "y": -88,
+            "w": 1976,
+            "h": 1112
+          },
+          "aspectRatioTarget": {
+            "w": 16,
+            "h": 9
+          },
+          "isUserArranged": false,
+          "preservePositions": true
+        },
+        "heatmap": {
+          "enabled": false,
+          "showLegend": true,
+          "showValuePills": true
+        },
+        "export": {}
+      }
+    }
+  },
+  "timestamp": 1778739883316
+}

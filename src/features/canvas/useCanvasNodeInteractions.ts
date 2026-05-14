@@ -4,11 +4,9 @@ import {
   useCallback,
 } from "react";
 import {
-  moveNodes,
-  repairSiblingOverlaps,
-  reparentNode,
+  moveNodesWithLayoutIntent,
+  reparentNodeWithLayoutIntent,
   resizeNode,
-  transaction,
 } from "../../domain/commands/operations";
 import {
   type CapabilityDocument,
@@ -29,6 +27,7 @@ import {
   snapResizeDelta,
 } from "./canvasGeometry";
 import { descendantIds } from "./selectors";
+import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
 
 export function useCanvasNodeInteractions({
   canvasRef,
@@ -172,24 +171,20 @@ export function useCanvasNodeInteractions({
             reparentTargetId !== undefined &&
             reparentTargetId !== currentParent;
           if (wantsReparent) {
-            const reparentTxn = reparentNode(dragRootId, reparentTargetId);
-            const moveTxn = moveNodes(current.nodeIds, dx, dy);
-            execute(
-              transaction(
-                "Reparent capability",
-                [...reparentTxn.commands, ...moveTxn.commands],
-                { source: "drag" },
+            showManualPositioningNoticeForDiagnostics(
+              execute(
+                reparentNodeWithLayoutIntent(
+                  dragRootId,
+                  reparentTargetId,
+                  dx,
+                  dy,
+                ),
               ),
             );
           } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
-            execute(moveNodes(current.nodeIds, dx, dy));
-            const parentId = viewDoc.nodesById[dragRootId]?.parentId;
-            if (parentId) {
-              const parentNode = viewDoc.nodesById[parentId];
-              if (parentNode && !parentNode.isManualPositioningEnabled) {
-                execute(repairSiblingOverlaps(parentId));
-              }
-            }
+            showManualPositioningNoticeForDiagnostics(
+              execute(moveNodesWithLayoutIntent(selectionRoots, dx, dy)),
+            );
           }
         }
         window.removeEventListener("pointermove", onMove);

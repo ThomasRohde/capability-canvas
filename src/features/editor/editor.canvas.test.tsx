@@ -14,6 +14,7 @@ import {
   lockSubtree,
   reparentNode,
   runTransaction,
+  setManualPositioning,
   updateActiveViewHeatmapSettings,
 } from "../../domain/commands/operations";
 import { createEmptyDocument, createNode } from "../../domain/document/defaults";
@@ -23,13 +24,17 @@ import {
   type CapabilityDocument,
 } from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
+import { MANUAL_POSITIONING_NOTICE } from "../../domain/layout/canvasLayoutPolicy";
 import { warning } from "../../domain/validation/diagnostics";
 import {
   createVisualWorkspaceFromDocument,
   resolveVisualDocument,
 } from "../../domain/visual/workspace";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
-import { normalizeCssColor } from "../../test/documentAssertions";
+import {
+  geometrySnapshot,
+  normalizeCssColor,
+} from "../../test/documentAssertions";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
 
 describe("editor canvas workflows", () => {
@@ -794,6 +799,61 @@ describe("editor canvas workflows", () => {
       expectedDy,
     );
     expect(after.nodesById.operations!.x % before.settings.gridSize).toBe(0);
+    expect(after.nodesById["retail-banking"]!.isManualPositioningEnabled).toBe(
+      true,
+    );
+    expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(false);
+    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+  });
+
+  it("switches the arranging parent to Manual after direct child drag", () => {
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const creditRisk = within(canvas)
+      .getByText("Credit Risk")
+      .closest(".cc-node") as HTMLElement;
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const nodeBefore = before.nodesById["credit-risk"]!;
+    const expectedDx =
+      Math.round((nodeBefore.x + 21) / before.settings.gridSize) *
+        before.settings.gridSize -
+      nodeBefore.x;
+    const expectedDy =
+      Math.round((nodeBefore.y + 21) / before.settings.gridSize) *
+        before.settings.gridSize -
+      nodeBefore.y;
+    const startX = nodeBefore.x + 20;
+    const startY = nodeBefore.y + 20;
+
+    fireEvent(
+      creditRisk,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: startX,
+        clientY: startY,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        buttons: 1,
+        clientX: startX + 21,
+        clientY: startY + 21,
+      }),
+    );
+    fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["credit-risk"]).toMatchObject({
+      x: nodeBefore.x + expectedDx,
+      y: nodeBefore.y + expectedDy,
+    });
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
   });
 
   it("keeps the canvas populated and preserves drop position when dragging a child outside its parent", async () => {
@@ -855,6 +915,99 @@ describe("editor canvas workflows", () => {
         resolveVisualDocument(useDocumentStore.getState().doc),
       ),
     ).toEqual([]);
+  });
+
+  it("preserves drop position and marks the destination Manual when dragging into another parent", async () => {
+    useDocumentStore.setState({
+      doc: dragOutsideParentDocument(),
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    useUiStore.setState({
+      selectedNodeIds: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
+      canvasSize: { w: 1400, h: 460 },
+    });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const dragNode = within(canvas)
+      .getByText("Drag this outside")
+      .closest(".cc-node") as HTMLElement;
+
+    fireEvent(
+      dragNode,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: 760,
+        clientY: 145,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        buttons: 1,
+        clientX: 188,
+        clientY: 100,
+      }),
+    );
+    fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
+
+    await waitFor(() => {
+      const resolved = resolveVisualDocument(useDocumentStore.getState().doc);
+      expect(resolved.nodesById.drag).toMatchObject({
+        parentId: "left",
+        x: 64,
+        y: 72,
+      });
+      expect(resolved.nodesById.left!.isManualPositioningEnabled).toBe(true);
+    });
+    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+  });
+
+  it("switches the arranging parent to Manual after keyboard nudge", () => {
+    renderEditor();
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeX = before.nodesById["digital-onboarding"]!.x;
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById["digital-onboarding"]!.x).toBe(
+      beforeX + before.settings.gridSize,
+    );
+    expect(after.nodesById.digital!.isManualPositioningEnabled).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+  });
+
+  it("adds a child under a Manual parent without moving existing canvas siblings", async () => {
+    useUiStore.setState({ selectedNodeIds: ["risk"] });
+    useDocumentStore.getState().execute(setManualPositioning("risk", true));
+    const siblingIds = ["credit-risk", "fraud-risk", "operational-risk"];
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeSiblings = geometrySnapshot(before, siblingIds);
+    const historyBefore = useDocumentStore.getState().past.length;
+    renderEditor();
+
+    await userEvent.click(screen.getByRole("button", { name: "Add child" }));
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    const newChildId = after.childrenByParentId.risk?.find(
+      (id) => !siblingIds.includes(id),
+    );
+    expect(newChildId).toBeDefined();
+    expect(geometrySnapshot(after, siblingIds)).toEqual(beforeSiblings);
+    expect(after.nodesById[newChildId!]).toMatchObject({
+      parentId: "risk",
+      isOnCanvas: true,
+    });
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore + 1);
   });
 
   it("allows locked capabilities to be dragged inside their parent", () => {

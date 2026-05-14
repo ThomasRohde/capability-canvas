@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { createVisualView } from "../../domain/commands/operations";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { geometrySnapshot } from "../../test/documentAssertions";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
 
 describe("editor settings workflows", () => {
@@ -375,5 +376,50 @@ describe("editor settings workflows", () => {
     const dialog = screen.getByRole("dialog", { name: "Diagnostics" });
     expect(within(dialog).getByText("layout-applied")).toBeInTheDocument();
     expect(within(dialog).getByText(/with force/)).toBeInTheDocument();
+  });
+
+  it("explains Freeform preservation and reports no-op auto layout diagnostics", async () => {
+    renderEditor();
+    const nodeIds = Object.keys(useDocumentStore.getState().doc.nodesById);
+    const before = geometrySnapshot(
+      resolveVisualDocument(useDocumentStore.getState().doc),
+      nodeIds,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const drawer = screen.getByRole("complementary", { name: "Settings" });
+    await userEvent.selectOptions(
+      within(drawer).getByLabelText("Layout mode"),
+      "free",
+    );
+    await waitFor(() =>
+      expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),
+    );
+
+    expect(
+      within(drawer).getAllByText(/Freeform preserves/).length,
+    ).toBeGreaterThan(0);
+    await userEvent.click(
+      within(drawer).getByRole("button", { name: "Apply auto layout" }),
+    );
+    await waitFor(() =>
+      expect(useDocumentStore.getState().isAutoLayoutRunning).toBe(false),
+    );
+
+    expect(
+      geometrySnapshot(
+        resolveVisualDocument(useDocumentStore.getState().doc),
+        nodeIds,
+      ),
+    ).toEqual(before);
+    expect(
+      useDocumentStore
+        .getState()
+        .lastDiagnostics.some(
+          (diagnostic) => diagnostic.code === "free-layout-preserved",
+        ),
+    ).toBe(true);
   });
 });

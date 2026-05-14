@@ -9,7 +9,12 @@ import {
 } from "../document/types";
 import { boundsForBoxes, rectanglesOverlap } from "../layout/bounds";
 import { snapLayoutSpacing } from "../layout/grid";
+import {
+  evaluateCanvasLayoutIntent,
+  type CanvasLayoutAction,
+} from "../layout/canvasLayoutPolicy";
 import { canAlign, canDistribute } from "../selection/rules";
+import { info } from "../validation/diagnostics";
 import { descendantsOf } from "../validation/validate";
 import { canBulkEditNodes } from "./selectionGuards";
 import { command, fail, ok, transaction } from "./transaction";
@@ -140,6 +145,106 @@ export function moveNodes(
           layout: { ...next.layout, isUserArranged: true },
         });
       }),
+    ],
+    { source: "drag" },
+  );
+}
+
+interface MoveNodesWithLayoutIntentOptions {
+  action?: Extract<
+    CanvasLayoutAction,
+    "move" | "keyboard-nudge" | "numeric-position" | "reparent"
+  >;
+  targetParentId?: NodeId | null;
+}
+
+export function moveNodesWithLayoutIntent(
+  nodeIds: NodeId[],
+  dx: number,
+  dy: number,
+  options: MoveNodesWithLayoutIntentOptions = {},
+): Transaction {
+  const action = options.action ?? "move";
+  return transaction(
+    action === "reparent" ? "Reparent capability" : "Move capability",
+    [
+      command(
+        "move-nodes-with-layout-intent",
+        { nodeIds, dx, dy, action, targetParentId: options.targetParentId },
+        "visual",
+        (doc) => {
+          const intent = evaluateCanvasLayoutIntent({
+            doc,
+            action,
+            rootNodeIds: nodeIds,
+            targetParentId: options.targetParentId,
+          });
+          if (!intent.allowed)
+            return fail(
+              doc,
+              intent.diagnosticCode ?? "layout-intent-rejected",
+              intent.message ?? "The layout action could not be applied.",
+            );
+
+          const next = cloneDocument(doc);
+          const toMove = new Set<NodeId>();
+          for (const nodeId of nodeIds) {
+            if (!next.nodesById[nodeId]) continue;
+            toMove.add(nodeId);
+            for (const descendantId of descendantsOf(next, nodeId))
+              toMove.add(descendantId);
+          }
+
+          let changed = false;
+          if (dx !== 0 || dy !== 0) {
+            for (const id of toMove) {
+              const node = next.nodesById[id];
+              if (!node) continue;
+              next.nodesById[id] = {
+                ...node,
+                x: node.x + dx,
+                y: node.y + dy,
+                updatedAt: now(),
+              };
+              changed = true;
+            }
+          }
+
+          for (const parentId of intent.manualParentIdsToEnable) {
+            const parent = next.nodesById[parentId];
+            if (!parent || parent.isManualPositioningEnabled) continue;
+            if (expandParentToContainCanvasChildren(next, parentId)) {
+              changed = true;
+            }
+            const expandedParent = next.nodesById[parentId] ?? parent;
+            next.nodesById[parentId] = {
+              ...expandedParent,
+              isManualPositioningEnabled: true,
+              updatedAt: now(),
+            };
+            changed = true;
+          }
+
+          if (!changed) return ok(doc);
+
+          return {
+            doc: {
+              ...next,
+              layout: { ...next.layout, isUserArranged: true },
+            },
+            diagnostics: intent.diagnosticCode
+              ? intent.manualParentIdsToEnable.map((parentId) =>
+                  info(
+                    intent.diagnosticCode!,
+                    intent.message ??
+                      "Manual positioning was enabled to preserve placement.",
+                    parentId,
+                  ),
+                )
+              : [],
+          };
+        },
+      ),
     ],
     { source: "drag" },
   );
@@ -639,6 +744,60 @@ function boundsForNodes(doc: CapabilityDocument, ids: NodeId[]) {
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
   return boundsForBoxes(nodes);
+}
+
+function expandParentToContainCanvasChildren(
+  doc: CapabilityDocument,
+  parentId: NodeId,
+): boolean {
+  const parent = doc.nodesById[parentId];
+  if (!parent || parent.isLockedAsIs || !isNodeOnCanvas(parent)) return false;
+  const childBounds = boundsForNodes(doc, canvasChildrenOf(doc, parentId));
+  if (!childBounds) return false;
+
+  const margin = containmentMargin(doc, parent);
+  const x = Math.min(parent.x, childBounds.x - margin.left);
+  const y = Math.min(parent.y, childBounds.y - margin.top);
+  const right = Math.max(
+    parent.x + parent.w,
+    childBounds.x + childBounds.w + margin.right,
+  );
+  const bottom = Math.max(
+    parent.y + parent.h,
+    childBounds.y + childBounds.h + margin.bottom,
+  );
+  const w = right - x;
+  const h = bottom - y;
+
+  if (x === parent.x && y === parent.y && w === parent.w && h === parent.h) {
+    return false;
+  }
+  doc.nodesById[parentId] = {
+    ...parent,
+    x,
+    y,
+    w,
+    h,
+    updatedAt: now(),
+  };
+  return true;
+}
+
+function containmentMargin(doc: CapabilityDocument, parent: CapabilityNode) {
+  return {
+    top:
+      (parent.layoutPreferences?.marginTop ??
+        doc.settings.containerPaddingTop) + doc.settings.containerTitleHeight,
+    right:
+      parent.layoutPreferences?.marginRight ??
+      doc.settings.containerPaddingRight,
+    bottom:
+      parent.layoutPreferences?.marginBottom ??
+      doc.settings.containerPaddingBottom,
+    left:
+      parent.layoutPreferences?.marginLeft ??
+      doc.settings.containerPaddingLeft,
+  };
 }
 
 function minimumSizeForNode(doc: CapabilityDocument, node: CapabilityNode) {

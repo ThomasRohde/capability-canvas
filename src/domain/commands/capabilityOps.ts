@@ -2,7 +2,9 @@ import { createNode, makeId, nextColor } from "../document/defaults";
 import { normalizeNodeLabel } from "../document/labels";
 import { cloneDocument, rebuildChildren } from "../document/normalize";
 import {
+  canvasChildrenOf,
   childrenOf,
+  isNodeOnCanvas,
   now,
   ROOT_PARENT_ID,
   type CapabilityColor,
@@ -10,8 +12,14 @@ import {
   type CapabilityNode,
   type NodeId,
 } from "../document/types";
-import { snapCoordinate } from "../layout/grid";
+import { rectanglesOverlap } from "../layout/bounds";
+import {
+  evaluateCanvasLayoutIntent,
+} from "../layout/canvasLayoutPolicy";
+import { snapCoordinate, snapLayoutSpacing } from "../layout/grid";
 import { descendantsOf, isDescendantOf } from "../validation/validate";
+import { resolveVisualDocument } from "../visual/workspace";
+import { moveNodesWithLayoutIntent } from "./geometryOps";
 import { canBulkEditNodes } from "./selectionGuards";
 import { command, fail, ok, transaction } from "./transaction";
 import type { Transaction } from "./types";
@@ -55,6 +63,7 @@ export function addChild(
   options: AddCapabilityOptions = {},
 ): Transaction {
   const isOnCanvas = options.isOnCanvas ?? true;
+  const id = makeId("cap");
   return transaction(
     "Add child capability",
     [
@@ -74,7 +83,6 @@ export function addChild(
           );
         const next = cloneDocument(doc);
         const childCount = childrenOf(next, parentId).length;
-        const id = makeId("cap");
         next.nodesById[id] = createNode({
           id,
           label,
@@ -96,8 +104,38 @@ export function addChild(
         next.childrenByParentId[id] = [];
         return ok(next);
       }),
+      command(
+        "place-added-child-for-layout-intent",
+        { parentId, nodeId: id },
+        "visual",
+        (doc) => {
+          if (!isOnCanvas) return ok(doc);
+          const intent = evaluateCanvasLayoutIntent({
+            doc,
+            action: "add-child",
+            rootNodeIds: [parentId],
+          });
+          if (!intent.allowed)
+            return fail(
+              doc,
+              intent.diagnosticCode ?? "add-child-rejected",
+              intent.message ?? "The child could not be placed.",
+            );
+          if (intent.requestAutoRelayout) return ok(doc);
+
+          return placeAddedChildWithoutRelayout(doc, parentId, id);
+        },
+      ),
     ],
-    isOnCanvas ? { relayout: { scope: [parentId], force: true } } : undefined,
+    isOnCanvas
+      ? {
+          relayout: {
+            scope: (_beforeDoc, afterDoc) =>
+              shouldRelayoutAddedChild(afterDoc, parentId) ? [parentId] : [],
+            force: true,
+          },
+        }
+      : undefined,
   );
 }
 
@@ -420,6 +458,24 @@ export function reparentNode(
   );
 }
 
+export function reparentNodeWithLayoutIntent(
+  nodeId: NodeId,
+  parentId: NodeId | null,
+  dx = 0,
+  dy = 0,
+): Transaction {
+  const reparentTxn = reparentNode(nodeId, parentId);
+  const moveTxn = moveNodesWithLayoutIntent([nodeId], dx, dy, {
+    action: "reparent",
+    targetParentId: parentId,
+  });
+  return transaction(
+    "Reparent capability",
+    [...reparentTxn.commands, ...moveTxn.commands],
+    { source: "drag" },
+  );
+}
+
 export function duplicateNodes(nodeIds: NodeId[]): Transaction {
   return transaction("Duplicate capability", [
     command("duplicate-nodes", { nodeIds }, "source", (doc) => {
@@ -459,6 +515,156 @@ export function duplicateNodes(nodeIds: NodeId[]): Transaction {
       });
     }),
   ]);
+}
+
+function shouldRelayoutAddedChild(
+  doc: CapabilityDocument,
+  parentId: NodeId,
+): boolean {
+  const resolved = resolveVisualDocument(doc);
+  return evaluateCanvasLayoutIntent({
+    doc: resolved,
+    action: "add-child",
+    rootNodeIds: [parentId],
+  }).requestAutoRelayout;
+}
+
+function placeAddedChildWithoutRelayout(
+  doc: CapabilityDocument,
+  parentId: NodeId,
+  childId: NodeId,
+) {
+  const parent = doc.nodesById[parentId];
+  const child = doc.nodesById[childId];
+  if (!parent || !child) return ok(doc);
+
+  const placement = manualChildPlacement(doc, parent, child);
+  const nextChild = {
+    ...child,
+    x: placement.x,
+    y: placement.y,
+    updatedAt: now(),
+  };
+  const parentPatch =
+    parent.isLockedAsIs || !isNodeOnCanvas(parent)
+      ? {}
+      : expandedParentSize(doc, parent, nextChild);
+  const parentChanged =
+    Object.hasOwn(parentPatch, "w") || Object.hasOwn(parentPatch, "h");
+  const childChanged = child.x !== nextChild.x || child.y !== nextChild.y;
+  if (!childChanged && !parentChanged) return ok(doc);
+
+  const next = cloneDocument(doc);
+  next.nodesById[childId] = nextChild;
+  if (parentChanged) {
+    next.nodesById[parentId] = {
+      ...parent,
+      ...parentPatch,
+      updatedAt: now(),
+    };
+  }
+  return ok({
+    ...next,
+    layout: { ...next.layout, isUserArranged: true },
+  });
+}
+
+function manualChildPlacement(
+  doc: CapabilityDocument,
+  parent: CapabilityNode,
+  child: CapabilityNode,
+): { x: number; y: number } {
+  const margin = childPlacementMargin(doc, parent);
+  const gapX = snapLayoutSpacing(doc, doc.settings.childGapX);
+  const gapY = snapLayoutSpacing(doc, doc.settings.childGapY);
+  const startX = snapCoordinate(doc, parent.x + margin.left);
+  const startY = snapCoordinate(doc, parent.y + margin.top);
+  const maxX = parent.x + parent.w - margin.right - child.w;
+  const maxY = parent.y + parent.h - margin.bottom - child.h;
+  const existing = canvasChildrenOf(doc, parent.id)
+    .filter((id) => id !== child.id)
+    .map((id) => doc.nodesById[id])
+    .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
+
+  if (startX <= maxX && startY <= maxY) {
+    const stepX = Math.max(1, child.w + gapX);
+    const stepY = Math.max(1, child.h + gapY);
+    for (let row = 0; row < 32; row += 1) {
+      const y = snapCoordinate(doc, startY + row * stepY);
+      if (y > maxY) break;
+      for (let column = 0; column < 32; column += 1) {
+        const x = snapCoordinate(doc, startX + column * stepX);
+        if (x > maxX) break;
+        const candidate = { x, y, w: child.w, h: child.h };
+        if (!existing.some((node) => rectanglesOverlap(candidate, node))) {
+          return { x, y };
+        }
+      }
+    }
+  }
+
+  if (parent.isLockedAsIs) {
+    return {
+      x: clampToRange(startX, parent.x, maxX),
+      y: clampToRange(startY, parent.y, maxY),
+    };
+  }
+
+  const fallbackY =
+    existing.length > 0
+      ? Math.max(...existing.map((node) => node.y + node.h)) + gapY
+      : startY;
+  return {
+    x: startX,
+    y: snapCoordinate(doc, fallbackY),
+  };
+}
+
+function childPlacementMargin(
+  doc: CapabilityDocument,
+  parent: CapabilityNode,
+) {
+  return {
+    top: snapLayoutSpacing(
+      doc,
+      (parent.layoutPreferences?.marginTop ??
+        doc.settings.containerPaddingTop) + doc.settings.containerTitleHeight,
+    ),
+    right: snapLayoutSpacing(
+      doc,
+      parent.layoutPreferences?.marginRight ??
+        doc.settings.containerPaddingRight,
+    ),
+    bottom: snapLayoutSpacing(
+      doc,
+      parent.layoutPreferences?.marginBottom ??
+        doc.settings.containerPaddingBottom,
+    ),
+    left: snapLayoutSpacing(
+      doc,
+      parent.layoutPreferences?.marginLeft ??
+        doc.settings.containerPaddingLeft,
+    ),
+  };
+}
+
+function expandedParentSize(
+  doc: CapabilityDocument,
+  parent: CapabilityNode,
+  child: CapabilityNode,
+): Partial<CapabilityNode> {
+  const margin = childPlacementMargin(doc, parent);
+  const w = Math.max(parent.w, child.x + child.w + margin.right - parent.x);
+  const h = Math.max(parent.h, child.y + child.h + margin.bottom - parent.y);
+  return {
+    ...(w !== parent.w ? { w } : {}),
+    ...(h !== parent.h ? { h } : {}),
+  };
+}
+
+function clampToRange(value: number, min: number, max: number): number {
+  if (max < min) return min;
+  return Math.min(max, Math.max(min, value));
 }
 
 function collapseEmptiedParentsToLeafSize(

@@ -38,8 +38,8 @@ The 1.0 release focuses on a complete local modeling workflow:
 - **Saved visual views**: views can hide, collapse, relayout, and export subsets
   of the source model without deleting source capabilities.
 - **Layout modes**: adaptive, balanced, flow, uniform, and freeform layout modes
-  preserve locked nodes, manual positioning, containment, and view-specific
-  layout choices.
+  preserve locked nodes, manual child positioning, containment, and
+  view-specific layout choices.
 - **Power editing**: drag, resize, reparent, inline rename, duplicate, remove
   from active view, delete from source model, align, distribute, bulk color,
   same-size, keyboard nudge, undo, and redo.
@@ -102,9 +102,22 @@ active visual view, so presentation views can be curated without losing data.
 ### Arrange
 
 Use automatic layout for the current view or selected areas, then refine the
-result manually. Locked nodes preserve their geometry during layout changes,
-manual-positioning parents preserve their child placement, and containment repair
-keeps parents large enough for visible children.
+result manually. Adaptive, balanced, flow, and uniform modes arrange eligible
+visible capabilities. Freeform preserves current positions and reports a no-op
+when Apply auto layout is used.
+
+Direct placement is treated as layout intent. Dragging, keyboard nudging, or
+editing X/Y for a child under an automatically arranged parent switches that
+direct parent to Manual child positioning in the same undo step, so later auto
+layout preserves the placement. Dragging a capability into a different valid
+parent preserves the drop position and switches the destination parent to Manual
+when needed.
+
+Manual and Preserve mean different things. Manual applies to a selected
+parent's children and keeps those children at their direct canvas positions.
+Preserve locks the selected subtree out of auto layout and disables resize.
+Locked nodes and preserved subtrees keep their geometry during layout changes,
+and containment repair keeps parents large enough for visible children.
 
 ### View
 
@@ -206,6 +219,7 @@ The product and engineering contracts live in [`docs/README.md`](docs/README.md)
 - [Product brief](docs/product-brief.md)
 - [Domain model](docs/domain-model.md)
 - [Interaction contracts](docs/interaction-contracts.md)
+- [Canvas modeling UX correctness review](docs/canvas-modeling-ux-correctness-review.md)
 - [Tech stack](docs/tech-stack.md)
 - [Agent implementation brief](docs/agent-implementation-brief.md)
 - [Adapter notes for ArchiMate](docs/adapters/archimate.md)

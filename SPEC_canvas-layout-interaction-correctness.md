@@ -324,6 +324,28 @@ Spec-generation discovery found the following likely repository details. Codex m
   - `npm run build`
   - `npm run test:e2e`
 
+### Codex Repository Discovery Update - 2026-05-14 07:06 +02:00
+
+- Actual tech stack confirmed from `package.json`: TypeScript, React 19, Vite, Zustand, Vitest, Testing Library, Playwright, Tailwind CSS, Zod, `idb`, `elkjs`, and `pptxgenjs`.
+- Repository instructions confirmed in `AGENTS.md`: keep `src/domain/` pure TypeScript, use command transactions through `useDocumentStore.execute()`, preserve the three-store Zustand split, keep drag/resize preview in `useTransientStore`, and assert diagnostic `.code` values in tests.
+- Relevant configuration confirmed: `eslint.config.js`, `tsconfig.json`, `vite.config.ts`, `playwright.config.ts`, `tailwind.config.ts`, and `package-lock.json` are present.
+- Relevant runtime paths confirmed:
+  - `src/domain/document/types.ts` defines `LayoutMode = "uniform" | "flow" | "adaptive" | "balanced" | "free"`, `isManualPositioningEnabled`, `isLockedAsIs`, and active-view visual node overrides for both flags.
+  - `src/domain/layout/engine.ts` already returns `free-layout-preserved` with no patches in Freeform mode.
+  - `src/domain/layout/measure.ts`, `scope.ts`, and `containment.ts` already preserve locked/manual areas during automatic layout.
+  - `src/domain/commands/geometryOps.ts` contains `moveNodes`, `resizeNode`, alignment/distribution, locking, and Manual positioning commands.
+  - `src/domain/commands/capabilityOps.ts` contains `addChild` and `reparentNode`.
+  - `src/app/stores/documentTransactions.ts` applies visual commands to the resolved active visual document and writes results back through `applyResolvedVisualDocument`.
+  - `src/app/stores/documentStore.ts` owns history, undo/redo, diagnostics, relayout orchestration, and forced auto layout.
+  - `src/features/canvas/useCanvasNodeInteractions.ts` handles pointer drag, transient preview, and drag reparent commit.
+  - `src/features/commands/useEditorActions.ts` handles keyboard nudge and Add child command actions.
+  - `src/features/inspector/LayoutTab.tsx` handles numeric X/Y movement and selected-node layout controls.
+  - `src/features/settings/SettingsDrawer.tsx` handles layout mode copy and Apply auto layout.
+  - `src/features/editor/StatusBar.tsx` already exposes diagnostics and non-modal status notices.
+- Existing tests confirmed around commands, layout, document store relayout, visual views, canvas workflows, inspector workflows, settings workflows, selection/drop-target rules, import/export, and Playwright smoke tests.
+- Implementation plan confirmed with one repo-specific decision: direct movement and drag-reparent Manual conversion will be active-view scoped because `moveNodes`, `setManualPositioning`, and active-view layout metadata are already visual commands/overrides. Source-model hierarchy changes such as reparenting remain source commands.
+- No schema migration, dependency change, backend/API work, telemetry, or feature branch is planned.
+
 ## 9. Functional Requirements
 
 ### FR-001: Add a canvas modeling UX/correctness review artifact
@@ -1224,33 +1246,36 @@ What must not be logged:
 
 Codex must add timestamps and notes as work proceeds.
 
-- [ ] Read full spec.
-- [ ] Inspect repository instructions.
-- [ ] Inspect repository structure.
-- [ ] Discover build, test, lint, and typecheck commands.
-- [ ] Update Repository Discovery Instructions with actual findings.
-- [ ] Confirm or revise implementation plan.
-- [ ] Implement Milestone 1.
-- [ ] Validate Milestone 1.
-- [ ] Implement Milestone 2.
-- [ ] Validate Milestone 2.
-- [ ] Implement Milestone 3.
-- [ ] Validate Milestone 3.
-- [ ] Implement Milestone 4.
-- [ ] Validate Milestone 4.
-- [ ] Implement Milestone 5.
-- [ ] Validate Milestone 5.
-- [ ] Implement remaining milestones.
-- [ ] Run full validation suite.
-- [ ] Run manual smoke test.
-- [ ] Review final diff for unintended changes.
-- [ ] Update Decision Log.
-- [ ] Update Outcomes and Retrospective.
-- [ ] Produce final implementation summary.
+- [x] Read full spec. 2026-05-14 07:06 +02:00.
+- [x] Inspect repository instructions. 2026-05-14 07:06 +02:00.
+- [x] Inspect repository structure. 2026-05-14 07:06 +02:00.
+- [x] Discover build, test, lint, and typecheck commands. 2026-05-14 07:06 +02:00.
+- [x] Update Repository Discovery Instructions with actual findings. 2026-05-14 07:06 +02:00.
+- [x] Confirm or revise implementation plan. 2026-05-14 07:06 +02:00.
+- [x] Implement Milestone 1. 2026-05-14 07:06 +02:00.
+- [x] Validate Milestone 1. 2026-05-14 07:06 +02:00; documentation-only milestone, no code validation required.
+- [x] Implement Milestone 2. 2026-05-14 07:08 +02:00; added `docs/canvas-modeling-ux-correctness-review.md` and pure `src/domain/layout/canvasLayoutPolicy.ts` with unit tests.
+- [x] Validate Milestone 2. 2026-05-14 07:08 +02:00; `npx vitest run src/domain/layout/canvasLayoutPolicy.test.ts` passed, `npm run typecheck` passed.
+- [x] Implement Milestone 3. 2026-05-14 07:13 +02:00; added intent-aware move/reparent transactions, wired pointer drag, drag reparent, keyboard nudge, numeric X/Y movement, diagnostics, and non-modal notices.
+- [x] Validate Milestone 3. 2026-05-14 07:14 +02:00; targeted canvas, inspector, document-store layout, policy tests, and `npm run typecheck` passed.
+- [x] Implement Milestone 4. 2026-05-14 07:19 +02:00; made Add child detect effective active-view parent mode, skip relayout for Manual/Freeform/locked parents, and place new children deterministically without moving existing siblings.
+- [x] Validate Milestone 4. 2026-05-14 07:19 +02:00; targeted command, document-store layout, canvas component tests, and `npm run typecheck` passed.
+- [x] Implement Milestone 5. 2026-05-14 07:20 +02:00; updated Freeform settings copy/status and Layout tab Auto/Manual/Preserve guidance.
+- [x] Validate Milestone 5. 2026-05-14 07:21 +02:00; targeted inspector, settings, layout tests, and `npm run typecheck` passed.
+- [x] Implement Milestone 6. 2026-05-14 07:25 +02:00; completed full validation pass and corrected a stale e2e smoke assumption around active-view removal selection.
+- [x] Run full validation suite. 2026-05-14 07:25 +02:00; `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run build`, and `npm run test:e2e` passed.
+- [x] Run manual smoke test. 2026-05-14 07:31 +02:00; Playwright live-browser smoke against `http://127.0.0.1:5180` passed direct drag, undo/redo, Add child, reparent, Freeform no-op, diagnostics, and console/page-error checks.
+- [x] Update Decision Log. 2026-05-14 07:32 +02:00.
+- [x] Update Outcomes and Retrospective. 2026-05-14 07:32 +02:00.
+- [x] Review final diff for unintended changes. 2026-05-14 07:33 +02:00; reviewed status, diff stat, key runtime diffs, `git diff --check`, and searched changed files for debug logging, secrets, network calls, telemetry, and analytics.
+- [x] Produce final implementation summary. 2026-05-14 07:33 +02:00.
 
 ## 21. Discoveries During Implementation
 
-- None yet.
+- 2026-05-14 07:06 +02:00: Direct geometry commands such as `moveNodes` are visual commands, and `applyResolvedVisualDocument()` writes geometry and Manual/Preserve flags back to the active view. Intent-aware movement should therefore be active-view scoped unless a source-model command such as reparenting is explicitly involved.
+- 2026-05-14 07:08 +02:00: Freeform layout behavior is already implemented as a no-patch result with the stable diagnostic code `free-layout-preserved`; the remaining Freeform work is UI copy/status alignment and tests, not a layout engine change.
+- 2026-05-14 07:25 +02:00: Full e2e validation exposed a stale smoke-test assumption: `Delete` removes a selected node from the active view and clears selection, so `Shift+Delete` requires reselecting the hidden source node from the outline before deleting it from the source model.
+- 2026-05-14 07:31 +02:00: The Browser plugin was available but its required Node REPL control tool was not exposed in this session; the final live-browser smoke used a Playwright script against a temporary Vite server instead.
 
 Codex must update this section when it finds:
 
@@ -1306,24 +1331,36 @@ Codex must update this section when it finds:
 - Alternatives considered: only implement code changes. Rejected because it would lose the reviewed action semantics and make future behavior harder to maintain.
 - Date/Author: Spec generation / ChatGPT Pro
 
+### Decision 7
+
+- Decision: Apply automatic-to-Manual conversion for direct movement in the active visual view, while keeping drag reparenting as a source hierarchy change plus active-view layout intent.
+- Rationale: existing `moveNodes` and selected-node Manual toggles are visual commands; visual state already stores `isManualPositioningEnabled` and `lockedForView` per view. This preserves visual-view separation and avoids changing source-model layout flags globally when the user arranges one saved view.
+- Alternatives considered: source-model-wide Manual conversion for every drag or nudge. Rejected because it would change other saved views and conflict with existing visual command conventions.
+- Date/Author: 2026-05-14 / Codex
+
+### Decision 8
+
+- Decision: Keep Add child parent-mode-aware inside the existing command path instead of adding a separate UI-only placement path.
+- Rationale: `addChild` already owns semantic child creation and relayout metadata. Extending it to inspect the effective active-view parent state keeps automatic parents on the scoped auto-layout path while Manual, Freeform, and locked parents use deterministic local placement that preserves existing siblings.
+- Alternatives considered: always auto-layout after Add child; placing children only in React after command completion. Always auto-layout was rejected because it disrupts Manual parents. UI-only placement was rejected because command tests and undo/redo should own the complete behavior.
+- Date/Author: 2026-05-14 / Codex
+
 Codex must append implementation-time decisions here.
 
 ## 23. Outcomes and Retrospective
 
-- Not started.
-
-Codex must update this section after implementation.
-
-At completion it must include:
-
-- What was implemented.
-- Files changed.
-- What changed from the original plan.
-- Validation commands run.
-- Validation results.
-- Manual smoke test result.
-- Remaining risks.
-- Follow-up recommendations.
+- Implemented a repo review artifact and an action semantics matrix in `docs/canvas-modeling-ux-correctness-review.md`.
+- Added pure layout-intent policy and tests in `src/domain/layout/canvasLayoutPolicy.ts` and `src/domain/layout/canvasLayoutPolicy.test.ts`.
+- Added intent-aware movement/reparent command paths in `src/domain/commands/geometryOps.ts` and `src/domain/commands/capabilityOps.ts`, then wired pointer drag, drag reparent, keyboard nudge, and numeric X/Y edits through those paths.
+- Made Add child detect effective active-view parent layout mode, use scoped relayout for automatic parents, and preserve existing children with deterministic placement for Manual, Freeform, and locked parents.
+- Added non-modal Manual conversion notices and aligned Freeform/Auto/Manual/Preserve copy in the settings drawer and Layout tab.
+- Updated unit, store, component, and e2e tests for policy behavior, undo/redo grouping, active-view state, Manual Add child behavior, Freeform no-op diagnostics, and source-model delete after active-view removal.
+- Changed from the original plan only in the manual smoke execution method: the in-app Browser plugin could not expose its Node REPL control tool, so the final smoke used Playwright against a temporary live Vite server.
+- Validation commands run and passed: `npx vitest run src/domain/layout/canvasLayoutPolicy.test.ts`; `npx vitest run src/app/stores/documentStore.layout.test.ts`; `npx vitest run src/features/editor/editor.canvas.test.tsx`; `npx vitest run src/features/editor/editor.inspector.test.tsx`; `npx vitest run src/domain/commands/commands.test.ts`; `npx vitest run src/features/editor/editor.settings.test.tsx`; `npx vitest run src/domain/layout/layout.test.ts`; `npx playwright test tests/e2e/editor.spec.ts -g "separates active view remove from source-model delete"`; `npm run lint`; `npm run typecheck`; `npm run test:run`; `npm run build`; `npm run test:e2e`.
+- Manual smoke test passed against `http://127.0.0.1:5180`: live editor load, direct drag Manual conversion, sibling preservation, undo/redo, Add child under Manual, drag reparent, Freeform Apply auto layout no-op diagnostics, and no console/page errors.
+- Final diff review found only intended spec, documentation, source, and test changes. `git diff --check` passed; no debug logging, secrets, network calls, telemetry, analytics, generated build output, or temporary server files are present in the working tree.
+- Remaining risk: deterministic Manual Add child placement avoids existing siblings where feasible, but very crowded locked/manual containers can still require the user to arrange space manually.
+- Follow-up recommendation: consider a visible drag hover cue for the parent that will become Manual before pointer-up; this remains out of scope for this implementation.
 
 ## 24. Final Acceptance Checklist
 
