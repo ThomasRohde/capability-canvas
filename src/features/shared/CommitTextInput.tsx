@@ -26,12 +26,17 @@ export function CommitTextInput({
   ...inputProps
 }: CommitTextInputProps) {
   const [draft, setDraft] = useState(value);
+  const skipCommit = useRef(false);
 
   useEffect(() => {
     setDraft(value);
   }, [value]);
 
   const commit = useCallback(() => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
     const normalized = normalize(draft);
     if (normalized !== normalize(value)) onCommit(normalized);
     setDraft(normalized);
@@ -43,6 +48,8 @@ export function CommitTextInput({
     if (event.key === "Enter") {
       event.preventDefault();
       commit();
+      skipCommit.current = true;
+      event.currentTarget.blur();
       return;
     }
     if (event.key === "Escape") {

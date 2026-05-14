@@ -122,6 +122,26 @@ describe("editor inspector workflows", () => {
     expect(within(inspector).getByText("Auto layout")).toBeInTheDocument();
   });
 
+  it("does not apply an Enter-committed inspector label to the next selected parent", async () => {
+    useUiStore.setState({
+      selectedNodeIds: ["risk"],
+      inspectorTab: "inspector",
+    });
+    renderEditor();
+    const label = screen.getByLabelText("Label");
+
+    await userEvent.clear(label);
+    await userEvent.type(label, "Risk renamed{Enter}");
+    await userEvent.click(
+      within(screen.getByTestId("canvas")).getByText("Operations"),
+    );
+
+    const doc = useDocumentStore.getState().doc;
+    expect(doc.nodesById.risk!.label).toBe("Risk renamed");
+    expect(doc.nodesById.operations!.label).toBe("Operations");
+    expect(screen.getByLabelText("Label")).toHaveValue("Operations");
+  });
+
   it("does not delete the selected node when Delete is pressed inside an inspector field", () => {
     renderEditor();
     const description = screen.getByLabelText("Description");
