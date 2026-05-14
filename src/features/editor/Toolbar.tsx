@@ -28,7 +28,7 @@ import {
   isPromptMergePayloadShape,
   parsePromptMergePayload,
 } from "../../domain/promptMerge/payload";
-import { error, warning } from "../../domain/validation/diagnostics";
+import { warning } from "../../domain/validation/diagnostics";
 import { openDocumentFile, saveDocumentFile } from "../../app/fileSystem";
 import { applyImportedDocument } from "../../app/importDocument";
 import { createImportReview, type ImportReview } from "../../app/importReview";
@@ -40,6 +40,7 @@ import { useEditorActions } from "../commands/useEditorActions";
 import { importHeatmapCsv } from "../heatmap/csvImport";
 import { HelpDialog } from "../help/HelpDialog";
 import { ImportReviewDialog } from "../import/ImportReviewDialog";
+import { parsePastedJsonText } from "../import/pastedJson";
 import {
   useDismissableLayer,
   useFocusTrap,
@@ -126,18 +127,14 @@ export function Toolbar() {
 
   const importPastedJson = () => {
     if (pasteDraft.trim().length === 0) return;
-    let input: unknown;
-    try {
-      input = JSON.parse(pasteDraft) as unknown;
-    } catch {
+    const pasted = parsePastedJsonText(pasteDraft);
+    if (pasted.diagnostics.length > 0) {
       setImportReview(
         createImportReview({
           sourceLabel: "Import pasted JSON",
           parsed: {
             doc: null,
-            diagnostics: [
-              error("json-invalid", "The pasted content is not valid JSON."),
-            ],
+            diagnostics: pasted.diagnostics,
           },
         }),
       );
@@ -146,8 +143,8 @@ export function Toolbar() {
       return;
     }
 
-    if (isPromptMergePayloadShape(input)) {
-      const parsed = parsePromptMergePayload(input);
+    if (isPromptMergePayloadShape(pasted.input)) {
+      const parsed = parsePromptMergePayload(pasted.input);
       if (!parsed.payload) {
         setDiagnostics(parsed.diagnostics);
         return;
@@ -160,7 +157,7 @@ export function Toolbar() {
       return;
     }
 
-    const parsed = parseDocument(input);
+    const parsed = parseDocument(pasted.input);
     setImportReview(
       createImportReview({
         sourceLabel: "Import pasted JSON",

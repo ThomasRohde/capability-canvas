@@ -192,7 +192,10 @@ describe("editor canvas workflows", () => {
     fireEvent.keyDown(node, { key: "F10", shiftKey: true });
     const menu = screen.getByRole("menu", { name: "Capability context menu" });
     expect(
-      within(menu).getByRole("menuitem", { name: "Copy BCM prompt" }),
+      within(menu).getByRole("menuitem", { name: "Copy AI prompt..." }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Import AI JSON..." }),
     ).toBeInTheDocument();
     const items = within(menu).getAllByRole("menuitem");
     await waitFor(() => expect(items[0]).toHaveFocus());
@@ -206,6 +209,29 @@ describe("editor canvas workflows", () => {
       ).not.toBeInTheDocument(),
     );
     expect(node).toHaveFocus();
+  });
+
+  it("does not show AI prompt or import actions for text labels", () => {
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(addTextLabel("retail-banking", "Canvas note"));
+    });
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const note = within(canvas)
+      .getByText("Canvas note")
+      .closest(".cc-node") as HTMLElement;
+
+    fireEvent.contextMenu(note, { clientX: 120, clientY: 140 });
+    const menu = screen.getByRole("menu", { name: "Capability context menu" });
+
+    expect(
+      within(menu).queryByRole("menuitem", { name: "Copy AI prompt..." }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(menu).queryByRole("menuitem", { name: "Import AI JSON..." }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps outline, bulk, and view action menus keyboard navigable", async () => {

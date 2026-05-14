@@ -284,7 +284,7 @@ describe("editor import workflows", () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
-  it("copies a leaf expansion BCM prompt from the node context menu", async () => {
+  it("copies a customized leaf expansion AI prompt from the node context menu", async () => {
     const writeText = stubClipboard();
     renderEditor();
 
@@ -294,22 +294,25 @@ describe("editor import workflows", () => {
       .closest(".cc-node") as HTMLElement;
     fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
     await userEvent.click(
-      screen.getByRole("menuitem", { name: "Copy BCM prompt" }),
+      screen.getByRole("menuitem", { name: "Copy AI prompt..." }),
     );
+    const dialog = screen.getByRole("dialog", { name: "Copy AI prompt" });
+    const count = within(dialog).getByLabelText("Direct capabilities");
+    fireEvent.change(count, { target: { value: "8" } });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Copy" }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("status")).toHaveTextContent(
       "Prompt copied",
     );
     const prompt = writeText.mock.calls[0]?.[0] ?? "";
-    expect(prompt).toContain(
-      "create child capabilities under the selected leaf capability",
-    );
+    expect(prompt).toContain("Create 8 direct child capabilities");
     expect(prompt).toContain(PROMPT_MERGE_SCHEMA);
     expect(prompt).toContain('"targetId": "digital-onboarding"');
+    expect(prompt).not.toContain("```");
   });
 
-  it("copies a non-leaf BCM prompt with merge context", async () => {
+  it("copies a non-leaf AI prompt with merge context", async () => {
     const writeText = stubClipboard();
     renderEditor();
 
@@ -319,12 +322,18 @@ describe("editor import workflows", () => {
       .closest(".cc-node") as HTMLElement;
     fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
     await userEvent.click(
-      screen.getByRole("menuitem", { name: "Copy BCM prompt" }),
+      screen.getByRole("menuitem", { name: "Copy AI prompt..." }),
+    );
+    await userEvent.click(
+      within(screen.getByRole("dialog", { name: "Copy AI prompt" })).getByRole(
+        "button",
+        { name: "Copy" },
+      ),
     );
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     const prompt = writeText.mock.calls[0]?.[0] ?? "";
-    expect(prompt).toContain("merge generated children with existing children");
+    expect(prompt).toContain("Create or refine 5 direct child capabilities");
     expect(prompt).toContain('"id": "channels"');
     expect(prompt).toContain('"id": "digital-onboarding"');
   });
@@ -374,6 +383,151 @@ describe("editor import workflows", () => {
       parentId: "digital-onboarding",
       isOnCanvas: true,
     });
+  });
+
+  it("imports fenced prompt merge JSON from the toolbar paste dialog", async () => {
+    renderEditor();
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import pasted JSON" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "Import pasted JSON",
+    });
+    const payload = {
+      schema: PROMPT_MERGE_SCHEMA,
+      version: PROMPT_MERGE_VERSION,
+      targetId: "digital-onboarding",
+      capabilities: [
+        {
+          id: "application-capture",
+          name: "Application Capture",
+          description: "Captures customer application details for onboarding.",
+        },
+      ],
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: `\`\`\`json\n${JSON.stringify(payload)}\n\`\`\`` },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    expect(
+      childrenOf(useDocumentStore.getState().doc, "digital-onboarding"),
+    ).toContain("application-capture");
+  });
+
+  it("imports scoped AI JSON from the node context menu", async () => {
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const node = within(canvas)
+      .getByText("Digital Onboarding")
+      .closest(".cc-node") as HTMLElement;
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import AI JSON..." }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Import AI JSON" });
+    const payload = {
+      schema: PROMPT_MERGE_SCHEMA,
+      version: PROMPT_MERGE_VERSION,
+      targetId: "digital-onboarding",
+      capabilities: [
+        {
+          id: "eligibility-assessment",
+          name: "Eligibility Assessment",
+          description: "Determines whether an applicant qualifies for onboarding.",
+        },
+      ],
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: JSON.stringify(payload) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    expect(
+      childrenOf(useDocumentStore.getState().doc, "digital-onboarding"),
+    ).toContain("eligibility-assessment");
+    expect(
+      screen.queryByRole("dialog", { name: "Review import" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("rejects scoped AI JSON with a different targetId", async () => {
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const node = within(canvas)
+      .getByText("Digital Onboarding")
+      .closest(".cc-node") as HTMLElement;
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import AI JSON..." }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Import AI JSON" });
+    const payload = {
+      schema: PROMPT_MERGE_SCHEMA,
+      version: PROMPT_MERGE_VERSION,
+      targetId: "risk",
+      capabilities: [{ id: "mismatch", name: "Mismatch" }],
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: JSON.stringify(payload) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    expect(
+      childrenOf(useDocumentStore.getState().doc, "digital-onboarding"),
+    ).not.toContain("mismatch");
+    expect(useDocumentStore.getState().lastDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "prompt-merge-target-mismatch" }),
+      ]),
+    );
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it("rejects full document JSON from scoped AI import without review", async () => {
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const node = within(canvas)
+      .getByText("Digital Onboarding")
+      .closest(".cc-node") as HTMLElement;
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 });
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Import AI JSON..." }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Import AI JSON" });
+    const importedDoc = {
+      ...useDocumentStore.getState().doc,
+      title: "Should not replace",
+    };
+
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: stringifyDocument(importedDoc) },
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Import" }),
+    );
+
+    expect(useDocumentStore.getState().doc.title).toBe(
+      "Retail Bank Capability Model",
+    );
+    expect(
+      screen.queryByRole("dialog", { name: "Review import" }),
+    ).not.toBeInTheDocument();
+    expect(useDocumentStore.getState().lastDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "prompt-merge-required" }),
+      ]),
+    );
   });
 });
 

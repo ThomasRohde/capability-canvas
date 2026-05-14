@@ -7,18 +7,28 @@ import {
 } from "../document/types";
 import { PROMPT_MERGE_SCHEMA, PROMPT_MERGE_VERSION } from "./payload";
 
+export const DEFAULT_PROMPT_CHILD_COUNT = 5;
+export const MIN_PROMPT_CHILD_COUNT = 1;
+export const MAX_PROMPT_CHILD_COUNT = 12;
+
+export interface BcmPromptOptions {
+  childCount?: number;
+}
+
 export function buildBcmPrompt(
   doc: CapabilityDocument,
   targetId: NodeId,
+  options: BcmPromptOptions = {},
 ): string {
   const target = doc.nodesById[targetId];
   if (!target) throw new Error("Select a valid capability before prompting.");
   if (target.isTextLabel || target.type === "text") {
-    throw new Error("Text labels cannot be expanded with BCM prompts.");
+    throw new Error("Text labels cannot be expanded with AI prompts.");
   }
 
   const childIds = childrenOf(doc, targetId);
   const isLeaf = childIds.length === 0;
+  const childCount = normalizePromptChildCount(options.childCount);
   const context = {
     documentTitle: doc.title,
     selectedPath: capabilityPath(doc, targetId),
@@ -54,24 +64,25 @@ export function buildBcmPrompt(
   };
 
   return [
-    "You are helping build a Business Capability Model (BCM) in Capability Canvas.",
+    "Role: You are a business capability modeling assistant for Capability Canvas.",
     "",
+    "# Goal",
     isLeaf
-      ? "Task: create child capabilities under the selected leaf capability. The selected capability will become a parent when the JSON is imported."
-      : "Task: merge generated children with existing children under the selected capability. Preserve existing capabilities that are not mentioned, and refine only capabilities you explicitly include.",
+      ? `Create ${childCount} direct child capabilities under the selected leaf capability. The selected capability will become a parent when the JSON is imported.`
+      : `Create or refine ${childCount} direct child capabilities under the selected capability. Preserve existing capabilities that are not mentioned, and refine only capabilities you explicitly include.`,
     "",
-    "BCM modeling rules:",
-    "- Use noun-based capability names, not process, project, team, application, or system names.",
-    "- Name stable business outcomes, not implementation steps.",
+    "# Success criteria",
+    `- Return exactly ${childCount} direct child capabilities for targetId "${targetId}".`,
     "- Keep sibling capabilities MECE: no duplicates, overlaps, or mixed abstraction levels.",
-    "- Keep every generated sibling group at one level of abstraction.",
-    "- Prefer 3-7 children for a decomposition unless the selected scope clearly needs fewer or more.",
-    "- Use concise descriptions that explain the business outcome, not operational procedure.",
-    "- Capabilities already imply ability; do not begin descriptions with \"The ability to\", \"Ability to\", or similarly repetitive boilerplate.",
-    "- Vary description phrasing across siblings while staying concrete and domain-specific.",
-    "- Use stable kebab-case ids. Reuse an existing id when refining an existing capability.",
+    "- Name stable business outcomes, not implementation steps, projects, teams, applications, or systems.",
+    "- Use concise, varied descriptions that explain business outcomes.",
+    "- Reuse an existing id only when refining an existing direct child.",
     "",
-    "Import contract:",
+    "# Constraints",
+    "- Use noun-based capability names, not process, project, team, application, or system names.",
+    "- Keep every generated sibling group at one level of abstraction.",
+    "- Capabilities already imply ability; do not begin descriptions with \"The ability to\", \"Ability to\", or similarly repetitive boilerplate.",
+    "- Use stable kebab-case ids. Reuse an existing id when refining an existing capability.",
     `- Return schema "${PROMPT_MERGE_SCHEMA}" with version "${PROMPT_MERGE_VERSION}".`,
     `- Set targetId to "${targetId}".`,
     "- Put direct children of the selected capability under parentId equal to targetId, or omit parentId.",
@@ -82,12 +93,21 @@ export function buildBcmPrompt(
     "Current context:",
     JSON.stringify(context, null, 2),
     "",
-    "Return exactly one Markdown fenced code block using json, and no text outside the fence.",
-    "The code block content must be a JSON object shaped like this:",
-    "```json",
+    "# Output",
+    "Return raw JSON only. Do not wrap it in Markdown. Do not include commentary before or after the JSON.",
+    "The JSON object must be shaped like this:",
     JSON.stringify(outputShape, null, 2),
-    "```",
   ].join("\n");
+}
+
+export function normalizePromptChildCount(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return DEFAULT_PROMPT_CHILD_COUNT;
+  }
+  return Math.min(
+    MAX_PROMPT_CHILD_COUNT,
+    Math.max(MIN_PROMPT_CHILD_COUNT, Math.round(value)),
+  );
 }
 
 function capabilityPath(doc: CapabilityDocument, targetId: NodeId): string[] {

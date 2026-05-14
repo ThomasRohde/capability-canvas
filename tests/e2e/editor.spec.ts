@@ -78,7 +78,8 @@ test('keeps compact editor toolbar single-row and exposes grouped menus', async 
     await page.keyboard.press('Shift+F10');
     await expect(page.getByRole('menu', { name: 'Capability context menu' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Duplicate' })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Copy BCM prompt' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Copy AI prompt...' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Import AI JSON...' })).toBeVisible();
     await page.keyboard.press('Escape');
 
     const heatmapToggle = page.getByRole('button', { name: 'Toggle heatmap', exact: true });

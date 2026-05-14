@@ -11,31 +11,42 @@ describe("BCM prompt merge contract", () => {
   it("builds a leaf prompt with child-creation instructions and schema", () => {
     const prompt = buildBcmPrompt(createSampleDocument(), "digital-onboarding");
 
-    expect(prompt).toContain(
-      "create child capabilities under the selected leaf capability",
-    );
+    expect(prompt).toContain("# Goal");
+    expect(prompt).toContain("Create 5 direct child capabilities");
+    expect(prompt).toContain("# Success criteria");
     expect(prompt).toContain(`"${PROMPT_MERGE_SCHEMA}"`);
     expect(prompt).toContain(`"${PROMPT_MERGE_VERSION}"`);
     expect(prompt).toContain('"targetId": "digital-onboarding"');
-    expect(prompt).toContain("```json");
   });
 
   it("builds a non-leaf prompt with merge instructions and subtree context", () => {
     const prompt = buildBcmPrompt(createSampleDocument(), "customer");
 
-    expect(prompt).toContain("merge generated children with existing children");
+    expect(prompt).toContain("Create or refine 5 direct child capabilities");
     expect(prompt).toContain("existingSelectedSubtree");
     expect(prompt).toContain('"id": "channels"');
     expect(prompt).toContain('"id": "digital-onboarding"');
   });
 
-  it("requires fenced json output only", () => {
+  it("supports a custom direct capability count", () => {
+    const prompt = buildBcmPrompt(createSampleDocument(), "risk", {
+      childCount: 8,
+    });
+
+    expect(prompt).toContain("Create or refine 8 direct child capabilities");
+    expect(prompt).toContain(
+      'Return exactly 8 direct child capabilities for targetId "risk".',
+    );
+  });
+
+  it("requires raw json output only", () => {
     const prompt = buildBcmPrompt(createSampleDocument(), "risk");
 
     expect(prompt).toContain(
-      "Return exactly one Markdown fenced code block using json, and no text outside the fence.",
+      "Return raw JSON only. Do not wrap it in Markdown. Do not include commentary before or after the JSON.",
     );
-    expect(prompt).toContain("The code block content must be a JSON object");
+    expect(prompt).toContain("The JSON object must be shaped like this:");
+    expect(prompt).not.toContain("```");
   });
 
   it("discourages repetitive ability-based descriptions", () => {
@@ -44,7 +55,7 @@ describe("BCM prompt merge contract", () => {
     expect(prompt).toContain(
       'Capabilities already imply ability; do not begin descriptions with "The ability to", "Ability to", or similarly repetitive boilerplate.',
     );
-    expect(prompt).toContain("Vary description phrasing across siblings");
+    expect(prompt).toContain("Use concise, varied descriptions");
   });
 
   it("reports invalid prompt merge payloads", () => {

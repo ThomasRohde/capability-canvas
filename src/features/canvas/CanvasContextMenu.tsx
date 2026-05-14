@@ -18,7 +18,8 @@ export function CanvasContextMenu({
   onInspect,
   onAddChild,
   onDuplicate,
-  onCopyBcmPrompt,
+  onCopyAiPrompt,
+  onImportAiJson,
   onFitParent,
   onToggleCollapse,
   onRemoveFromView,
@@ -34,7 +35,8 @@ export function CanvasContextMenu({
   onInspect: (nodeId: NodeId) => void;
   onAddChild: (nodeId: NodeId) => void;
   onDuplicate: (nodeId: NodeId) => void;
-  onCopyBcmPrompt: (nodeId: NodeId) => void;
+  onCopyAiPrompt: (nodeId: NodeId) => void;
+  onImportAiJson: (nodeId: NodeId) => void;
   onFitParent: (nodeId: NodeId) => void;
   onToggleCollapse: (nodeId: NodeId) => void;
   onRemoveFromView: (nodeId: NodeId) => void;
@@ -82,9 +84,18 @@ export function CanvasContextMenu({
         <button
           type="button"
           role="menuitem"
-          onClick={() => onCopyBcmPrompt(menu.nodeId)}
+          onClick={() => onCopyAiPrompt(menu.nodeId)}
         >
-          Copy BCM prompt
+          Copy AI prompt...
+        </button>
+      )}
+      {!node.isTextLabel && node.type !== "text" && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => onImportAiJson(menu.nodeId)}
+        >
+          Import AI JSON...
         </button>
       )}
       {hasCanvasChildren && (
