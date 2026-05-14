@@ -13,6 +13,7 @@
       "h": 3180,
       "type": "root",
       "color": "stone",
+      "colorOverride": "transparent",
       "description": "Propose a practical capability model for enterprise platforms, including how platform capabilities should be grouped, how ownership should be assigned, and how RACI should be applied when products, departments, business domains, technology teams and control functions overlap.",
       "metadata": {
         "source": {
@@ -488,7 +489,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741477353
+      "updatedAt": 1778742493885
     },
     {
       "id": "g0-platform-governance-and-portfolio-management",
@@ -3104,8 +3105,8 @@
     "containerPaddingRight": 8,
     "containerPaddingBottom": 8,
     "containerPaddingLeft": 8,
-    "containerTitleHeight": 35,
-    "containerLabelOffsetTop": 4,
+    "containerTitleHeight": 34,
+    "containerLabelOffsetTop": 8,
     "childGapX": 4,
     "childGapY": 4,
     "fontFamily": "Segoe UI",
@@ -3154,7 +3155,7 @@
         "id": "view-default",
         "name": "Default view",
         "createdAt": 1778739721445,
-        "updatedAt": 1778741410560,
+        "updatedAt": 1778770553044,
         "templateId": "full-model-default@1",
         "nodeStatesById": {
           "enterprise-platform-capability-model": {
@@ -4185,9 +4186,9 @@
           }
         },
         "viewport": {
-          "x": 40,
-          "y": 127.28744939271256,
-          "zoom": 0.9919028340080972
+          "x": 0,
+          "y": 0,
+          "zoom": 1
         },
         "layout": {
           "mode": "balanced",
@@ -4219,5 +4220,5 @@
       }
     }
   },
-  "timestamp": 1778742104923
+  "timestamp": 1778770553044
 }
