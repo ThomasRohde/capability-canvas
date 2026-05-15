@@ -139,7 +139,7 @@
   box-shadow: 0 0 0 2px var(--cc-brand-700);
 }
 
-.cc-node.selected::after {
+.cc-node:not(.cc-node-label-node).selected::after {
   content: "";
   position: absolute;
   top: 5px;
