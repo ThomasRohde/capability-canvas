@@ -15,9 +15,9 @@ export function htmlExport(doc: CapabilityDocument): ExportResult {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeXml(model.title)}</title>
     <style>
-      body { margin: 0; background: #f8fafc; color: #0f172a; font-family: "${EXPORT_FONT_FAMILY}", system-ui, sans-serif; }
+      body { margin: 0; background: #ffffff; color: #0f172a; font-family: "${EXPORT_FONT_FAMILY}", system-ui, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-      svg { max-width: 100%; height: auto; border: 1px solid #e2e8f0; background: #f1f5f9; }
+      svg { max-width: 100%; height: auto; border: 1px solid #e2e8f0; background: #ffffff; }
       .cc-node[data-description] { cursor: help; }
       .cc-node[data-description]:focus { outline: none; }
       .cc-node[data-description]:focus rect {

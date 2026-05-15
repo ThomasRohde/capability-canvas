@@ -127,7 +127,7 @@ export function buildVisualExportModel(
   return {
     title: visualDoc.title,
     fontFamily: EXPORT_FONT_FAMILY,
-    background: "#f1f5f9",
+    background: "#ffffff",
     documentBounds,
     contentBounds,
     surfaceBounds: expandBounds(contentBounds, EXPORT_PADDING),

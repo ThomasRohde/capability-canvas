@@ -19,7 +19,7 @@ exports[`exports > snapshots SVG active-view visibility filtering 1`] = `
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }
   </style>
-  <rect x="-48" y="-48" width="356" height="236" fill="#f1f5f9" />
+  <rect x="-48" y="-48" width="356" height="236" fill="#ffffff" />
   <g data-node-id="root">
     <rect x="0" y="0" width="260" height="140" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1" />
     <text text-anchor="middle" class="node-label" font-size="13" font-weight="500"><tspan x="130" y="75.2">Root Capability</tspan></text>
@@ -41,7 +41,7 @@ exports[`exports > snapshots SVG heatmap scores and legend fidelity 1`] = `
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }
   </style>
-  <rect x="-48" y="-48" width="356" height="318" fill="#f1f5f9" />
+  <rect x="-48" y="-48" width="356" height="318" fill="#ffffff" />
   <g data-node-id="root">
     <rect x="0" y="0" width="260" height="140" rx="8" fill="#f5fad4" stroke="#d7eb58" stroke-width="1.5" />
     <text text-anchor="middle" class="container-label" font-size="14" font-weight="600"><tspan x="130" y="16">Root Capability</tspan></text>
@@ -80,7 +80,7 @@ exports[`exports > snapshots SVG normal color mode fidelity 1`] = `
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }
   </style>
-  <rect x="-48" y="-48" width="356" height="236" fill="#f1f5f9" />
+  <rect x="-48" y="-48" width="356" height="236" fill="#ffffff" />
   <g data-node-id="root">
     <rect x="0" y="0" width="260" height="140" rx="8" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5" />
     <text text-anchor="middle" class="container-label" font-size="14" font-weight="600"><tspan x="130" y="16">Root Capability</tspan></text>
@@ -97,7 +97,7 @@ exports[`exports > snapshots SVG normal color mode fidelity 1`] = `
 
 exports[`exports > snapshots the shared render model used by PPTX 1`] = `
 {
-  "background": "#f1f5f9",
+  "background": "#ffffff",
   "contentBounds": {
     "h": 222,
     "w": 260,
