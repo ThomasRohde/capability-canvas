@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
+import { useUiStore } from "../../app/stores/uiStore";
 import { createVisualView } from "../../domain/commands/operations";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { geometrySnapshot } from "../../test/documentAssertions";
@@ -23,7 +24,8 @@ describe("editor settings workflows", () => {
       screen.getByRole("complementary", { name: "Settings" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Layout mode")).toBeInTheDocument();
-    expect(screen.getByLabelText("Show grid")).toBeChecked();
+    expect(screen.getByLabelText("Show grid pattern")).toBeChecked();
+    expect(screen.getByLabelText("Snap movement to grid")).toBeChecked();
     expect(screen.getByLabelText("Grid size")).toHaveValue(8);
     expect(screen.getByLabelText("Snap resizing to grid")).toBeChecked();
     expect(screen.getByLabelText("Leaf width")).toHaveValue(175);
@@ -66,7 +68,7 @@ describe("editor settings workflows", () => {
     );
   });
 
-  it("toggles the canvas grid and updates grid size", async () => {
+  it("toggles the visible canvas grid pattern and updates grid settings", async () => {
     renderEditor();
     const canvas = screen.getByTestId("canvas");
     expect(canvas).not.toHaveClass("no-grid");
@@ -75,12 +77,23 @@ describe("editor settings workflows", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Open settings" }),
     );
-    await userEvent.click(screen.getByLabelText("Show grid"));
-    expect(screen.getByLabelText("Show grid")).not.toBeChecked();
+    const historyBefore = useDocumentStore.getState().past.length;
+    await userEvent.click(screen.getByLabelText("Show grid pattern"));
+    expect(screen.getByLabelText("Show grid pattern")).not.toBeChecked();
+    expect(useUiStore.getState().gridPatternVisible).toBe(false);
+    expect(useDocumentStore.getState().doc.settings.gridEnabled).toBe(true);
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
     expect(canvas).toHaveClass("no-grid");
     expect(canvas.style.getPropertyValue("--cc-grid-dot-color")).toBe(
       "transparent",
     );
+
+    await userEvent.click(screen.getByLabelText("Show grid pattern"));
+    expect(canvas).not.toHaveClass("no-grid");
+
+    await userEvent.click(screen.getByLabelText("Snap movement to grid"));
+    expect(useDocumentStore.getState().doc.settings.gridEnabled).toBe(false);
+    expect(canvas).not.toHaveClass("no-grid");
 
     const gridSize = screen.getByLabelText("Grid size");
     fireEvent.change(gridSize, {

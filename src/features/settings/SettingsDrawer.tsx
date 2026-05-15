@@ -100,6 +100,10 @@ export function SettingsDrawer() {
   );
   const open = useUiStore((state) => state.activeDrawer === "settings");
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
+  const gridPatternVisible = useUiStore((state) => state.gridPatternVisible);
+  const setGridPatternVisible = useUiStore(
+    (state) => state.setGridPatternVisible,
+  );
   const closeRef = useRef<HTMLButtonElement>(null);
   const { activeView } = useActiveVisualState({ doc });
   const selectedLayoutHelp =
@@ -286,7 +290,12 @@ export function SettingsDrawer() {
             </div>
           )}
           <CheckSetting
-            label="Show grid"
+            label="Show grid pattern"
+            checked={gridPatternVisible}
+            onChange={setGridPatternVisible}
+          />
+          <CheckSetting
+            label="Snap movement to grid"
             checked={doc.settings.gridEnabled}
             onChange={(gridEnabled) =>
               execute(updateDocumentSettings({ gridEnabled }))

@@ -36,6 +36,7 @@ export function resetEditorTestState() {
     activeDrawer: null,
     helpDialogOpen: false,
     exportFormat: "json",
+    gridPatternVisible: true,
     inspectorTab: "inspector",
     searchQuery: "",
     selectionNotice: null,

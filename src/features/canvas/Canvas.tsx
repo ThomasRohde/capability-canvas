@@ -74,6 +74,7 @@ export function Canvas({
   const setInspectorTab = useUiStore((state) => state.setInspectorTab);
   const setActiveDrawer = useUiStore((state) => state.setActiveDrawer);
   const showSelectionNotice = useUiStore((state) => state.showSelectionNotice);
+  const gridPatternVisible = useUiStore((state) => state.gridPatternVisible);
   const drag = useTransientStore((state) => state.drag);
   const resize = useTransientStore((state) => state.resize);
   const reparentTargetId = useTransientStore((state) => state.reparentTargetId);
@@ -293,7 +294,7 @@ export function Canvas({
   return (
     <main
       ref={canvasRef}
-      className={`cc-canvas ${viewDoc.settings.gridEnabled ? "" : "no-grid"} ${
+      className={`cc-canvas ${gridPatternVisible ? "" : "no-grid"} ${
         canvasSelected.length === 0
           ? "selection-empty"
           : canvasSelected.length === 1
@@ -307,7 +308,7 @@ export function Canvas({
       style={
         {
           "--cc-grid-size": `${Math.max(4, viewDoc.settings.gridSize * viewport.zoom)}px`,
-          "--cc-grid-dot-color": viewDoc.settings.gridEnabled
+          "--cc-grid-dot-color": gridPatternVisible
             ? "rgba(15, 23, 42, 0.09)"
             : "transparent",
           backgroundPosition: `${viewport.x}px ${viewport.y}px`,

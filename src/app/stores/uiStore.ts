@@ -37,6 +37,8 @@ const OUTLINE_WIDTH_STORAGE_KEY = "capability-canvas.outlineWidth";
 const OUTLINE_OPEN_STORAGE_KEY = "capability-canvas.outlineOpen";
 const INSPECTOR_OPEN_STORAGE_KEY = "capability-canvas.inspectorOpen";
 const EXPORT_FORMAT_STORAGE_KEY = "capability-canvas.exportFormat";
+const GRID_PATTERN_VISIBLE_STORAGE_KEY =
+  "capability-canvas.gridPatternVisible";
 
 export function clampOutlineWidth(width: number) {
   return Math.min(
@@ -119,6 +121,7 @@ interface UiState {
   activeDrawer: ActiveDrawer;
   helpDialogOpen: boolean;
   exportFormat: ExportFormat;
+  gridPatternVisible: boolean;
   inspectorTab: "inspector" | "layout" | "data";
   searchQuery: string;
   selectionNotice: SelectionNotice | null;
@@ -136,6 +139,7 @@ interface UiState {
   setActiveDrawer: (drawer: ActiveDrawer) => void;
   setHelpDialogOpen: (open: boolean) => void;
   setExportFormat: (format: ExportFormat) => void;
+  setGridPatternVisible: (visible: boolean) => void;
   setInspectorTab: (tab: UiState["inspectorTab"]) => void;
   setSearchQuery: (query: string) => void;
   showSelectionNotice: (message: string) => void;
@@ -154,6 +158,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   activeDrawer: null,
   helpDialogOpen: false,
   exportFormat: readStoredExportFormat(),
+  gridPatternVisible: readStoredBoolean(GRID_PATTERN_VISIBLE_STORAGE_KEY, true),
   inspectorTab: "inspector",
   searchQuery: "",
   selectionNotice: null,
@@ -198,6 +203,10 @@ export const useUiStore = create<UiState>((set, get) => ({
   setExportFormat: (format) => {
     persistExportFormat(format);
     set({ exportFormat: format });
+  },
+  setGridPatternVisible: (gridPatternVisible) => {
+    persistBoolean(GRID_PATTERN_VISIBLE_STORAGE_KEY, gridPatternVisible);
+    set({ gridPatternVisible });
   },
   setInspectorTab: (tab) => set({ inspectorTab: tab }),
   setSearchQuery: (query) => set({ searchQuery: query }),
