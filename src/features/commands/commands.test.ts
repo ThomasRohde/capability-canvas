@@ -191,6 +191,7 @@ function createCommandContext(
     ...patch,
     actions: {
       addRoot: () => {},
+      addLabel: () => {},
       addChild: () => {},
       renameSelected: () => {},
       duplicateSelected: () => {},

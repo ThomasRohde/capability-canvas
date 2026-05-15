@@ -1,5 +1,9 @@
 import type { KeyboardEvent, RefObject } from "react";
-import type { CapabilityNode, NodeId } from "../../domain/document/types";
+import {
+  isTextLabelNode,
+  type CapabilityNode,
+  type NodeId,
+} from "../../domain/document/types";
 
 export interface CanvasContextMenuState {
   nodeId: NodeId;
@@ -64,7 +68,7 @@ export function CanvasContextMenu({
       >
         Inspect
       </button>
-      {!node.isTextLabel && node.type !== "text" && (
+      {!isTextLabelNode(node) && (
         <button
           type="button"
           role="menuitem"
@@ -80,7 +84,7 @@ export function CanvasContextMenu({
       >
         Duplicate
       </button>
-      {!node.isTextLabel && node.type !== "text" && (
+      {!isTextLabelNode(node) && (
         <button
           type="button"
           role="menuitem"
@@ -89,7 +93,7 @@ export function CanvasContextMenu({
           Copy AI prompt...
         </button>
       )}
-      {!node.isTextLabel && node.type !== "text" && (
+      {!isTextLabelNode(node) && (
         <button
           type="button"
           role="menuitem"

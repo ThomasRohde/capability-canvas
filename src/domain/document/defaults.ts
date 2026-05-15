@@ -79,7 +79,9 @@ export function createNode(
     layoutPreferences: partial.layoutPreferences,
     isManualPositioningEnabled: partial.isManualPositioningEnabled ?? false,
     isLockedAsIs: partial.isLockedAsIs ?? false,
-    isTextLabel: partial.isTextLabel ?? partial.type === "text",
+    isTextLabel:
+      partial.isTextLabel ??
+      (partial.type === "text" || partial.type === "label"),
     isOnCanvas: partial.isOnCanvas ?? true,
     textStyle: partial.textStyle,
     heatmapValue: partial.heatmapValue,

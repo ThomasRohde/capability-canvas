@@ -1,4 +1,10 @@
-import { canvasRootChildren, type LayoutMode } from "../document/types";
+import {
+  canvasRootChildren,
+  isCanvasLabelNode,
+  type CapabilityDocument,
+  type LayoutMode,
+  type NodeId,
+} from "../document/types";
 import type { Diagnostic } from "../validation/diagnostics";
 import { info, warning } from "../validation/diagnostics";
 import {
@@ -83,7 +89,7 @@ export async function layoutDocument(
   const scope = scopedRequest
     ? normalizeScopedLayoutRoots(doc, request.affectedNodeIds!)
     : {
-        rootIds: canvasRootChildren(doc),
+        rootIds: layoutRootChildren(doc),
         documentScope: true,
         diagnostics: [],
       };
@@ -174,6 +180,12 @@ export async function layoutDocument(
     measuredRoots,
     frame,
     frame ? (aspectRatioTarget ?? undefined) : undefined,
+  );
+}
+
+function layoutRootChildren(doc: CapabilityDocument): NodeId[] {
+  return canvasRootChildren(doc).filter(
+    (nodeId) => !isCanvasLabelNode(doc.nodesById[nodeId]),
   );
 }
 

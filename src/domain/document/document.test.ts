@@ -4,6 +4,7 @@ import { parseDocument } from "./parse";
 import { serializeDocument } from "./serialize";
 import {
   createVisualView,
+  addLabel,
   deleteVisualView,
   resetVisualViewFromTemplate,
   runTransaction,
@@ -25,6 +26,58 @@ describe("document JSON adapter", () => {
       parsed.diagnostics.filter((diag) => diag.severity === "error"),
     ).toHaveLength(0);
     expect(serializeDocument(parsed.doc!)).toEqual(wire);
+  });
+
+  it("round-trips canvas label nodes with shape and font styling", () => {
+    const result = runTransaction(
+      createSampleDocument(),
+      addLabel("Launch note", {
+        id: "label-launch",
+        center: { x: 320, y: 180 },
+        shape: "callout",
+      }),
+    );
+
+    const wire = serializeDocument(result.doc);
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc?.nodesById["label-launch"]).toMatchObject({
+      type: "label",
+      parentId: null,
+      isTextLabel: true,
+      isManualPositioningEnabled: true,
+      textStyle: {
+        shape: "callout",
+        fontSize: 14,
+      },
+    });
+    expect(
+      parsed.diagnostics.filter((diag) => diag.severity === "error"),
+    ).toHaveLength(0);
+  });
+
+  it("normalizes legacy text nodes to label nodes when parsing", () => {
+    const wire = serializeDocument(createSampleDocument());
+    wire.nodes.push(
+      createNode({
+        id: "legacy-note",
+        label: "Legacy note",
+        parentId: null,
+        type: "text",
+        isTextLabel: true,
+      }),
+    );
+
+    const parsed = parseDocument(wire);
+
+    expect(parsed.doc?.nodesById["legacy-note"]).toMatchObject({
+      type: "label",
+      parentId: null,
+      isTextLabel: true,
+    });
+    expect(
+      parsed.diagnostics.filter((diag) => diag.severity === "error"),
+    ).toHaveLength(0);
   });
 
   it("tastes and imports capability list JSON arrays", () => {

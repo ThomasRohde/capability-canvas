@@ -1,7 +1,9 @@
 import {
   canvasChildrenOf,
   collectDescendantIds,
+  isCanvasLabelNode,
   isNodeOnCanvas,
+  isTextLabelNode,
   type CapabilityDocument,
   type CapabilityNode,
   type LayoutAspectRatioTarget,
@@ -153,6 +155,7 @@ export async function measureSubtree(
   const node = doc.nodesById[nodeId];
   if (!node) return emptyMeasured(nodeId);
   if (!isNodeOnCanvas(node)) return emptyMeasured(nodeId);
+  if (isCanvasLabelNode(node)) return emptyMeasured(nodeId);
   const nextPath = new Set(activePath);
   nextPath.add(nodeId);
 
@@ -173,7 +176,7 @@ export async function measureSubtree(
     };
   }
 
-  const childIds = canvasChildrenOf(doc, node.id);
+  const childIds = layoutChildrenOf(doc, node.id);
   if (childIds.length === 0) {
     const size = nodeSize(doc, node);
     return {
@@ -341,10 +344,10 @@ function uniformLeafGroupHeights(
 }
 
 function isLeafGroupContainer(doc: CapabilityDocument, nodeId: NodeId) {
-  const childIds = canvasChildrenOf(doc, nodeId);
+  const childIds = layoutChildrenOf(doc, nodeId);
   return (
     childIds.length > 0 &&
-    childIds.every((childId) => canvasChildrenOf(doc, childId).length === 0)
+    childIds.every((childId) => layoutChildrenOf(doc, childId).length === 0)
   );
 }
 
@@ -472,7 +475,7 @@ function measureManualSubtree(
 ): MeasuredSubtree {
   const patches: LayoutPatch[] = [];
   const margin = nodeMargin(doc, node);
-  const childIds = canvasChildrenOf(doc, node.id);
+  const childIds = layoutChildrenOf(doc, node.id);
   const childBounds = boundsForIds(doc, childIds);
   const requiredW = childBounds
     ? childBounds.x - node.x + childBounds.w + margin.right
@@ -518,7 +521,7 @@ function measureManualSubtree(
 }
 
 function nodeSize(doc: CapabilityDocument, node: CapabilityNode) {
-  if (node.isTextLabel || node.type === "text")
+  if (isTextLabelNode(node))
     return {
       w: snapLayoutSize(doc, node.w),
       h: snapLayoutSize(doc, node.h),
@@ -567,7 +570,7 @@ function collectCurrentSubtreePatches(
   if (activePath.has(nodeId)) return;
   const nextPath = new Set(activePath);
   nextPath.add(nodeId);
-  for (const childId of canvasChildrenOf(doc, nodeId)) {
+  for (const childId of layoutChildrenOf(doc, nodeId)) {
     if (nextPath.has(childId)) continue;
     const child = doc.nodesById[childId];
     if (!child) continue;
@@ -587,6 +590,12 @@ function collectCurrentSubtreePatches(
       nextPath,
     );
   }
+}
+
+function layoutChildrenOf(doc: CapabilityDocument, parentId: NodeId): NodeId[] {
+  return canvasChildrenOf(doc, parentId).filter(
+    (childId) => !isCanvasLabelNode(doc.nodesById[childId]),
+  );
 }
 
 function emptyMeasured(nodeId: NodeId): MeasuredSubtree {

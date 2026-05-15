@@ -42,8 +42,10 @@ import {
 import {
   buildSafeChildrenByParentId,
   canvasChildrenOf,
+  isCanvasLabelNode,
   isHierarchyAncestorOf,
   isNodeOnCanvas,
+  isTextLabelNode,
   ROOT_PARENT_ID,
   subtreeNodeIds,
   type CapabilityDocument,
@@ -144,9 +146,11 @@ export function Outline({
   const folderIds = useMemo(
     () =>
       Object.keys(doc.nodesById).filter(
-        (id) => (safeChildrenByParentId[id] ?? []).length > 0,
+        (id) =>
+          !isCanvasLabelNode(doc.nodesById[id]) &&
+          outlineChildrenOf(doc, safeChildrenByParentId, id).length > 0,
       ),
-    [doc.nodesById, safeChildrenByParentId],
+    [doc, safeChildrenByParentId],
   );
   const knownFolderIds = useRef(new Set(folderIds));
   const [expandedItems, setExpandedItems] = useState(folderIds);
@@ -201,14 +205,17 @@ export function Outline({
     },
     isItemFolder: (item) => {
       const id = item.getId();
-      return id === rootItemId || (safeChildrenByParentId[id] ?? []).length > 0;
+      return (
+        id === rootItemId ||
+        outlineChildrenOf(doc, safeChildrenByParentId, id).length > 0
+      );
     },
     dataLoader: {
       getItem: (itemId) => itemId,
       getChildren: (itemId) =>
         itemId === rootItemId
-          ? (safeChildrenByParentId[ROOT_PARENT_ID] ?? [])
-          : (safeChildrenByParentId[itemId] ?? []),
+          ? outlineChildrenOf(doc, safeChildrenByParentId, ROOT_PARENT_ID)
+          : outlineChildrenOf(doc, safeChildrenByParentId, itemId),
     },
     features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature],
   });
@@ -432,6 +439,7 @@ export function Outline({
           .map((item) => {
             const node = doc.nodesById[item.getId()];
             if (!node) return null;
+            if (isCanvasLabelNode(node)) return null;
             const active = selected.includes(node.id);
             const viewNode = viewDoc.nodesById[node.id];
             const style = categoryStyle(
@@ -580,8 +588,8 @@ export function Outline({
                   <OutlineActionsMenu
                     nodeId={node.id}
                     viewId={activeViewId}
-                    canAddChild={!node.isTextLabel && node.type !== "text"}
-                    canUseAi={!node.isTextLabel && node.type !== "text"}
+                    canAddChild={!isTextLabelNode(node)}
+                    canUseAi={!isTextLabelNode(node)}
                     canAddToCanvas={hasHiddenCanvasNodes}
                     canRemoveFromCanvas={hasVisibleCanvasNodes}
                     isCollapsed={!!activeViewState?.isCollapsed}
@@ -645,6 +653,16 @@ function matchesOutlineSelectionFilter(
     (selectedId) =>
       isHierarchyAncestorOf(doc, nodeId, selectedId) ||
       isHierarchyAncestorOf(doc, selectedId, nodeId),
+  );
+}
+
+function outlineChildrenOf(
+  doc: CapabilityDocument,
+  childrenByParentId: Record<NodeId, NodeId[]>,
+  parentId: NodeId,
+): NodeId[] {
+  return (childrenByParentId[parentId] ?? []).filter(
+    (childId) => !isCanvasLabelNode(doc.nodesById[childId]),
   );
 }
 

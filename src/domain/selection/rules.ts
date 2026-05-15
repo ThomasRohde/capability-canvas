@@ -1,5 +1,6 @@
 import {
   isNodeOnCanvas,
+  isTextLabelNode,
   ROOT_PARENT_ID,
   type CapabilityDocument,
   type CapabilityNode,
@@ -35,7 +36,7 @@ export function canMultiSelect(
   const nodes = nodeIds.map((id) => doc.nodesById[id]).filter(Boolean);
   if (nodes.length !== nodeIds.length)
     return { valid: false, reason: "One or more selected nodes are missing." };
-  if (nodes.some((node) => node.isTextLabel || node.type === "text")) {
+  if (nodes.some(isTextLabelNode)) {
     return {
       valid: false,
       reason: TEXT_LABEL_SELECTION_REASON,
@@ -96,8 +97,7 @@ export function resolveSelectAllSelection(
     .find(
       (node) =>
         node &&
-        !node.isTextLabel &&
-        node.type !== "text" &&
+        !isTextLabelNode(node) &&
         candidate.includes(node.id),
     );
   if (!anchor) return resolveSiblingSelection(doc, candidate, options);
@@ -107,8 +107,7 @@ export function resolveSelectAllSelection(
     const node = doc.nodesById[id];
     return (
       !!node &&
-      !node.isTextLabel &&
-      node.type !== "text" &&
+      !isTextLabelNode(node) &&
       selectionParentKey(doc, node, options) === anchorParentKey
     );
   });
@@ -126,7 +125,7 @@ export function largestSelectableSiblingGroup(
   const buckets = new Map<string, NodeId[]>();
   for (const id of uniqueNodeIds(nodeIds)) {
     const node = doc.nodesById[id];
-    if (!node || node.isTextLabel || node.type === "text") continue;
+    if (!node || isTextLabelNode(node)) continue;
     const key = selectionParentKey(doc, node, options);
     const bucket = buckets.get(key) ?? [];
     bucket.push(id);

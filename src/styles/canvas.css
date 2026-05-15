@@ -58,6 +58,74 @@
   background: transparent;
 }
 
+.cc-node.cc-node-label-node {
+  padding: 0 6px;
+  border-color: transparent;
+  background: transparent;
+  overflow: visible;
+  font-family: var(--label-font-family, var(--cc-font-family, system-ui));
+  font-size: var(--label-font-size, 14px);
+  font-weight: var(--label-font-weight, 500);
+  line-height: 1.2;
+  text-align: var(--label-text-align, center);
+}
+
+.cc-node.cc-node-label-node .cc-node-label {
+  text-align: inherit;
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-box,
+.cc-node.cc-node-label-node.cc-label-shape-pill,
+.cc-node.cc-node-label-node.cc-label-shape-sticky,
+.cc-node.cc-node-label-node.cc-label-shape-callout {
+  padding: 8px 10px;
+  background: var(--node-bg);
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-box {
+  border-radius: 6px;
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-pill {
+  border-radius: 9999px;
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-sticky {
+  align-items: flex-start;
+  justify-content: flex-start;
+  border-radius: 3px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-sticky::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-top: 16px solid rgba(255, 255, 255, 0.74);
+  border-left: 16px solid rgba(15, 23, 42, 0.12);
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-callout {
+  border-radius: 6px;
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-callout::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  bottom: -10px;
+  width: 18px;
+  height: 18px;
+  background: var(--node-bg);
+  transform: rotate(45deg);
+}
+
+.cc-node.cc-node-label-node.cc-label-shape-callout .cc-node-label {
+  position: relative;
+  z-index: 1;
+}
+
 .cc-node.cc-node-container {
   align-items: stretch;
   justify-content: flex-start;

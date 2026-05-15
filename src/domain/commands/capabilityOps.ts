@@ -4,12 +4,15 @@ import { cloneDocument, rebuildChildren } from "../document/normalize";
 import {
   canvasChildrenOf,
   childrenOf,
+  isCanvasLabelNode,
   isNodeOnCanvas,
+  isTextLabelNode,
   now,
   ROOT_PARENT_ID,
   type CapabilityColor,
   type CapabilityDocument,
   type CapabilityNode,
+  type LabelShape,
   type NodeId,
 } from "../document/types";
 import { rectanglesOverlap } from "../layout/bounds";
@@ -26,6 +29,17 @@ import type { Transaction } from "./types";
 
 interface AddCapabilityOptions {
   isOnCanvas?: boolean;
+}
+
+interface AddLabelOptions {
+  id?: NodeId;
+  parentId?: NodeId | null;
+  center?: { x: number; y: number };
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  shape?: LabelShape;
 }
 
 export function addRoot(
@@ -75,7 +89,7 @@ export function addChild(
             "missing-parent",
             "Select a valid parent before adding a child.",
           );
-        if (parent.isTextLabel || parent.type === "text")
+        if (isTextLabelNode(parent))
           return fail(
             doc,
             "text-label-parent",
@@ -143,21 +157,56 @@ export function addTextLabel(
   parentId: NodeId | null,
   label = "Text label",
 ): Transaction {
-  return transaction("Add text label", [
-    command("add-text-label", { parentId, label }, "source", (doc) => {
+  return addLabel(label, { parentId });
+}
+
+export function addLabel(
+  label = "Label",
+  options: AddLabelOptions = {},
+): Transaction {
+  const id = options.id ?? makeId("label");
+  return transaction("Add label", [
+    command("add-label", { id, label, options }, "source", (doc) => {
+      const parentId = options.parentId ?? null;
+      const parent = parentId ? doc.nodesById[parentId] : undefined;
+      if (parentId && !parent) {
+        return fail(
+          doc,
+          "missing-parent",
+          "Select a valid parent before adding a label.",
+        );
+      }
+      if (isTextLabelNode(parent)) {
+        return fail(doc, "text-label-parent", "Labels cannot contain children.");
+      }
       const next = cloneDocument(doc);
-      const id = makeId("text");
+      const w = options.w ?? 180;
+      const h = options.h ?? 40;
+      const baseX =
+        options.x ??
+        (options.center ? options.center.x - w / 2 : parent ? parent.x + 24 : 24);
+      const baseY =
+        options.y ??
+        (options.center ? options.center.y - h / 2 : parent ? parent.y + 24 : 24);
       next.nodesById[id] = createNode({
         id,
         label,
         parentId,
-        type: "text",
-        color: "teal",
+        type: "label",
+        color: "transparent",
         isTextLabel: true,
-        x: parentId ? (next.nodesById[parentId]?.x ?? 0) + 24 : 24,
-        y: parentId ? (next.nodesById[parentId]?.y ?? 0) + 24 : 24,
-        w: 180,
-        h: 36,
+        isManualPositioningEnabled: true,
+        x: snapCoordinate(next, baseX),
+        y: snapCoordinate(next, baseY),
+        w,
+        h,
+        textStyle: {
+          fontFamily: next.settings.fontFamily,
+          fontSize: 14,
+          fontWeight: 500,
+          align: "center",
+          shape: options.shape ?? "none",
+        },
       });
       const key = parentId ?? ROOT_PARENT_ID;
       next.childrenByParentId[key] = [
@@ -412,7 +461,13 @@ export function reparentNode(
             "missing-node",
             "The selected capability no longer exists.",
           );
-        if (parent?.isTextLabel || parent?.type === "text")
+        if (isCanvasLabelNode(node))
+          return fail(
+            doc,
+            "label-reparent-rejected",
+            "Labels cannot be reparented.",
+          );
+        if (isTextLabelNode(parent))
           return fail(
             doc,
             "text-label-parent",
@@ -429,7 +484,9 @@ export function reparentNode(
         next.nodesById[nodeId] = {
           ...node,
           parentId,
-          type: parentId
+          type: isCanvasLabelNode(node)
+            ? "label"
+            : parentId
             ? node.type === "root"
               ? "parent"
               : node.type
@@ -675,7 +732,7 @@ function collapseEmptiedParentsToLeafSize(
   const timestamp = now();
   for (const parentId of parentIds) {
     const node = doc.nodesById[parentId];
-    if (!node || node.isTextLabel || node.type === "text") {
+    if (!node || isTextLabelNode(node)) {
       continue;
     }
     if (childrenOf(doc, parentId).length > 0) continue;

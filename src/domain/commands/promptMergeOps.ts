@@ -3,6 +3,7 @@ import { cloneDocument, rebuildChildren } from "../document/normalize";
 import {
   childrenOf,
   isNodeOnCanvas,
+  isTextLabelNode,
   now,
   subtreeNodeIds,
   type CapabilityDocument,
@@ -40,7 +41,7 @@ export function mergePromptCapabilities(
             "missing-target",
             "The prompt merge target no longer exists.",
           );
-        if (target.isTextLabel || target.type === "text")
+        if (isTextLabelNode(target))
           return fail(
             doc,
             "text-label-target",
@@ -177,7 +178,7 @@ function mergePromptCapability(
       message: `Parent ${parentId} no longer exists.`,
     };
   }
-  if (parent.isTextLabel || parent.type === "text") {
+  if (isTextLabelNode(parent)) {
     return {
       status: "invalid",
       code: "text-label-parent",
@@ -256,8 +257,7 @@ function findPromptMergeMatch(
       const child = doc.nodesById[childId];
       return (
         child &&
-        !child.isTextLabel &&
-        child.type !== "text" &&
+        !isTextLabelNode(child) &&
         normalizeCapabilityLabel(child.label) === normalizedName
       );
     }) ?? null

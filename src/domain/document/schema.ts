@@ -53,7 +53,7 @@ export const NodeSchema = z
     y: finiteNumber,
     w: positiveNumber,
     h: positiveNumber,
-    type: z.enum(["root", "parent", "leaf", "text"]),
+    type: z.enum(["root", "parent", "leaf", "text", "label"]),
     color: capabilityColorSchema,
     colorOverride: capabilityColorSchema.optional(),
     description: z.string().optional(),
@@ -69,6 +69,7 @@ export const NodeSchema = z
         fontSize: finiteNumber.optional(),
         fontWeight: finiteNumber.optional(),
         align: z.enum(["left", "center", "right"]).optional(),
+        shape: z.enum(["none", "box", "pill", "sticky", "callout"]).optional(),
       })
       .passthrough()
       .optional(),
@@ -175,6 +176,7 @@ export const VisualNodeStateSchema = z
         fontSize: finiteNumber.optional(),
         fontWeight: finiteNumber.optional(),
         align: z.enum(["left", "center", "right"]).optional(),
+        shape: z.enum(["none", "box", "pill", "sticky", "callout"]).optional(),
       })
       .passthrough()
       .optional(),

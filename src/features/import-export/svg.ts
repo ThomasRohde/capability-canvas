@@ -69,21 +69,52 @@ function renderNode(
   const fill = node.fill.isTransparent ? 'none' : node.fill.background;
   const stroke = node.fill.isTransparent ? 'none' : node.fill.border;
   return `<g data-node-id="${escapeXml(node.id)}"${descriptionData}>
-    <rect x="${num(node.bounds.x)}" y="${num(node.bounds.y)}" width="${num(node.bounds.w)}" height="${num(node.bounds.h)}" rx="${num(node.radius)}" fill="${fill}" stroke="${stroke}" stroke-width="${num(node.strokeWidth)}" />
+    ${renderNodeShape(node, fill, stroke)}
     ${renderLabel(node)}
     ${node.score ? renderScore(node) : ''}
   </g>`;
 }
 
+function renderNodeShape(
+  node: VisualExportNodeModel,
+  fill: string,
+  stroke: string,
+): string {
+  if (node.isLabel && node.labelShape === 'none') return '';
+  const rect = `<rect x="${num(node.bounds.x)}" y="${num(node.bounds.y)}" width="${num(node.bounds.w)}" height="${num(node.bounds.h)}" rx="${num(node.radius)}" fill="${fill}" stroke="${stroke}" stroke-width="${num(node.strokeWidth)}" />`;
+  if (!node.isLabel || fill === 'none') return rect;
+  if (node.labelShape === 'sticky') {
+    const fold = Math.min(16, node.bounds.w / 3, node.bounds.h / 3);
+    return `${rect}
+    <path d="M ${num(node.bounds.x + node.bounds.w - fold)} ${num(node.bounds.y)} L ${num(node.bounds.x + node.bounds.w)} ${num(node.bounds.y)} L ${num(node.bounds.x + node.bounds.w)} ${num(node.bounds.y + fold)} Z" fill="#ffffff" fill-opacity="0.74" />`;
+  }
+  if (node.labelShape === 'callout') {
+    const x = node.bounds.x + 18;
+    const y = node.bounds.y + node.bounds.h - 1;
+    return `${rect}
+    <path d="M ${num(x)} ${num(y)} L ${num(x + 18)} ${num(y)} L ${num(x + 9)} ${num(y + 12)} Z" fill="${fill}" />`;
+  }
+  return rect;
+}
+
 function renderLabel(node: VisualExportNodeModel): string {
   const className = node.isContainer ? 'container-label' : 'node-label';
+  const textAnchor =
+    node.label.align === 'left'
+      ? 'start'
+      : node.label.align === 'right'
+        ? 'end'
+        : 'middle';
+  const fontFamily = node.label.fontFamily
+    ? ` font-family="${escapeXml(node.label.fontFamily)}"`
+    : '';
   const tspans = node.label.lines
     .map(
       (line, index) =>
         `<tspan x="${num(node.label.x)}" ${index === 0 ? `y="${num(node.label.firstBaselineY)}"` : `dy="${num(node.label.lineHeight)}"`}>${escapeXml(line)}</tspan>`,
     )
     .join('');
-  return `<text text-anchor="middle" class="${className}" font-size="${num(node.label.fontSize)}" font-weight="${node.label.fontWeight}">${tspans}</text>`;
+  return `<text text-anchor="${textAnchor}" class="${className}"${fontFamily} font-size="${num(node.label.fontSize)}" font-weight="${node.label.fontWeight}">${tspans}</text>`;
 }
 
 function renderScore(node: VisualExportNodeModel): string {

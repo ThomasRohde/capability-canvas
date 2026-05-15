@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
 import { createSampleDocument } from '../../domain/fixtures/sample';
-import { runTransaction, updateDocumentTitle } from '../../domain/commands/operations';
+import {
+  addLabel,
+  runTransaction,
+  updateDocumentTitle,
+  updateNode,
+} from '../../domain/commands/operations';
 import { createEmptyDocument, createNode } from '../../domain/document/defaults';
 import { ROOT_PARENT_ID, type CapabilityDocument } from '../../domain/document/types';
 import {
@@ -26,6 +31,36 @@ describe('exports', () => {
     expect(htmlExport(doc).data).toContain('<!doctype html>');
     expect(drawioExport(doc).data).toContain('<mxfile');
     expect(archimateExport(doc).data).toContain('xsi:type="Capability"');
+  });
+
+  it('renders label annotations in visual exports and excludes them from ArchiMate capabilities', () => {
+    const withLabel = runTransaction(
+      createSampleDocument(),
+      addLabel('Launch note', {
+        id: 'label-launch',
+        center: { x: 400, y: 260 },
+        shape: 'callout',
+      }),
+    ).doc;
+    const doc = runTransaction(withLabel, updateNode('label-launch', { color: 'amber' })).doc;
+
+    const model = buildVisualExportModel(doc);
+    const label = model.nodes.find((node) => node.id === 'label-launch');
+    const svg = svgExport(doc).data;
+    const archimate = archimateExport(doc).data;
+
+    expect(label).toMatchObject({
+      isLabel: true,
+      labelShape: 'callout',
+      strokeWidth: 0,
+      label: {
+        fontSize: 14,
+        fontFamily: 'Segoe UI',
+      },
+    });
+    expect(svg).toContain('data-node-id="label-launch"');
+    expect(svg).toContain('Launch note');
+    expect(archimate).not.toContain('Launch note');
   });
 
   it('exports ArchiMate identifiers as XML NCNames with valid references', () => {

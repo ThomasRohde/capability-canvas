@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSampleDocument, createThousandNodeDocument } from "../fixtures/sample";
+import { addLabel, runTransaction } from "../commands/operations";
 import { searchOutline } from "./outlineSearch";
 
 describe("outline search", () => {
@@ -80,5 +81,17 @@ describe("outline search", () => {
     expect(result.matchingNodeIds).toEqual(["root-9-parent-8-leaf-9"]);
     expect(result.visibleNodeIds.has("root-9")).toBe(true);
     expect(result.visibleNodeIds.has("root-9-parent-8")).toBe(true);
+  });
+
+  it("excludes canvas labels from outline search matches", () => {
+    const doc = runTransaction(
+      createSampleDocument(),
+      addLabel("Do not show in outline", { id: "label-outline-hidden" }),
+    ).doc;
+
+    const result = searchOutline(doc, "Do not show");
+
+    expect(result.matchingNodeIds).toEqual([]);
+    expect(result.visibleNodeIds.has("label-outline-hidden")).toBe(false);
   });
 });

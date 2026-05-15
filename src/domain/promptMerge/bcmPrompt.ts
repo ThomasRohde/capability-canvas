@@ -1,5 +1,6 @@
 import {
   childrenOf,
+  isTextLabelNode,
   subtreeNodeIds,
   type CapabilityDocument,
   type CapabilityNode,
@@ -23,7 +24,7 @@ export function buildBcmPrompt(
 ): string {
   const target = doc.nodesById[targetId];
   if (!target) throw new Error("Select a valid capability before prompting.");
-  if (target.isTextLabel || target.type === "text") {
+  if (isTextLabelNode(target)) {
     throw new Error("Text labels cannot be expanded with AI prompts.");
   }
 

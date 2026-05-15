@@ -8,7 +8,7 @@ import {
 } from './defaults';
 import { rebuildChildren } from './normalize';
 import { WireDocumentSchema } from './schema';
-import { DOCUMENT_SCHEMA, DOCUMENT_VERSION, ROOT_PARENT_ID, type CapabilityDocument, type CapabilityNode, type NodeId } from './types';
+import { DOCUMENT_SCHEMA, DOCUMENT_VERSION, ROOT_PARENT_ID, isCanvasLabelNode, isTextLabelNode, type CapabilityDocument, type CapabilityNode, type NodeId } from './types';
 import { ensureParentContainment } from '../layout/containment';
 import { type Diagnostic, error, warning } from '../validation/diagnostics';
 import { validateDocument } from '../validation/validate';
@@ -94,15 +94,16 @@ export function parseDocument(input: unknown): ParseResult {
         ),
       );
     }
+    const isLabel = rawNode.isTextLabel || rawNode.type === 'text' || rawNode.type === 'label';
     const node: CapabilityNode = {
       ...rawNode,
       id,
       parentId,
-      type: parentId === null ? 'root' : rawNode.type,
+      type: isLabel ? 'label' : parentId === null ? 'root' : rawNode.type,
       w: Math.max(rawNode.w, 1),
       h: Math.max(rawNode.h, 1),
       metadata: { ...(rawNode.metadata ?? {}) },
-      isTextLabel: rawNode.isTextLabel || rawNode.type === 'text'
+      isTextLabel: isLabel
     };
     doc.nodesById[node.id] = node;
   }
@@ -349,9 +350,13 @@ function breakInvalidRelations(doc: CapabilityDocument, diagnostics: Diagnostic[
   const next = { ...doc, nodesById: { ...doc.nodesById }, childrenByParentId: { ...doc.childrenByParentId } };
 
   for (const node of Object.values(next.nodesById)) {
-    if (node.parentId && next.nodesById[node.parentId]?.isTextLabel) {
+    if (node.parentId && isTextLabelNode(next.nodesById[node.parentId])) {
       diagnostics.push(warning('text-parent-repaired', `${node.id} was moved to root because text labels cannot be parents.`));
-      next.nodesById[node.id] = { ...node, parentId: null, type: 'root' };
+      next.nodesById[node.id] = {
+        ...node,
+        parentId: null,
+        type: isCanvasLabelNode(node) ? 'label' : 'root',
+      };
     }
   }
 
@@ -364,7 +369,11 @@ function breakInvalidRelations(doc: CapabilityDocument, diagnostics: Diagnostic[
       while (current?.parentId) {
         if (chain.has(current.parentId)) {
           diagnostics.push(warning('cycle-repaired', `Cycle involving ${node.id} was repaired by moving it to root.`, node.id));
-          next.nodesById[node.id] = { ...node, parentId: null, type: 'root' };
+          next.nodesById[node.id] = {
+            ...node,
+            parentId: null,
+            type: isCanvasLabelNode(node) ? 'label' : 'root',
+          };
           changed = true;
           break;
         }

@@ -2,6 +2,8 @@ import { safeFileBaseName } from '../../domain/document/fileName';
 import { sortedNodes } from '../../domain/document/normalize';
 import {
   isNodeOnCanvas,
+  isCanvasLabelNode,
+  isTextLabelNode,
   type CapabilityDocument,
   type CapabilityNode,
   type VisualView,
@@ -22,7 +24,7 @@ const ARCHIMATE_CONTAINER_FONT_SIZE = 9;
 const ARCHIMATE_LEAF_FONT_SIZE = 8;
 
 export function archimateExport(doc: CapabilityDocument): ExportResult {
-  const nodes = sortedNodes(doc);
+  const nodes = sortedNodes(doc).filter((node) => !isCanvasLabelNode(node));
   const nodeIds = new Set(nodes.map((node) => node.id));
   const identifiers = createArchimateIdentifiers(doc, nodes);
   const relationshipModels = createRelationshipModels(nodes, nodeIds, identifiers);
@@ -106,7 +108,9 @@ function archimateView(
   identifiers: ArchimateIdentifiers,
 ): string {
   const visualDoc = resolveVisualDocument(doc, view.id);
-  const nodes = sortedNodes(visualDoc).filter(isNodeOnCanvas);
+  const nodes = sortedNodes(visualDoc).filter(
+    (node) => isNodeOnCanvas(node) && !isCanvasLabelNode(node),
+  );
   const viewNodeIds = new Map<string, string>();
   const offset = viewCoordinateOffset(nodes);
   const viewId = nextArchimateIdentifier(identifiers.used, 'cc-view', view.id);
@@ -147,7 +151,7 @@ function archimateNodeStyle(visualDoc: CapabilityDocument, node: CapabilityNode)
   const lineColor = rgbFromHex(fill.border);
   const fillColor = rgbFromHex(fill.background);
   const fontColor = rgbFromHex(fill.text);
-  const isContainer = node.type !== 'leaf' && !node.isTextLabel;
+  const isContainer = node.type !== 'leaf' && !isTextLabelNode(node);
   const fontSize = isContainer ? ARCHIMATE_CONTAINER_FONT_SIZE : ARCHIMATE_LEAF_FONT_SIZE;
   const lineAlpha = fill.isTransparent ? 0 : 100;
   const fillAlpha = fill.isTransparent ? 0 : 100;

@@ -1,6 +1,7 @@
 import {
   canvasRootChildren,
   collectAncestorIds,
+  isCanvasLabelNode,
   isHierarchyAncestorOf,
   isNodeOnCanvas,
   type CapabilityDocument,
@@ -27,6 +28,7 @@ export function normalizeScopedLayoutRoots(
   for (const affectedNodeId of affectedNodeIds) {
     const node = doc.nodesById[affectedNodeId];
     if (!isNodeOnCanvas(node)) continue;
+    if (isCanvasLabelNode(node)) continue;
 
     const ancestors = canvasAncestorsOf(doc, node.id);
     const lockedAncestor = ancestors.find((ancestor) => ancestor.isLockedAsIs);
@@ -66,7 +68,9 @@ export function normalizeScopedLayoutRoots(
 
   if (documentScope) {
     return {
-      rootIds: canvasRootChildren(doc),
+      rootIds: canvasRootChildren(doc).filter(
+        (nodeId) => !isCanvasLabelNode(doc.nodesById[nodeId]),
+      ),
       documentScope: true,
       diagnostics,
     };

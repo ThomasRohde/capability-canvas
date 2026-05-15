@@ -654,6 +654,43 @@ describe("editor canvas workflows", () => {
     }
   });
 
+  it("creates a canvas label with inspector shape and font controls", async () => {
+    renderEditor();
+
+    await userEvent.click(screen.getByRole("button", { name: "Add label" }));
+    const input = await screen.findByRole("textbox", {
+      name: "Edit label for Label",
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, "Canvas annotation");
+    await userEvent.keyboard("{Enter}");
+
+    const docAfterCreate = useDocumentStore.getState().doc;
+    const labelNode = Object.values(docAfterCreate.nodesById).find(
+      (node) => node.type === "label",
+    );
+    expect(labelNode).toMatchObject({
+      label: "Canvas annotation",
+      parentId: null,
+      isTextLabel: true,
+      isManualPositioningEnabled: true,
+    });
+    const outline = document.querySelector(".cc-outline") as HTMLElement;
+    expect(within(outline).queryByText("Canvas annotation")).not.toBeInTheDocument();
+
+    const inspector = document.querySelector(".cc-inspector") as HTMLElement;
+    await userEvent.click(within(inspector).getByRole("button", { name: "Callout" }));
+    const fontSize = within(inspector).getByLabelText("Font size");
+    await userEvent.clear(fontSize);
+    await userEvent.type(fontSize, "24{Enter}");
+
+    const updated = useDocumentStore.getState().doc.nodesById[labelNode!.id]!;
+    expect(updated.textStyle).toMatchObject({
+      shape: "callout",
+      fontSize: 24,
+    });
+  });
+
   it("selects diagnostic nodes from the status diagnostics popover", async () => {
     useUiStore.setState({ selectedNodeIds: [], inspectorOpen: false });
     useDocumentStore.setState({

@@ -11,6 +11,8 @@ import {
 import {
   type CapabilityDocument,
   type CapabilityNode,
+  isCanvasLabelNode,
+  isTextLabelNode,
   type NodeId,
 } from "../../domain/document/types";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
@@ -70,13 +72,24 @@ export const CanvasNode = memo(function CanvasNode({
   ) => void;
 }) {
   const { node } = viewModel;
+  const isLabel = isCanvasLabelNode(node);
+  const labelShape = node.textStyle?.shape ?? "none";
   const selectedState = selected.includes(node.id);
-  const fill = resolveNodeFill(
+  const resolvedFill = resolveNodeFill(
     node,
     viewDoc.heatmap,
     viewDoc.settings.colorPalette,
   );
-  const isContainer = node.type !== "leaf" && !node.isTextLabel;
+  const fill =
+    isLabel && labelShape === "none"
+      ? {
+          ...resolvedFill,
+          background: "transparent",
+          border: "transparent",
+          isTransparent: true,
+        }
+      : resolvedFill;
+  const isContainer = node.type !== "leaf" && !isTextLabelNode(node);
   const heatmapScore =
     viewDoc.heatmap.enabled &&
     viewDoc.heatmap.showValuePills &&
@@ -101,7 +114,7 @@ export const CanvasNode = memo(function CanvasNode({
   return (
     <div
       ref={(element) => onNodeRef(node.id, element)}
-      className={`cc-node ${isContainer ? "cc-node-container" : ""} ${fill.isTransparent ? "transparent" : ""} ${hasHeatmapScore ? "has-heatmap-score" : ""} ${selectedNodeClass} ${selectionModeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(node.id) ? "dragging" : ""} ${reparentTargetId === node.id ? "drop-target" : ""}`}
+      className={`cc-node ${isContainer ? "cc-node-container" : ""} ${isLabel ? `cc-node-label-node cc-label-shape-${labelShape}` : ""} ${fill.isTransparent ? "transparent" : ""} ${hasHeatmapScore ? "has-heatmap-score" : ""} ${selectedNodeClass} ${selectionModeClass} ${isEditing ? "editing" : ""} ${drag?.nodeIds.includes(node.id) ? "dragging" : ""} ${reparentTargetId === node.id ? "drop-target" : ""}`}
       role="button"
       tabIndex={selectedState ? 0 : -1}
       aria-label={canvasNodeAriaLabel(
@@ -121,6 +134,11 @@ export const CanvasNode = memo(function CanvasNode({
           "--node-bg": fill.background,
           "--node-border": fill.border,
           "--node-text": fill.text,
+          "--label-font-family":
+            node.textStyle?.fontFamily ?? viewDoc.settings.fontFamily,
+          "--label-font-size": `${node.textStyle?.fontSize ?? 14}px`,
+          "--label-font-weight": node.textStyle?.fontWeight ?? 500,
+          "--label-text-align": node.textStyle?.align ?? "center",
           "--container-label-offset-top": `${Math.max(
             0,
             viewDoc.settings.containerLabelOffsetTop,
@@ -246,7 +264,7 @@ function canvasNodeAriaLabel(
   heatmapEnabled: boolean,
 ): string {
   const nodeType =
-    node.isTextLabel || node.type === "text"
+    isTextLabelNode(node)
       ? "text label"
       : node.type === "leaf"
         ? "leaf capability"

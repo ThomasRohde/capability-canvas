@@ -1,6 +1,7 @@
 import { useCallback, useMemo, type ReactNode } from "react";
 import {
   addChild,
+  addLabel,
   addRoot,
   duplicateNodes,
   moveNodesWithLayoutIntent,
@@ -9,10 +10,12 @@ import {
 } from "../../domain/commands/operations";
 import {
   isNodeOnCanvas,
+  isTextLabelNode,
   type Bounds,
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
+import { makeId } from "../../domain/document/defaults";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { gridSizeFor } from "../../domain/layout/grid";
 import { resolveSelectAllSelection } from "../../domain/selection/rules";
@@ -117,7 +120,7 @@ export function useEditorActions(
       Object.values(viewDoc.nodesById)
         .filter(
           (node) =>
-            isNodeOnCanvas(node) && !node.isTextLabel && node.type !== "text",
+            isNodeOnCanvas(node) && !isTextLabelNode(node),
         )
         .map((node) => node.id),
     [viewDoc.nodesById],
@@ -143,10 +146,27 @@ export function useEditorActions(
   ]);
 
   const addSelectedChild = useCallback(() => {
-    if (!selectedNode || selectedNode.isTextLabel || selectedNode.type === "text")
+    if (!selectedNode || isTextLabelNode(selectedNode))
       return;
     execute(addChild(selectedNode.id));
   }, [execute, selectedNode]);
+
+  const addViewportLabel = useCallback(() => {
+    const id = makeId("label");
+    const ui = useUiStore.getState();
+    const center = {
+      x: (ui.canvasSize.w / 2 - ui.viewport.x) / ui.viewport.zoom,
+      y: (ui.canvasSize.h / 2 - ui.viewport.y) / ui.viewport.zoom,
+    };
+    const diagnostics = execute(addLabel("Label", { id, center }));
+    if (diagnostics.some((diagnostic) => diagnostic.severity === "error"))
+      return;
+    setSelection([id]);
+    useUiStore.getState().setInspectorOpen(true);
+    useUiStore.getState().setInspectorTab("inspector");
+    setActiveDrawer(null);
+    requestLabelEdit(id);
+  }, [execute, requestLabelEdit, setActiveDrawer, setSelection]);
 
   const selectAllVisible = useCallback(() => {
     const resolution = resolveSelectAllSelection(
@@ -194,6 +214,7 @@ export function useEditorActions(
   const actions = useMemo<EditorCommandActions>(
     () => ({
       addRoot: () => execute(addRoot()),
+      addLabel: addViewportLabel,
       addChild: addSelectedChild,
       renameSelected: () => {
         const [nodeId] = useUiStore.getState().selectedNodeIds;
@@ -249,6 +270,7 @@ export function useEditorActions(
     }),
     [
       addSelectedChild,
+      addViewportLabel,
       autoLayout,
       execute,
       fitView,

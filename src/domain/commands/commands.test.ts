@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addChild,
+  addLabel,
   addSubtreeToCanvas,
   alignNodes,
   deleteNodes,
@@ -58,6 +59,64 @@ describe("commands", () => {
         (node) => node.label === "New risk capability",
       )?.heatmapValue,
     ).toBeUndefined();
+  });
+
+  it("adds manual canvas labels as top-level annotations", () => {
+    const doc = createSampleDocument();
+    const result = runTransaction(
+      doc,
+      addLabel("Planning note", {
+        id: "label-planning",
+        center: { x: 500, y: 300 },
+        shape: "sticky",
+      }),
+    );
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.nodesById["label-planning"]).toMatchObject({
+      label: "Planning note",
+      type: "label",
+      parentId: null,
+      isTextLabel: true,
+      isManualPositioningEnabled: true,
+      x: 408,
+      y: 280,
+      w: 180,
+      h: 40,
+      textStyle: {
+        shape: "sticky",
+        fontSize: 14,
+      },
+    });
+    expect(result.doc.childrenByParentId[ROOT_PARENT_ID]).toContain(
+      "label-planning",
+    );
+    expect(result.doc.layout.isUserArranged).toBe(doc.layout.isUserArranged);
+  });
+
+  it("rejects child and reparent operations for labels", () => {
+    const withLabel = runTransaction(
+      createSampleDocument(),
+      addLabel("Planning note", { id: "label-planning" }),
+    ).doc;
+
+    const addChildResult = runTransaction(
+      withLabel,
+      addChild("label-planning", "Invalid child"),
+    );
+    const reparentResult = runTransaction(
+      withLabel,
+      reparentNode("label-planning", "risk"),
+    );
+
+    expect(addChildResult.doc).toBe(withLabel);
+    expect(addChildResult.diagnostics.map((diag) => diag.code)).toContain(
+      "text-label-parent",
+    );
+    expect(reparentResult.doc).toBe(withLabel);
+    expect(reparentResult.diagnostics.map((diag) => diag.code)).toContain(
+      "label-reparent-rejected",
+    );
   });
 
   it("rejects reparenting into a descendant", () => {

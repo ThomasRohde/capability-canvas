@@ -5,6 +5,7 @@ import type {
 } from "../../domain/document/types";
 import {
   buildSafeChildrenByParentId,
+  isCanvasLabelNode,
   ROOT_PARENT_ID,
 } from "../../domain/document/types";
 import {
@@ -92,7 +93,7 @@ export function rootIdForTemplate(
   if (templateId !== "domain-deep-dive@1") return undefined;
   return selectedNodeIds.find((nodeId) => {
     const node = doc.nodesById[nodeId];
-    return node && !node.isTextLabel && node.type !== "text";
+    return node && !isCanvasLabelNode(node);
   });
 }
 
@@ -120,7 +121,7 @@ export function orderedRootTargets(doc: CapabilityDocument): RootTarget[] {
       const node = doc.nodesById[childId];
       if (!node) continue;
       const nextPath = [...path, node.label];
-      if (!node.isTextLabel && node.type !== "text") {
+      if (!isCanvasLabelNode(node)) {
         out.push({ id: childId, path: nextPath.join(" > ") });
       }
       visit(childId, nextPath);
@@ -131,7 +132,7 @@ export function orderedRootTargets(doc: CapabilityDocument): RootTarget[] {
   for (const nodeId of Object.keys(doc.nodesById).sort()) {
     if (emitted.has(nodeId)) continue;
     const node = doc.nodesById[nodeId];
-    if (!node || node.isTextLabel || node.type === "text") continue;
+    if (!node || isCanvasLabelNode(node)) continue;
     out.push({ id: nodeId, path: node.label });
   }
   return out;

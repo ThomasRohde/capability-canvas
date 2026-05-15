@@ -4,7 +4,8 @@ export const ROOT_PARENT_ID = "__root__";
 
 export type NodeId = string;
 export type VisualViewId = string;
-export type NodeType = "root" | "parent" | "leaf" | "text";
+export type NodeType = "root" | "parent" | "leaf" | "text" | "label";
+export type LabelShape = "none" | "box" | "pill" | "sticky" | "callout";
 export type CapabilityColor =
   | "mint"
   | "sky"
@@ -66,6 +67,7 @@ export interface CapabilityNode extends Bounds {
     fontSize?: number;
     fontWeight?: number;
     align?: "left" | "center" | "right";
+    shape?: LabelShape;
   };
   heatmapValue?: number;
   createdAt: number;
@@ -275,6 +277,21 @@ export function hasChildren(doc: CapabilityDocument, nodeId: NodeId): boolean {
 
 export function isNodeOnCanvas(node: CapabilityNode | undefined): boolean {
   return node?.isOnCanvas ?? true;
+}
+
+export function isCanvasLabelNode(
+  node: CapabilityNode | null | undefined,
+): boolean {
+  return !!node && node.type === "label";
+}
+
+export function isTextLabelNode(
+  node: CapabilityNode | null | undefined,
+): boolean {
+  return (
+    !!node &&
+    (node.isTextLabel || node.type === "text" || node.type === "label")
+  );
 }
 
 export function canvasChildrenOf(

@@ -2,6 +2,7 @@ import {
   collectAncestorIds,
   isHierarchyAncestorOf,
   isNodeOnCanvas,
+  isTextLabelNode,
   type CapabilityDocument,
   type CapabilityNode,
   type NodeId,
@@ -43,7 +44,7 @@ export function findDropTarget(
 
 function couldBeParent(node: CapabilityNode, draggedIds: Set<NodeId>): boolean {
   if (draggedIds.has(node.id)) return false;
-  if (node.isTextLabel || node.type === "text") return false;
+  if (isTextLabelNode(node)) return false;
   if (node.isLockedAsIs) return false;
   return true;
 }
@@ -65,7 +66,7 @@ export function isAcceptableDropTarget(
   const target = doc.nodesById[targetParentId];
   if (!target)
     return { accepted: false, reason: "Drop target no longer exists." };
-  if (target.isTextLabel || target.type === "text") {
+  if (isTextLabelNode(target)) {
     return { accepted: false, reason: "Text labels cannot contain children." };
   }
   if (target.isLockedAsIs) {

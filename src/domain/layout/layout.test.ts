@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyDocument, createNode } from "../document/defaults";
-import { runTransaction, updateNode } from "../commands/operations";
+import { addLabel, runTransaction, updateNode } from "../commands/operations";
 import {
   childrenOf,
   ROOT_PARENT_ID,
@@ -21,6 +21,30 @@ import { rectanglesOverlap } from "./bounds";
 import { evaluateAdaptiveLayoutQuality } from "./layoutQuality";
 
 describe("layout engine", () => {
+  it("does not patch labels during auto layout", async () => {
+    const doc = runTransaction(
+      createSampleDocument(),
+      addLabel("Manual note", {
+        id: "label-manual",
+        center: { x: 900, y: 720 },
+        shape: "callout",
+      }),
+    ).doc;
+    const before = doc.nodesById["label-manual"]!;
+
+    const result = await layoutDocument({ doc, force: true, mode: "adaptive" });
+    const patched = applyLayoutPatches(doc, result.patches);
+
+    expect(result.patches.find((patch) => patch.id === "label-manual")).toBeUndefined();
+    expect(patched.nodesById["label-manual"]).toMatchObject({
+      x: before.x,
+      y: before.y,
+      w: before.w,
+      h: before.h,
+      type: "label",
+    });
+  });
+
   it.each(["adaptive", "balanced"] as const)(
     "does not patch locked nodes in %s layout, even when force bypasses document position preservation",
     async (mode) => {

@@ -11,6 +11,7 @@ import {
 import {
   type CapabilityDocument,
   type CapabilityNode,
+  isCanvasLabelNode,
   type NodeId,
 } from "../../domain/document/types";
 import {
@@ -89,7 +90,9 @@ export function useCanvasNodeInteractions({
       const dragRootId = nodeId;
       const activeSelection = nodeIdsWithDescendants(selectionRoots);
       const draggedSet = new Set(activeSelection);
-      const canReparent = selectionRoots.length === 1;
+      const canReparent =
+        selectionRoots.length === 1 &&
+        !isCanvasLabelNode(viewDoc.nodesById[dragRootId]);
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       let pendingReparentTarget: NodeId | null | undefined;
       const dragStart = {

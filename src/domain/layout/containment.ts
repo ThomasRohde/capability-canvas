@@ -3,6 +3,7 @@ import {
   canvasChildrenOf,
   canvasRootChildren,
   computeHierarchyDepths,
+  isCanvasLabelNode,
   isNodeOnCanvas,
   type Bounds,
   type CapabilityDocument,
@@ -22,7 +23,8 @@ export function findParentContainmentViolations(
   const violations: string[] = [];
   for (const parent of Object.values(doc.nodesById)) {
     if (!isNodeOnCanvas(parent)) continue;
-    for (const childId of canvasChildrenOf(doc, parent.id)) {
+    if (isCanvasLabelNode(parent)) continue;
+    for (const childId of containmentChildrenOf(doc, parent.id)) {
       const child = doc.nodesById[childId];
       if (!child) continue;
       if (
@@ -46,7 +48,8 @@ export function ensureParentContainment(
     .filter(
       (nodeId) =>
         isNodeOnCanvas(doc.nodesById[nodeId]) &&
-        canvasChildrenOf(doc, nodeId).length > 0,
+        !isCanvasLabelNode(doc.nodesById[nodeId]) &&
+        containmentChildrenOf(doc, nodeId).length > 0,
     )
     .sort((a, b) => (depths.get(b) ?? 0) - (depths.get(a) ?? 0));
 
@@ -58,7 +61,7 @@ export function ensureParentContainment(
     if (!parent || parent.isLockedAsIs || parent.isManualPositioningEnabled)
       continue;
 
-    const childBounds = boundsForIds(next, canvasChildrenOf(next, parentId));
+    const childBounds = boundsForIds(next, containmentChildrenOf(next, parentId));
     if (!childBounds) continue;
 
     const margin = containmentMargin(next, parentId);
@@ -135,4 +138,13 @@ function boundsForIds(doc: CapabilityDocument, ids: NodeId[]): Bounds | null {
     .map((id) => doc.nodesById[id])
     .filter((node): node is CapabilityNode => !!node && isNodeOnCanvas(node));
   return boundsForBoxes(nodes);
+}
+
+function containmentChildrenOf(
+  doc: CapabilityDocument,
+  parentId: NodeId,
+): NodeId[] {
+  return canvasChildrenOf(doc, parentId).filter(
+    (childId) => !isCanvasLabelNode(doc.nodesById[childId]),
+  );
 }

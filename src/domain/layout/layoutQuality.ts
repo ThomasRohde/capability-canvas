@@ -4,6 +4,8 @@ import {
   type Bounds,
   type CapabilityDocument,
   type CapabilityNode,
+  isCanvasLabelNode,
+  isTextLabelNode,
   type NodeId,
 } from "../document/types";
 import { boundsForBoxes, rectanglesOverlap } from "./bounds";
@@ -79,11 +81,9 @@ export function evaluateAdaptiveLayoutQuality(
   const hardViolations: AdaptiveLayoutHardViolation[] = [];
 
   for (const parent of Object.values(doc.nodesById)) {
-    if (!isNodeOnCanvas(parent)) continue;
+    if (!isNodeOnCanvas(parent) || isCanvasLabelNode(parent)) continue;
 
-    const visibleChildren = canvasChildrenOf(doc, parent.id)
-      .map((id) => doc.nodesById[id])
-      .filter((node): node is CapabilityNode => !!node);
+    const visibleChildren = layoutChildrenOf(doc, parent.id);
     hardViolations.push(
       ...findSiblingOverlapViolations(parent.id, visibleChildren),
       ...findContainmentViolations(doc, parent, visibleChildren),
@@ -129,7 +129,7 @@ function evaluateParentQuality(
   const rightPadding = contentRight - (childBounds.x + childBounds.w);
   const spareHorizontalSpace = contentWidth - childBounds.w;
   const isLeafOnly = children.every(
-    (child) => canvasChildrenOf(doc, child.id).length === 0,
+    (child) => layoutChildrenOf(doc, child.id).length === 0,
   );
   const packingEfficiency =
     totalArea(children) / Math.max(1, childBounds.w * childBounds.h);
@@ -413,6 +413,17 @@ function readingOrderInversions(
   return inversions;
 }
 
+function layoutChildrenOf(
+  doc: CapabilityDocument,
+  parentId: NodeId,
+): CapabilityNode[] {
+  return canvasChildrenOf(doc, parentId)
+    .map((id) => doc.nodesById[id])
+    .filter(
+      (node): node is CapabilityNode => !!node && !isCanvasLabelNode(node),
+    );
+}
+
 function rowWidthsForBalance(rows: VisualRow[], rowWidths: number[]): number[] {
   if (rows.length <= 2) return rowWidths;
   const finalRow = rows[rows.length - 1]!;
@@ -499,7 +510,7 @@ function contentTop(doc: CapabilityDocument, node: CapabilityNode): number {
 }
 
 function minimumNodeSize(doc: CapabilityDocument, node: CapabilityNode) {
-  if (node.isTextLabel || node.type === "text")
+  if (isTextLabelNode(node))
     return {
       w: effectiveLayoutSize(doc, node.w),
       h: effectiveLayoutSize(doc, node.h),

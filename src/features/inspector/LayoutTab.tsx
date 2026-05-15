@@ -6,7 +6,10 @@ import {
   resizeNode,
   setManualPositioning,
 } from "../../domain/commands/operations";
-import type { CapabilityNode } from "../../domain/document/types";
+import {
+  isCanvasLabelNode,
+  type CapabilityNode,
+} from "../../domain/document/types";
 import { snapCoordinate } from "../../domain/layout/grid";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
@@ -15,43 +18,54 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
   const doc = useDocumentStore((state) => state.doc);
   const execute = useDocumentStore((state) => state.execute);
   const snap = (value: number) => snapCoordinate(doc, value);
+  const isLabel = isCanvasLabelNode(node);
   return (
     <>
-      <div className="cc-field">
-        <span className="cc-section-title">Layout behavior</span>
-        <div className="cc-seg">
-          <button
-            className={
-              !node.isManualPositioningEnabled && !node.isLockedAsIs ? "on" : ""
-            }
-            onClick={() => execute(setManualPositioning(node.id, false))}
-          >
-            Auto layout
-          </button>
-          <button
-            className={node.isManualPositioningEnabled ? "on" : ""}
-            onClick={() => execute(setManualPositioning(node.id, true))}
-          >
-            Manual
-          </button>
-          <button
-            className={node.isLockedAsIs ? "on" : ""}
-            aria-label="Preserve from auto layout"
-            title="Preserve from auto layout"
-            onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
-          >
-            Preserve
-          </button>
+      {!isLabel && (
+        <div className="cc-field">
+          <span className="cc-section-title">Layout behavior</span>
+          <div className="cc-seg">
+            <button
+              className={
+                !node.isManualPositioningEnabled && !node.isLockedAsIs
+                  ? "on"
+                  : ""
+              }
+              onClick={() => execute(setManualPositioning(node.id, false))}
+            >
+              Auto layout
+            </button>
+            <button
+              className={node.isManualPositioningEnabled ? "on" : ""}
+              onClick={() => execute(setManualPositioning(node.id, true))}
+            >
+              Manual
+            </button>
+            <button
+              className={node.isLockedAsIs ? "on" : ""}
+              aria-label="Preserve from auto layout"
+              title="Preserve from auto layout"
+              onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
+            >
+              Preserve
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       <div className="cc-info-card">
         <Info size={16} />
-        <span>
-          Auto layout may arrange this parent's children. Manual keeps this
-          parent's children at direct canvas positions. Preserve skips this
-          subtree during auto layout and disables resize, but still allows
-          deliberate movement.
-        </span>
+        {isLabel ? (
+          <span>
+            Labels are manual canvas annotations and are skipped by auto layout.
+          </span>
+        ) : (
+          <span>
+            Auto layout may arrange this parent's children. Manual keeps this
+            parent's children at direct canvas positions. Preserve skips this
+            subtree during auto layout and disables resize, but still allows
+            deliberate movement.
+          </span>
+        )}
       </div>
       <div className="cc-field-row">
         <NumberField
@@ -119,16 +133,18 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           }}
         />
       </div>
-      <button
-        className="cc-btn"
-        type="button"
-        onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
-      >
-        <Lock />{" "}
-        {node.isLockedAsIs
-          ? "Stop preserving layout"
-          : "Preserve from auto layout"}
-      </button>
+      {!isLabel && (
+        <button
+          className="cc-btn"
+          type="button"
+          onClick={() => execute(lockSubtree(node.id, !node.isLockedAsIs))}
+        >
+          <Lock />{" "}
+          {node.isLockedAsIs
+            ? "Stop preserving layout"
+            : "Preserve from auto layout"}
+        </button>
+      )}
     </>
   );
 }

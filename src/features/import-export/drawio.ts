@@ -68,10 +68,10 @@ function drawioNodeStyle(
     'verticalLabelPosition=middle',
     ...labelPosition,
     `fillColor=${node.fill.isTransparent ? 'none' : node.fill.background}`,
-    `strokeColor=${node.fill.isTransparent ? 'none' : node.fill.border}`,
-    `strokeWidth=${node.fill.isTransparent ? 0 : num(node.strokeWidth)}`,
+    `strokeColor=${node.isLabel || node.fill.isTransparent ? 'none' : node.fill.border}`,
+    `strokeWidth=${node.isLabel || node.fill.isTransparent ? 0 : num(node.strokeWidth)}`,
     `fontColor=${node.fill.text}`,
-    `fontFamily=${fontFamily}`,
+    `fontFamily=${node.label.fontFamily ?? fontFamily}`,
     `fontSize=${num(node.label.fontSize)}`,
     `fontStyle=${node.label.fontWeight >= 600 ? 1 : 0}`,
   ];

@@ -1,6 +1,8 @@
 import { cloneDocument } from "../document/normalize";
 import {
   hasChildren,
+  isCanvasLabelNode,
+  isTextLabelNode,
   now,
   type CapabilityDocument,
   type CapabilityNode,
@@ -120,8 +122,9 @@ export function deriveNodeType(
   doc: CapabilityDocument,
   node: CapabilityNode,
 ): CapabilityNode["type"] {
+  if (isCanvasLabelNode(node)) return "label";
   if (!node.parentId) return "root";
-  if (node.isTextLabel || node.type === "text") return "text";
+  if (isTextLabelNode(node)) return "text";
   return hasChildren(doc, node.id) ? "parent" : "leaf";
 }
 

@@ -6,6 +6,7 @@ import {
 } from "react";
 import {
   isNodeOnCanvas,
+  isTextLabelNode,
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
@@ -34,8 +35,7 @@ export function useCanvasMarquee({
       .filter(
         (node) =>
           isNodeOnCanvas(node) &&
-          !node.isTextLabel &&
-          node.type !== "text" &&
+          !isTextLabelNode(node) &&
           intersectsBounds(node, selectionRect),
       )
       .map((node) => node.id);
@@ -82,7 +82,7 @@ export function useCanvasMarquee({
         const candidate = new Set(baseSelection);
         for (const node of Object.values(viewDoc.nodesById)) {
           if (!isNodeOnCanvas(node)) continue;
-          if (node.isTextLabel || node.type === "text") continue;
+          if (isTextLabelNode(node)) continue;
           if (intersectsBounds(node, rectBounds)) candidate.add(node.id);
         }
         const ids = [...candidate];

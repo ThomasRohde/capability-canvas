@@ -6,6 +6,7 @@ import {
   Minus,
   Plus,
   Redo2,
+  Type,
   Upload,
   Undo2,
   X,
@@ -258,6 +259,15 @@ export function Toolbar() {
           >
             <Plus />
             <span className="cc-btn-label">Add root</span>
+          </button>
+          <button
+            className="cc-btn"
+            type="button"
+            aria-label="Add label"
+            onClick={editorActions.addLabel}
+          >
+            <Type />
+            <span className="cc-btn-label">Add label</span>
           </button>
           <button
             className="cc-btn cc-btn-primary"

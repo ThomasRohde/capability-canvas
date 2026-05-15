@@ -82,7 +82,8 @@ function renderNode(
       fill: { color: toPptColor(node.fill.background) },
       line: {
         color: toPptColor(node.fill.border),
-        width: node.isContainer ? 0.8 : 0.5,
+        transparency: node.isLabel ? 100 : 0,
+        width: node.isLabel ? 0 : node.isContainer ? 0.8 : 0.5,
       },
     });
   }
@@ -94,7 +95,7 @@ function renderNode(
     y: mapper.y(labelTop),
     w: mapper.w(node.bounds.w - (node.isContainer ? 28 : 12)),
     h: mapper.h(node.label.lines.length * node.label.lineHeight),
-    fontFace: model.fontFamily,
+    fontFace: node.label.fontFamily ?? model.fontFamily,
     fontSize: mapper.font(node.label.fontSize),
     bold: node.label.fontWeight >= 600,
     align: 'center',

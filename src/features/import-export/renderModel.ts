@@ -1,9 +1,12 @@
 import { sortedNodes } from "../../domain/document/normalize";
 import {
   isNodeOnCanvas,
+  isCanvasLabelNode,
+  isTextLabelNode,
   type Bounds,
   type CapabilityDocument,
   type CapabilityNode,
+  type LabelShape,
   type LegendPosition,
   type VisualView,
 } from "../../domain/document/types";
@@ -59,6 +62,8 @@ export interface VisualExportNodeModel {
   description?: string;
   bounds: Bounds;
   isContainer: boolean;
+  isLabel?: boolean;
+  labelShape?: LabelShape;
   fill: NodeFill;
   radius: number;
   strokeWidth: number;
@@ -73,6 +78,8 @@ export interface VisualExportLabelModel {
   lineHeight: number;
   fontSize: number;
   fontWeight: number;
+  fontFamily?: string;
+  align?: "left" | "center" | "right";
 }
 
 export interface VisualExportScoreModel {
@@ -134,26 +141,41 @@ function buildNodeModel(
   doc: CapabilityDocument,
   node: CapabilityNode,
 ): VisualExportNodeModel {
-  const isContainer = node.type !== "leaf" && !node.isTextLabel;
+  const isLabel = isCanvasLabelNode(node);
+  const labelShape = isLabel ? (node.textStyle?.shape ?? "none") : "box";
+  const isContainer = node.type !== "leaf" && !isTextLabelNode(node);
   const hasScore =
+    !isLabel &&
     doc.heatmap.enabled &&
     doc.heatmap.showValuePills &&
     node.heatmapValue !== undefined;
   const maxLines = resolveMaxLabelLines(node, isContainer);
   const label = buildLabelModel(doc, node, isContainer, hasScore, maxLines);
-  const score = hasScore
-    ? buildScoreModel(node)
-    : undefined;
-  const fill = resolveNodeFill(node, doc.heatmap, doc.settings.colorPalette);
+  const score = hasScore ? buildScoreModel(node) : undefined;
+  const resolvedFill = resolveNodeFill(
+    node,
+    doc.heatmap,
+    doc.settings.colorPalette,
+  );
+  const fill =
+    isLabel && labelShape === "none"
+      ? {
+          ...resolvedFill,
+          background: "transparent",
+          border: "transparent",
+          isTransparent: true,
+        }
+      : resolvedFill;
 
   return {
     id: node.id,
     description: node.description?.trim() || undefined,
     bounds: { x: node.x, y: node.y, w: node.w, h: node.h },
     isContainer,
+    ...(isLabel ? { isLabel: true, labelShape } : {}),
     fill,
-    radius: isContainer ? 8 : 6,
-    strokeWidth: fill.isTransparent ? 0 : isContainer ? 1.5 : 1,
+    radius: isLabel ? labelRadius(labelShape, node) : isContainer ? 8 : 6,
+    strokeWidth: isLabel || fill.isTransparent ? 0 : isContainer ? 1.5 : 1,
     label,
     score,
   };
@@ -166,11 +188,31 @@ function buildLabelModel(
   hasScore: boolean,
   maxLines: number,
 ): VisualExportLabelModel {
-  const fontSize = isContainer ? CONTAINER_FONT_SIZE : LEAF_FONT_SIZE;
-  const lineHeight = isContainer ? CONTAINER_LINE_HEIGHT : LEAF_LINE_HEIGHT;
-  const fontWeight = isContainer ? 600 : 500;
-  const horizontalPadding = isContainer ? 28 : 12;
-  const averageCharWidth = isContainer ? 7.4 : 6.8;
+  const isLabel = isCanvasLabelNode(node);
+  const labelShape = node.textStyle?.shape ?? "none";
+  const fontSize = isLabel
+    ? (node.textStyle?.fontSize ?? 14)
+    : isContainer
+      ? CONTAINER_FONT_SIZE
+      : LEAF_FONT_SIZE;
+  const lineHeight = isLabel
+    ? fontSize * 1.2
+    : isContainer
+      ? CONTAINER_LINE_HEIGHT
+      : LEAF_LINE_HEIGHT;
+  const fontWeight = isLabel
+    ? (node.textStyle?.fontWeight ?? 500)
+    : isContainer
+      ? 600
+      : 500;
+  const horizontalPadding = isLabel
+    ? labelShape === "none"
+      ? 12
+      : 20
+    : isContainer
+      ? 28
+      : 12;
+  const averageCharWidth = Math.max(4, fontSize * 0.52);
   const scoreClearance =
     !isContainer && hasScore
       ? scoreBadgeWidth(node.heatmapValue?.toFixed(2) ?? "") +
@@ -197,7 +239,20 @@ function buildLabelModel(
     lineHeight,
     fontSize,
     fontWeight,
+    ...(isLabel
+      ? {
+          fontFamily: node.textStyle?.fontFamily ?? doc.settings.fontFamily,
+          align: node.textStyle?.align ?? "center",
+        }
+      : {}),
   };
+}
+
+function labelRadius(shape: LabelShape, node: CapabilityNode): number {
+  if (shape === "pill") return Math.max(1, Math.min(node.w, node.h) / 2);
+  if (shape === "sticky") return 3;
+  if (shape === "none") return 0;
+  return 6;
 }
 
 function buildScoreModel(node: CapabilityNode): VisualExportScoreModel {

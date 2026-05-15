@@ -2,6 +2,7 @@ import {
   ROOT_PARENT_ID,
   buildSafeChildrenByParentId,
   collectAncestorIds,
+  isCanvasLabelNode,
   type CapabilityDocument,
   type NodeId,
 } from "../document/types";
@@ -57,6 +58,7 @@ export function searchOutline(
   for (const nodeId of orderedNodeIds(doc)) {
     const node = doc.nodesById[nodeId];
     if (!node) continue;
+    if (isCanvasLabelNode(node)) continue;
     const matches = matchesForNode(doc, nodeId, normalizedQuery);
     if (matches.length === 0) continue;
 
@@ -177,6 +179,7 @@ function orderedNodeIds(doc: CapabilityDocument): NodeId[] {
   const visit = (parentId: NodeId) => {
     for (const childId of safeChildren[parentId] ?? []) {
       if (emitted.has(childId)) continue;
+      if (isCanvasLabelNode(doc.nodesById[childId])) continue;
       emitted.add(childId);
       ordered.push(childId);
       visit(childId);
@@ -186,6 +189,7 @@ function orderedNodeIds(doc: CapabilityDocument): NodeId[] {
   visit(ROOT_PARENT_ID);
   for (const nodeId of Object.keys(doc.nodesById).sort()) {
     if (emitted.has(nodeId)) continue;
+    if (isCanvasLabelNode(doc.nodesById[nodeId])) continue;
     emitted.add(nodeId);
     ordered.push(nodeId);
   }

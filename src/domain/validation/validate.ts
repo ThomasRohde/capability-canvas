@@ -3,7 +3,9 @@ import {
   collectDescendantIds,
   collectHierarchyIssues,
   computeHierarchyDepths,
+  isCanvasLabelNode,
   isHierarchyAncestorOf,
+  isTextLabelNode,
   ROOT_PARENT_ID,
   type CapabilityDocument,
   type HierarchyTraversalIssue,
@@ -25,13 +27,13 @@ export function validateDocument(doc: CapabilityDocument): { valid: boolean; dia
     if (node.parentId && !ids.has(node.parentId)) {
       diagnostics.push(error('missing-parent', `Node ${node.id} references missing parent ${node.parentId}.`, node.id));
     }
-    if (!node.parentId && node.type !== 'root') {
+    if (!node.parentId && node.type !== 'root' && !isCanvasLabelNode(node)) {
       diagnostics.push(error('invalid-root-type', `Top-level node ${node.id} must be type root.`, node.id));
     }
     if (node.type === 'root' && node.parentId) {
       diagnostics.push(error('root-has-parent', `Root node ${node.id} cannot have a parent.`, node.id));
     }
-    if (node.isTextLabel || node.type === 'text') {
+    if (isTextLabelNode(node)) {
       const children = childrenOf(doc, node.id);
       if (children.length > 0) {
         diagnostics.push(error('text-label-has-children', `Text label ${node.id} cannot have children.`, node.id));

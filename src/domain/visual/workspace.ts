@@ -3,6 +3,7 @@ import {
   canvasChildrenOf,
   collectAncestorIds,
   isNodeOnCanvas,
+  isTextLabelNode,
   now,
   type Bounds,
   type CapabilityDocument,
@@ -591,7 +592,7 @@ function resolveVisualNode(
     ...node,
     metadata: { ...node.metadata },
     type:
-      isCollapsed && node.type !== "text" && !node.isTextLabel
+      isCollapsed && !isTextLabelNode(node)
         ? "leaf"
         : node.type,
     x: numberOr(state.x, node.x),
@@ -669,7 +670,7 @@ function resolveViewHeatmap(
 function materializeCanvasLeafTypes(doc: CapabilityDocument): void {
   for (const [nodeId, node] of Object.entries(doc.nodesById)) {
     if (!isNodeOnCanvas(node)) continue;
-    if (node.type === "leaf" || node.type === "text" || node.isTextLabel) {
+    if (node.type === "leaf" || isTextLabelNode(node)) {
       continue;
     }
     if (canvasChildrenOf(doc, nodeId).length > 0) continue;
@@ -682,7 +683,7 @@ function materializeEffectiveColors(
   view: VisualView,
 ): void {
   for (const [nodeId, node] of Object.entries(doc.nodesById)) {
-    const usesLeafDefault = node.type === "leaf" && !node.isTextLabel;
+    const usesLeafDefault = node.type === "leaf" && !isTextLabelNode(node);
     const color =
       view.nodeStatesById[nodeId]?.colorOverride ??
       node.colorOverride ??

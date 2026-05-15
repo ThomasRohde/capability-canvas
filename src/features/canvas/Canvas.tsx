@@ -17,7 +17,9 @@ import {
 } from "../../domain/commands/operations";
 import {
   hasCanvasChildren,
+  isCanvasLabelNode,
   isNodeOnCanvas,
+  isTextLabelNode,
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
@@ -156,10 +158,15 @@ export function Canvas({
     ? activeView.nodeStatesById[contextMenu.nodeId]
     : undefined;
   const contextHasSourceChildren = contextMenu
-    ? (doc.childrenByParentId[contextMenu.nodeId]?.length ?? 0) > 0
+    ? (doc.childrenByParentId[contextMenu.nodeId] ?? []).some(
+        (childId) => !isCanvasLabelNode(doc.nodesById[childId]),
+      )
     : false;
   const contextHasCanvasChildren = contextMenu
-    ? hasCanvasChildren(viewDoc, contextMenu.nodeId)
+    ? hasCanvasChildren(viewDoc, contextMenu.nodeId) &&
+      (viewDoc.childrenByParentId[contextMenu.nodeId] ?? []).some(
+        (childId) => !isCanvasLabelNode(viewDoc.nodesById[childId]),
+      )
     : false;
 
   const handleNodeRef = useCallback(
@@ -353,7 +360,7 @@ export function Canvas({
           />
         ))}
         {visibleViewModels
-          .filter((vm) => vm.node.type !== "leaf" && !vm.node.isTextLabel)
+          .filter((vm) => vm.node.type !== "leaf" && !isTextLabelNode(vm.node))
           .map((vm) => (
             <ContainerFrame
               key={`${vm.node.id}-frame`}

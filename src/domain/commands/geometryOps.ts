@@ -1,6 +1,7 @@
 import { cloneDocument } from "../document/normalize";
 import {
   canvasChildrenOf,
+  isCanvasLabelNode,
   isNodeOnCanvas,
   now,
   type CapabilityDocument,
@@ -73,7 +74,7 @@ export function updateNodeSizes(
             );
           const childBounds = node.isManualPositioningEnabled
             ? null
-            : boundsForNodes(next, canvasChildrenOf(next, nodeId));
+            : boundsForNodes(next, layoutChildrenOf(next, nodeId));
           const minW = childBounds
             ? childBounds.x +
               childBounds.w -
@@ -140,9 +141,14 @@ export function moveNodes(
             updatedAt: now(),
           };
         }
+        const onlyLabelsMoved = [...toMove].every((id) =>
+          isCanvasLabelNode(next.nodesById[id]),
+        );
         return ok({
           ...next,
-          layout: { ...next.layout, isUserArranged: true },
+          layout: onlyLabelsMoved
+            ? next.layout
+            : { ...next.layout, isUserArranged: true },
         });
       }),
     ],
@@ -227,10 +233,16 @@ export function moveNodesWithLayoutIntent(
 
           if (!changed) return ok(doc);
 
+          const onlyLabelsMoved =
+            intent.manualParentIdsToEnable.length === 0 &&
+            [...toMove].every((id) => isCanvasLabelNode(next.nodesById[id]));
+
           return {
             doc: {
               ...next,
-              layout: { ...next.layout, isUserArranged: true },
+              layout: onlyLabelsMoved
+                ? next.layout
+                : { ...next.layout, isUserArranged: true },
             },
             diagnostics: intent.diagnosticCode
               ? intent.manualParentIdsToEnable.map((parentId) =>
@@ -270,7 +282,7 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
           );
         const childBounds = node.isManualPositioningEnabled
           ? null
-          : boundsForNodes(doc, canvasChildrenOf(doc, nodeId));
+          : boundsForNodes(doc, layoutChildrenOf(doc, nodeId));
         const minW = childBounds
           ? childBounds.x +
             childBounds.w -
@@ -297,7 +309,7 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
           const node =
             afterDoc.nodesById[nodeId] ?? beforeDoc.nodesById[nodeId];
           if (!node) return [];
-          if (canvasChildrenOf(afterDoc, nodeId).length === 0) return [];
+          if (layoutChildrenOf(afterDoc, nodeId).length === 0) return [];
           if (node.isManualPositioningEnabled) return [];
           return [nodeId];
         },
@@ -472,7 +484,7 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
           "locked-node",
           "Locked capabilities cannot be resized.",
         );
-      const bounds = boundsForNodes(doc, canvasChildrenOf(doc, nodeId));
+      const bounds = boundsForNodes(doc, layoutChildrenOf(doc, nodeId));
       if (!bounds) return ok(doc);
       const margin = {
         top: snapLayoutSpacing(
@@ -514,7 +526,7 @@ export function repairSiblingOverlaps(parentId: NodeId): Transaction {
     command("repair-sibling-overlaps", { parentId }, "visual", (doc) => {
       const parent = doc.nodesById[parentId];
       if (!parent) return ok(doc);
-      const childIds = canvasChildrenOf(doc, parentId);
+      const childIds = layoutChildrenOf(doc, parentId);
       if (childIds.length < 2) return ok(doc);
       const next = cloneDocument(doc);
       const movable = childIds
@@ -748,13 +760,19 @@ function boundsForNodes(doc: CapabilityDocument, ids: NodeId[]) {
   return boundsForBoxes(nodes);
 }
 
+function layoutChildrenOf(doc: CapabilityDocument, parentId: NodeId): NodeId[] {
+  return canvasChildrenOf(doc, parentId).filter(
+    (childId) => !isCanvasLabelNode(doc.nodesById[childId]),
+  );
+}
+
 function expandParentToContainCanvasChildren(
   doc: CapabilityDocument,
   parentId: NodeId,
 ): boolean {
   const parent = doc.nodesById[parentId];
   if (!parent || parent.isLockedAsIs || !isNodeOnCanvas(parent)) return false;
-  const childBounds = boundsForNodes(doc, canvasChildrenOf(doc, parentId));
+  const childBounds = boundsForNodes(doc, layoutChildrenOf(doc, parentId));
   if (!childBounds) return false;
 
   const margin = containmentMargin(doc, parent);
@@ -805,7 +823,7 @@ function containmentMargin(doc: CapabilityDocument, parent: CapabilityNode) {
 function minimumSizeForNode(doc: CapabilityDocument, node: CapabilityNode) {
   const childBounds = node.isManualPositioningEnabled
     ? null
-    : boundsForNodes(doc, canvasChildrenOf(doc, node.id));
+    : boundsForNodes(doc, layoutChildrenOf(doc, node.id));
   return {
     w: childBounds
       ? childBounds.x +

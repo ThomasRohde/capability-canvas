@@ -2,6 +2,7 @@ import {
   canvasRootChildren,
   collectDescendantIds,
   computeHierarchyDepths,
+  isCanvasLabelNode,
   isNodeOnCanvas,
   subtreeNodeIds,
   type Bounds,
@@ -38,7 +39,7 @@ export function createNodeViewModels(
         visible: viewport
           ? intersectsBounds(bounds, viewport, { inclusive: true })
           : true,
-        zIndex: depth * 10 + (node.type === "leaf" ? 2 : 1),
+        zIndex: depth * 10 + (isCanvasLabelNode(node) ? 3 : node.type === "leaf" ? 2 : 1),
       };
     })
     .sort((a, b) => a.depth - b.depth || a.node.id.localeCompare(b.node.id));

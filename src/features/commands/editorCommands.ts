@@ -1,8 +1,13 @@
-import type { CapabilityNode, NodeId } from "../../domain/document/types";
+import {
+  isTextLabelNode,
+  type CapabilityNode,
+  type NodeId,
+} from "../../domain/document/types";
 import { available, unavailable, type CommandDefinition } from "./types";
 
 export interface EditorCommandActions {
   addRoot: () => void;
+  addLabel: () => void;
   addChild: () => void;
   renameSelected: () => void;
   duplicateSelected: () => void;
@@ -52,13 +57,21 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       run: ({ actions }) => actions.addRoot(),
     },
     {
+      id: "model.add-label",
+      group: "Model",
+      label: "Add label",
+      keywords: ["annotation", "note", "text"],
+      canRun: () => available(),
+      run: ({ actions }) => actions.addLabel(),
+    },
+    {
       id: "model.add-child",
       group: "Model",
       label: "Add child",
       keywords: ["capability", "new"],
       canRun: ({ selectedNode }) => {
         if (!selectedNode) return unavailable("Select a capability first.");
-        if (selectedNode.isTextLabel || selectedNode.type === "text")
+        if (isTextLabelNode(selectedNode))
           return unavailable("Text labels cannot have children.");
         return available();
       },

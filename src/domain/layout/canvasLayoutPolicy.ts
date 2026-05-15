@@ -1,5 +1,7 @@
 import {
   isHierarchyAncestorOf,
+  isCanvasLabelNode,
+  isTextLabelNode,
   ROOT_PARENT_ID,
   type CapabilityDocument,
   type LayoutMode,
@@ -87,7 +89,9 @@ export function evaluateCanvasLayoutIntent(
     const parentIds = input.rootNodeIds
       .map((nodeId) => {
         const node = input.doc.nodesById[nodeId];
-        return node ? canvasSelectionParentId(input.doc, node) : null;
+        return node && !isCanvasLabelNode(node)
+          ? canvasSelectionParentId(input.doc, node)
+          : null;
       })
       .filter((parentId): parentId is NodeId => !!parentId);
     return okIntent({
@@ -110,7 +114,7 @@ function evaluateAddChildIntent(
   if (!parent) {
     return rejectIntent("missing-parent", "Select a valid parent.");
   }
-  if (parent.isTextLabel || parent.type === "text") {
+  if (isTextLabelNode(parent)) {
     return rejectIntent("text-label-parent", "Text labels cannot contain children.");
   }
   const shouldRelayout =
@@ -154,7 +158,7 @@ function validateReparentTarget(
   if (!target) {
     return rejectIntent("missing-parent", "Drop target no longer exists.");
   }
-  if (target.isTextLabel || target.type === "text") {
+  if (isTextLabelNode(target)) {
     return rejectIntent("text-label-parent", "Text labels cannot contain children.");
   }
   if (target.isLockedAsIs) {
@@ -179,6 +183,7 @@ function manualParentsForIds(
     const parent = doc.nodesById[parentId];
     if (
       !parent ||
+      isTextLabelNode(parent) ||
       parent.isManualPositioningEnabled ||
       parent.isLockedAsIs
     ) {
