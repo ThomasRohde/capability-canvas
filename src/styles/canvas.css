@@ -3,7 +3,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background-color: var(--cc-slate-100);
+  background-color: var(--cc-white);
   background-image: radial-gradient(
     circle,
     var(--cc-grid-dot-color, rgba(15, 23, 42, 0.09)) 1px,
