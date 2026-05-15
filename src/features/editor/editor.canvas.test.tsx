@@ -680,6 +680,9 @@ describe("editor canvas workflows", () => {
 
     const inspector = document.querySelector(".cc-inspector") as HTMLElement;
     await userEvent.click(within(inspector).getByRole("button", { name: "Callout" }));
+    const font = within(inspector).getByLabelText("Font");
+    expect(font.tagName).toBe("SELECT");
+    await userEvent.selectOptions(font, "Georgia");
     const fontSize = within(inspector).getByLabelText("Font size");
     await userEvent.clear(fontSize);
     await userEvent.type(fontSize, "24{Enter}");
@@ -687,6 +690,7 @@ describe("editor canvas workflows", () => {
     const updated = useDocumentStore.getState().doc.nodesById[labelNode!.id]!;
     expect(updated.textStyle).toMatchObject({
       shape: "callout",
+      fontFamily: "Georgia",
       fontSize: 24,
     });
   });

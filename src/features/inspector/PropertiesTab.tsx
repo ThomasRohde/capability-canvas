@@ -28,6 +28,18 @@ const LABEL_SHAPES: Array<{ value: LabelShape; label: string }> = [
   { value: "callout", label: "Callout" },
 ];
 
+const LABEL_FONT_OPTIONS = [
+  "Segoe UI",
+  "Inter",
+  "Arial",
+  "Helvetica",
+  "Verdana",
+  "Tahoma",
+  "Georgia",
+  "Times New Roman",
+  "Courier New",
+];
+
 export function PropertiesTab({
   node,
   viewNode,
@@ -111,7 +123,14 @@ export function PropertiesTab({
 
 function LabelStyleEditor({ node }: { node: CapabilityNode }) {
   const execute = useDocumentStore((state) => state.execute);
+  const documentFont = useDocumentStore((state) => state.doc.settings.fontFamily);
   const textStyle = node.textStyle ?? {};
+  const selectedFont = textStyle.fontFamily ?? documentFont;
+  const fontOptions = uniqueFontOptions([
+    selectedFont,
+    documentFont,
+    ...LABEL_FONT_OPTIONS,
+  ]);
   const updateTextStyle = (patch: CapabilityNode["textStyle"]) =>
     execute(updateNode(node.id, { textStyle: { ...textStyle, ...patch } }));
 
@@ -134,13 +153,20 @@ function LabelStyleEditor({ node }: { node: CapabilityNode }) {
       </div>
       <div className="cc-field">
         <label htmlFor="label-font-family">Font</label>
-        <CommitTextInput
+        <select
           id="label-font-family"
-          className="cc-input"
-          value={textStyle.fontFamily ?? "Segoe UI"}
-          normalize={(value) => value.trim() || "Segoe UI"}
-          onCommit={(fontFamily) => updateTextStyle({ fontFamily })}
-        />
+          className="cc-select"
+          value={selectedFont}
+          onChange={(event) =>
+            updateTextStyle({ fontFamily: event.currentTarget.value })
+          }
+        >
+          {fontOptions.map((fontFamily) => (
+            <option key={fontFamily} value={fontFamily}>
+              {fontFamily}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="cc-field">
         <label htmlFor="label-font-size">Font size</label>
@@ -156,6 +182,16 @@ function LabelStyleEditor({ node }: { node: CapabilityNode }) {
       </div>
     </>
   );
+}
+
+function uniqueFontOptions(fontFamilies: string[]): string[] {
+  const options: string[] = [];
+  for (const fontFamily of fontFamilies) {
+    const normalized = fontFamily.trim();
+    if (!normalized || options.includes(normalized)) continue;
+    options.push(normalized);
+  }
+  return options;
 }
 
 function ColorEditor({
