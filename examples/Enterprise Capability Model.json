@@ -6,10 +6,10 @@
     {
       "id": "enterprise-platform-capability-model",
       "parentId": null,
-      "label": "Customer and digital channel platforms",
+      "label": "Banking Platform",
       "x": 48,
       "y": 48,
-      "w": 1540,
+      "w": 3007,
       "h": 3180,
       "type": "root",
       "color": "stone",
@@ -489,7 +489,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742493885
+      "updatedAt": 1778825650389
     },
     {
       "id": "g0-platform-governance-and-portfolio-management",
@@ -497,7 +497,7 @@
       "label": "Platform governance and portfolio management",
       "x": 80,
       "y": 120,
-      "w": 680,
+      "w": 2239,
       "h": 452,
       "type": "parent",
       "color": "mint",
@@ -512,7 +512,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741459252
+      "updatedAt": 1778824933597
     },
     {
       "id": "g0-platform-classification-and-designation",
@@ -528,14 +528,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Enterprise Architecture",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Defines the formal governance model for recognizing and categorizing platforms."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-capability-ownership-and-scope-boundaries",
@@ -551,14 +552,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Enterprise Architecture + Platform Owner",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Prevents uncontrolled platform sprawl and overlapping accountability."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-platform-portfolio-and-target-state-roadmap",
@@ -574,14 +576,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Enterprise Architecture",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Provides enterprise-wide visibility into platform direction and consolidation."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-standards-and-exception-management",
@@ -597,14 +600,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Enterprise Architecture",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Ensures governance consistency while enabling controlled deviations."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-funding-and-consumption-economics",
@@ -620,14 +624,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Finance/FinOps + Platform Owner",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Establishes sustainable financial governance for shared platforms."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-lifecycle-decommissioning-and-exit",
@@ -643,14 +648,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Platform Owner",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Controls platform evolution and retirement across the enterprise."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-platform-value-and-adoption-measurement",
@@ -666,14 +672,15 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Platform Owner",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Measures whether platforms deliver intended strategic outcomes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
     },
     {
       "id": "g0-regulatory-traceability",
@@ -689,14 +696,99 @@
       "metadata": {
         "groupId": "G0",
         "primaryOwnershipAnchor": "Risk/Compliance + Platform Owner",
-        "sourceTable": 3
+        "sourceTable": 3,
+        "rationale": "Ensures platforms remain auditable and aligned to regulatory obligations."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778824933596
+    },
+    {
+      "id": "g0-platform-operating-model-governance",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform operating model governance",
+      "x": 1584,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Define decision rights, accountability structures, stakeholder participation, and governance forums for platform management.",
+      "metadata": {
+        "rationale": "Clarifies how platforms are governed operationally and organizationally."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778824933596,
+      "updatedAt": 1778824933596
+    },
+    {
+      "id": "g0-platform-risk-and-control-governance",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform risk and control governance",
+      "x": 1768,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Establish risk ownership, control accountability, and oversight expectations for shared platform operations.",
+      "metadata": {
+        "rationale": "Separates governance of operational and control risk from regulatory mapping."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778824933596,
+      "updatedAt": 1778824933596
+    },
+    {
+      "id": "g0-platform-sourcing-and-vendor-governance",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform sourcing and vendor governance",
+      "x": 1952,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Define sourcing principles, vendor dependency expectations, contractual guardrails, and strategic supplier oversight.",
+      "metadata": {
+        "rationale": "Addresses governance of externally sourced and vendor-backed platforms."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778824933596,
+      "updatedAt": 1778824933596
+    },
+    {
+      "id": "g0-platform-interoperability-and-integration-governance",
+      "parentId": "g0-platform-governance-and-portfolio-management",
+      "label": "Platform interoperability and integration governance",
+      "x": 2136,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Define integration principles, interoperability standards, and shared interface expectations across platforms.",
+      "metadata": {
+        "rationale": "Ensures platforms operate cohesively within the enterprise ecosystem."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778824933596,
+      "updatedAt": 1778824933596
     },
     {
       "id": "g1-customer-and-digital-channel-platforms",
@@ -704,7 +796,7 @@
       "label": "Customer and digital channel platforms",
       "x": 810,
       "y": 120,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "sky",
@@ -719,7 +811,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741472751
+      "updatedAt": 1778825438919
     },
     {
       "id": "g1-journey-orchestration-and-front-end-composition",
@@ -735,14 +827,15 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Channel Platform Owner",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Covers cross-channel experience assembly and customer journey coordination."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
     },
     {
       "id": "g1-digital-onboarding-and-servicing",
@@ -758,14 +851,15 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Business Capability Owner",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Groups customer lifecycle and self-service interaction capabilities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
     },
     {
       "id": "g1-customer-identity-consent-and-access-experience",
@@ -781,14 +875,15 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Security + Channel Platform Owner",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Separates customer access experience concerns from backend security platforms."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
     },
     {
       "id": "g1-advisor-branch-and-contact-center-enablement",
@@ -804,14 +899,15 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Business Capability Owner",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Represents assisted-channel interaction and servicing enablement."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
     },
     {
       "id": "g1-personalization-and-content-integration",
@@ -827,14 +923,15 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Channel Platform Owner + Data Office",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Addresses tailored experiences and governed customer communications."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
     },
     {
       "id": "g1-secure-messaging-and-notifications",
@@ -850,14 +947,15 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Channel Platform Owner",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Provides omnichannel outbound and secure communication capabilities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
     },
     {
       "id": "g1-channel-telemetry-and-journey-analytics",
@@ -873,14 +971,120 @@
       "metadata": {
         "groupId": "G1",
         "primaryOwnershipAnchor": "Data/Analytics Platform Owner",
-        "sourceTable": 4
+        "sourceTable": 4,
+        "rationale": "Captures customer interaction measurement and journey performance insight."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825438917
+    },
+    {
+      "id": "g1-customer-preferences-and-profile-management",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Customer preferences and profile management",
+      "x": 2128,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Management of customer communication preferences, profile settings, language choices, and channel behavior.",
+      "metadata": {
+        "rationale": "Separates persistent customer interaction preferences from personalization execution."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825438917,
+      "updatedAt": 1778825438917
+    },
+    {
+      "id": "g1-omnichannel-session-and-context-continuity",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Omnichannel session and context continuity",
+      "x": 2312,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Persistent customer context and interaction continuity across digital and assisted channels.",
+      "metadata": {
+        "rationale": "Supports seamless transitions between channels and interaction touchpoints."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825438917,
+      "updatedAt": 1778825438917
+    },
+    {
+      "id": "g1-customer-feedback-and-experience-management",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Customer feedback and experience management",
+      "x": 2496,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Collection, analysis, and operationalization of customer feedback, satisfaction, and experience signals.",
+      "metadata": {
+        "rationale": "Focuses on direct customer experience measurement and improvement inputs."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825438917,
+      "updatedAt": 1778825438917
+    },
+    {
+      "id": "g1-digital-document-and-form-experience",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Digital document and form experience",
+      "x": 2680,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Reusable customer-facing document delivery, digital forms, e-signature, and submission experiences.",
+      "metadata": {
+        "rationale": "Groups interactive document and form-based customer interactions."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825438917,
+      "updatedAt": 1778825438917
+    },
+    {
+      "id": "g1-channel-accessibility-and-experience-compliance",
+      "parentId": "g1-customer-and-digital-channel-platforms",
+      "label": "Channel accessibility and experience compliance",
+      "x": 2864,
+      "y": 184,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Accessibility, usability, localization, and regulatory experience standards across customer channels.",
+      "metadata": {
+        "rationale": "Ensures consistent and compliant customer experience standards across channels."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825438917,
+      "updatedAt": 1778825438917
     },
     {
       "id": "g2-core-banking-product-and-transaction-platforms",
@@ -888,7 +1092,7 @@
       "label": "Core banking, product and transaction platforms",
       "x": 80,
       "y": 604,
-      "w": 680,
+      "w": 2239,
       "h": 404,
       "type": "parent",
       "color": "coral",
@@ -903,7 +1107,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741483499
+      "updatedAt": 1778825487174
     },
     {
       "id": "g2-account-balance-and-ledger-services",
@@ -919,14 +1123,15 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Core Banking Platform Owner",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Core system-of-record capability for financially material banking transactions."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
     },
     {
       "id": "g2-product-and-pricing-catalogue",
@@ -942,14 +1147,15 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Business Capability Owner",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Defines commercial banking products and reusable commercial rules."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
     },
     {
       "id": "g2-payments-initiation-and-processing",
@@ -965,14 +1171,15 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Payments Platform Owner",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Handles domestic and international payment transaction execution."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
     },
     {
       "id": "g2-credit-lending-and-collateral-servicing",
@@ -988,14 +1195,15 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Lending Platform Owner",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Supports lending products and associated credit servicing operations."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
     },
     {
       "id": "g2-cards-cash-management-and-treasury-connectivity",
@@ -1011,14 +1219,15 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Business Capability Owner",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Covers transaction banking and treasury-adjacent operational services."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
     },
     {
       "id": "g2-reconciliation-settlement-and-control",
@@ -1034,14 +1243,15 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Business Capability Owner + Risk/Finance",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Provides financial integrity and operational control capabilities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
     },
     {
       "id": "g2-transaction-event-and-journal-services",
@@ -1057,14 +1267,120 @@
       "metadata": {
         "groupId": "G2",
         "primaryOwnershipAnchor": "Core Banking Platform Owner",
-        "sourceTable": 5
+        "sourceTable": 5,
+        "rationale": "Enables durable transaction history and downstream event consumption."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825487173
+    },
+    {
+      "id": "g2-interest-accrual-and-fee-calculation",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Interest accrual and fee calculation",
+      "x": 1400,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Calculation services for accrued interest, penalties, fees, commissions, and financial adjustments.",
+      "metadata": {
+        "rationale": "Separates financial calculation logic from product configuration and posting."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825487173,
+      "updatedAt": 1778825487173
+    },
+    {
+      "id": "g2-limit-exposure-and-position-management",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Limit, exposure and position management",
+      "x": 1584,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Monitoring and enforcement of customer, account, liquidity, and transactional exposure limits.",
+      "metadata": {
+        "rationale": "Supports financially material controls and operational risk boundaries."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825487173,
+      "updatedAt": 1778825487173
+    },
+    {
+      "id": "g2-financial-contract-and-obligation-management",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Financial contract and obligation management",
+      "x": 1768,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Management of contractual obligations, repayment schedules, maturity events, and servicing conditions.",
+      "metadata": {
+        "rationale": "Captures lifecycle obligations across banking products and agreements."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825487173,
+      "updatedAt": 1778825487173
+    },
+    {
+      "id": "g2-customer-account-servicing",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Customer account servicing",
+      "x": 1952,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Operational servicing of account maintenance, status changes, mandates, closures, and lifecycle events.",
+      "metadata": {
+        "rationale": "Provides reusable operational servicing capabilities across banking products."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825487173,
+      "updatedAt": 1778825487173
+    },
+    {
+      "id": "g2-financial-posting-and-accounting-integration",
+      "parentId": "g2-core-banking-product-and-transaction-platforms",
+      "label": "Financial posting and accounting integration",
+      "x": 2136,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Controlled posting, accounting enrichment, and integration of financial events into enterprise finance processes.",
+      "metadata": {
+        "rationale": "Bridges operational banking events with enterprise accounting and finance domains."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825487173,
+      "updatedAt": 1778825487173
     },
     {
       "id": "g3-process-workflow-case-and-rules-platforms",
@@ -1072,7 +1388,7 @@
       "label": "Process, workflow, case and rules platforms",
       "x": 810,
       "y": 604,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "amber",
@@ -1087,7 +1403,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741531861
+      "updatedAt": 1778825551637
     },
     {
       "id": "g3-business-process-orchestration",
@@ -1103,14 +1419,15 @@
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Workflow Platform Owner",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Core orchestration capability for coordinated business execution across systems and channels."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
     },
     {
       "id": "g3-case-management",
@@ -1126,14 +1443,15 @@
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Workflow Platform Owner",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Supports unstructured and event-driven operational work requiring human coordination."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
     },
     {
       "id": "g3-rules-and-decision-services",
@@ -1145,18 +1463,19 @@
       "h": 40,
       "type": "leaf",
       "color": "amber",
-      "description": "Reusable rules, eligibility, routing, and decision logic where consistency and auditability are needed.",
+      "description": "Execute reusable rules, eligibility, routing, scoring, and policy decisions with traceability.",
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Decision Platform Owner",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Separates reusable business decision logic from application implementations."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
     },
     {
       "id": "g3-task-approval-and-delegation-management",
@@ -1168,18 +1487,19 @@
       "h": 40,
       "type": "leaf",
       "color": "amber",
-      "description": "Reusable human-in-the-loop approvals, assignments, escalations, and delegation patterns.",
+      "description": "Coordinate human work assignments, approvals, escalations, substitutions, and delegation flows.",
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Workflow Platform Owner",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Provides reusable human workflow patterns across enterprise processes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
     },
     {
       "id": "g3-document-capture-and-e-signature-integration",
@@ -1191,18 +1511,19 @@
       "h": 40,
       "type": "leaf",
       "color": "amber",
-      "description": "Ingest, classify, validate, sign, archive, and link documents to business processes.",
+      "description": "Capture, validate, sign, archive, and associate documents with operational workflows and cases.",
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Business Process Owner",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Connects document-centric interactions to process execution and evidence management."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
     },
     {
       "id": "g3-process-mining-and-optimization",
@@ -1214,18 +1535,19 @@
       "h": 40,
       "type": "leaf",
       "color": "amber",
-      "description": "Measure process performance, bottlenecks, rework, compliance breaks, and improvement opportunities.",
+      "description": "Analyze process execution patterns, bottlenecks, rework, compliance deviations, and improvement opportunities.",
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Process Excellence Owner",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Enables continuous operational improvement through execution telemetry and analytics."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
     },
     {
       "id": "g3-workflow-audit-trail-and-compliance-evidence",
@@ -1237,18 +1559,124 @@
       "h": 40,
       "type": "leaf",
       "color": "amber",
-      "description": "Generate immutable process histories, approvals, control points, and audit evidence.",
+      "description": "Maintain immutable workflow histories, approvals, decisions, and control evidence for assurance activities.",
       "metadata": {
         "groupId": "G3",
         "primaryOwnershipAnchor": "Workflow Platform Owner + Risk/Compliance",
-        "sourceTable": 6
+        "sourceTable": 6,
+        "rationale": "Provides governance, traceability, and evidentiary support for regulated operations."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825551635
+    },
+    {
+      "id": "g3-business-process-modeling-and-design",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Business process modeling and design",
+      "x": 2128,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Define, version, simulate, and govern enterprise process models, flows, and execution semantics.",
+      "metadata": {
+        "rationale": "Establishes standardized process definitions and lifecycle governance."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825551635,
+      "updatedAt": 1778825551635
+    },
+    {
+      "id": "g3-workflow-event-and-state-management",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Workflow event and state management",
+      "x": 2312,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Track workflow states, milestones, timers, triggers, retries, and event-driven transitions.",
+      "metadata": {
+        "rationale": "Supports resilient orchestration of long-running and asynchronous business activities."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825551635,
+      "updatedAt": 1778825551635
+    },
+    {
+      "id": "g3-operational-work-queue-management",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Operational work queue management",
+      "x": 2496,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Distribute, prioritize, balance, and monitor operational work queues across teams and channels.",
+      "metadata": {
+        "rationale": "Provides enterprise-scale coordination of operational workloads and throughput."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825551635,
+      "updatedAt": 1778825551635
+    },
+    {
+      "id": "g3-process-policy-and-control-management",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Process policy and control management",
+      "x": 2680,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Define and enforce operational controls, segregation policies, checkpoints, and compliance obligations.",
+      "metadata": {
+        "rationale": "Ensures process execution aligns with enterprise risk and control requirements."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825551635,
+      "updatedAt": 1778825551635
+    },
+    {
+      "id": "g3-process-exception-and-remediation-management",
+      "parentId": "g3-process-workflow-case-and-rules-platforms",
+      "label": "Process exception and remediation management",
+      "x": 2864,
+      "y": 672,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Identify, route, resolve, and monitor workflow exceptions, failures, breaches, and remediation actions.",
+      "metadata": {
+        "rationale": "Provides structured handling of operational deviations and recovery activities."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825551635,
+      "updatedAt": 1778825551635
     },
     {
       "id": "g4-enterprise-service-management-and-operational-workflow-platforms",
@@ -1256,7 +1684,7 @@
       "label": "Enterprise service management and operational workflow platforms",
       "x": 80,
       "y": 1040,
-      "w": 680,
+      "w": 2239,
       "h": 404,
       "type": "parent",
       "color": "lavender",
@@ -1271,7 +1699,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741604557
+      "updatedAt": 1778825597352
     },
     {
       "id": "g4-incident-problem-and-change-management",
@@ -1287,14 +1715,15 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Service Management Owner",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Core operational control domain governing service restoration, root-cause remediation, and controlled change."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
     },
     {
       "id": "g4-service-catalogue-and-request-fulfilment",
@@ -1310,14 +1739,15 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Service Management Platform Owner",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Defines and operationalizes standardized enterprise and technology service consumption."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
     },
     {
       "id": "g4-configuration-and-service-mapping",
@@ -1333,14 +1763,15 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Service Management Owner + Platform Owner",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Provides authoritative operational relationships between assets, services, and dependencies."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
     },
     {
       "id": "g4-asset-license-and-configuration-control",
@@ -1356,14 +1787,15 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Asset Management Owner",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Manages operational accountability and compliance for technology inventory and configuration states."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
     },
     {
       "id": "g4-knowledge-management",
@@ -1379,14 +1811,15 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Service Management Owner",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Captures and distributes operational knowledge for support efficiency and consistency."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
     },
     {
       "id": "g4-operational-workflow-automation",
@@ -1402,14 +1835,15 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Service Management Platform Owner",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Coordinates repeatable operational execution and remediation activities across workflows."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
     },
     {
       "id": "g4-third-party-support-integration",
@@ -1425,14 +1859,120 @@
       "metadata": {
         "groupId": "G4",
         "primaryOwnershipAnchor": "Vendor Management + Service Management",
-        "sourceTable": 7
+        "sourceTable": 7,
+        "rationale": "Supports coordinated operational engagement with external service and support providers."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825597351
+    },
+    {
+      "id": "g4-service-level-and-operational-performance-management",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Service-level and operational performance management",
+      "x": 1400,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Operational targets, SLA tracking, breach management, trend analysis, and service reporting.",
+      "metadata": {
+        "rationale": "Measures operational effectiveness and service outcomes against defined commitments."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825597351,
+      "updatedAt": 1778825597351
+    },
+    {
+      "id": "g4-major-incident-and-crisis-coordination",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Major incident and crisis coordination",
+      "x": 1584,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Coordinated command, communication, escalation, stakeholder management, and recovery oversight during critical disruptions.",
+      "metadata": {
+        "rationale": "Addresses enterprise-scale disruption handling distinct from standard incident management."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825597351,
+      "updatedAt": 1778825597351
+    },
+    {
+      "id": "g4-case-and-operational-task-management",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Case and operational task management",
+      "x": 1768,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Structured handling of operational cases, queues, work assignments, escalations, and resolution tracking.",
+      "metadata": {
+        "rationale": "Supports generalized operational work coordination beyond ITSM request flows."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825597351,
+      "updatedAt": 1778825597351
+    },
+    {
+      "id": "g4-operational-compliance-and-audit-evidence",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Operational compliance and audit evidence",
+      "x": 1952,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Operational evidence capture, approval traceability, policy attestation, and audit-ready activity records.",
+      "metadata": {
+        "rationale": "Ensures operational activities produce verifiable governance and compliance evidence."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825597351,
+      "updatedAt": 1778825597351
+    },
+    {
+      "id": "g4-service-communication-and-status-management",
+      "parentId": "g4-enterprise-service-management-and-operational-workflow-platforms",
+      "label": "Service communication and status management",
+      "x": 2136,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Operational notifications, maintenance communications, outage updates, and service status transparency.",
+      "metadata": {
+        "rationale": "Provides coordinated stakeholder communication regarding operational service conditions and events."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825597351,
+      "updatedAt": 1778825597351
     },
     {
       "id": "g5-developer-low-code-and-automation-platforms",
@@ -1440,7 +1980,7 @@
       "label": "Developer, low-code and automation platforms",
       "x": 810,
       "y": 1040,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "peach",
@@ -1455,7 +1995,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741615969
+      "updatedAt": 1778821604803
     },
     {
       "id": "g5-internal-developer-portal-and-service-catalogue",
@@ -1471,14 +2011,15 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Developer Platform Owner",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Provides the discovery and self-service entry point for developer platform consumption."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
     },
     {
       "id": "g5-golden-paths-and-solution-templates",
@@ -1494,14 +2035,15 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Developer Platform Owner + EA",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Defines standardized implementation patterns for consistent engineering outcomes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
     },
     {
       "id": "g5-ci-cd-and-devsecops-automation",
@@ -1517,14 +2059,15 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Developer Platform Owner",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Covers automated software delivery and embedded engineering controls."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
     },
     {
       "id": "g5-low-code-application-platform",
@@ -1540,14 +2083,15 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Low-code Platform Owner/CoE",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Provides managed low-code tooling and runtime capabilities for application delivery."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
     },
     {
       "id": "g5-citizen-developer-governance",
@@ -1563,14 +2107,15 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Low-code Platform Owner + Risk/Security",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Establishes governance and risk controls for distributed solution creation."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
     },
     {
       "id": "g5-test-quality-and-release-automation",
@@ -1586,14 +2131,15 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Quality Engineering Owner",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Ensures delivery quality and controlled promotion of changes across environments."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
     },
     {
       "id": "g5-robotic-and-desktop-automation",
@@ -1609,14 +2155,120 @@
       "metadata": {
         "groupId": "G5",
         "primaryOwnershipAnchor": "Automation Platform Owner",
-        "sourceTable": 8
+        "sourceTable": 8,
+        "rationale": "Addresses automation scenarios dependent on user-interface interaction or legacy workflows."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778821604802
+    },
+    {
+      "id": "g5-api-and-integration-acceleration",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "API and integration acceleration",
+      "x": 2128,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Reusable integration assets, connectors, SDKs, workflow orchestration, and API enablement for rapid solution composition.",
+      "metadata": {
+        "rationale": "Provides composability and integration reuse across delivery teams and platforms."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778821549593,
+      "updatedAt": 1778821604802
+    },
+    {
+      "id": "g5-development-environment-and-workspace-management",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Development environment and workspace management",
+      "x": 2312,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Standardized development workspaces, environment provisioning, secrets handling, and toolchain configuration for rapid onboarding and consistent delivery.",
+      "metadata": {
+        "rationale": "Covers managed developer environments and engineering workspace consistency."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778821604803,
+      "updatedAt": 1778821604803
+    },
+    {
+      "id": "g5-platform-observability-and-engineering-insights",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Platform observability and engineering insights",
+      "x": 2496,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Delivery telemetry, developer experience metrics, pipeline analytics, and operational visibility for continuous platform improvement.",
+      "metadata": {
+        "rationale": "Provides measurement and feedback loops for engineering effectiveness and platform operations."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778821604803,
+      "updatedAt": 1778821604803
+    },
+    {
+      "id": "g5-software-supply-chain-and-artifact-management",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "Software supply chain and artifact management",
+      "x": 2680,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Trusted management of source dependencies, build artifacts, containers, provenance, and reusable engineering assets.",
+      "metadata": {
+        "rationale": "Addresses integrity, traceability, and reuse across the software delivery supply chain."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778821604803,
+      "updatedAt": 1778821604803
+    },
+    {
+      "id": "g5-ai-assisted-development-and-automation",
+      "parentId": "g5-developer-low-code-and-automation-platforms",
+      "label": "AI-assisted development and automation",
+      "x": 2864,
+      "y": 1104,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Governed use of generative AI, coding assistants, workflow copilots, and automation agents within software and low-code delivery processes.",
+      "metadata": {
+        "rationale": "Captures emerging AI-enabled engineering and automation capabilities as a distinct platform domain."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778821604803,
+      "updatedAt": 1778821604803
     },
     {
       "id": "g6-hosting-runtime-and-workload-platforms",
@@ -1624,7 +2276,7 @@
       "label": "Hosting, runtime and workload platforms",
       "x": 80,
       "y": 1476,
-      "w": 680,
+      "w": 2239,
       "h": 404,
       "type": "parent",
       "color": "teal",
@@ -1639,7 +2291,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778741627699
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-mainframe-and-high-integrity-transaction-runtime",
@@ -1655,14 +2307,15 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Mainframe Platform Owner",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Covers resilient execution environments for high-volume and mission-critical transaction processing workloads."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-private-cloud-and-infrastructure-runtime",
@@ -1678,14 +2331,15 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Infrastructure Platform Owner",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Represents enterprise-managed hosting foundations for internal infrastructure and private cloud execution."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-public-cloud-landing-zones",
@@ -1701,14 +2355,15 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Cloud Platform Owner",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Defines standardized cloud foundations and governance structures for scalable public cloud adoption."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-container-serverless-and-application-runtime",
@@ -1724,14 +2379,15 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Runtime Platform Owner",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Provides modern runtime abstractions for cloud-native and distributed application execution."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-workload-placement-and-hosting-patterns",
@@ -1747,14 +2403,15 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Enterprise Architecture",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Ensures consistent workload deployment decisions across heterogeneous runtime environments."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-environment-provisioning-and-configuration",
@@ -1770,14 +2427,15 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Runtime Platform Owner",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Supports repeatable and policy-aligned runtime environment setup across delivery lifecycles."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
     },
     {
       "id": "g6-capacity-performance-backup-and-disaster-recovery",
@@ -1793,14 +2451,120 @@
       "metadata": {
         "groupId": "G6",
         "primaryOwnershipAnchor": "Runtime Platform Owner + Operational Resilience",
-        "sourceTable": 9
+        "sourceTable": 9,
+        "rationale": "Addresses resilience, recoverability, and operational continuity requirements for runtime platforms."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825178643
+    },
+    {
+      "id": "g6-runtime-observability-and-telemetry",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Runtime observability and telemetry",
+      "x": 1400,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Centralized logging, metrics, tracing, health monitoring, and operational visibility across runtime environments.",
+      "metadata": {
+        "rationale": "Provides operational insight and monitoring consistency across hosting and execution platforms."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825178643,
+      "updatedAt": 1778825178643
+    },
+    {
+      "id": "g6-runtime-security-and-workload-isolation",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Runtime security and workload isolation",
+      "x": 1584,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Execution-time protection, workload segmentation, runtime policy enforcement, and platform hardening controls.",
+      "metadata": {
+        "rationale": "Focuses on securing workloads and enforcing isolation boundaries across runtime environments."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825178643,
+      "updatedAt": 1778825178643
+    },
+    {
+      "id": "g6-runtime-patching-and-lifecycle-management",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Runtime patching and lifecycle management",
+      "x": 1768,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Coordinated maintenance, upgrade, deprecation, and version lifecycle management for runtime platforms.",
+      "metadata": {
+        "rationale": "Ensures runtime platforms remain supported, secure, and operationally sustainable over time."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825178643,
+      "updatedAt": 1778825178643
+    },
+    {
+      "id": "g6-edge-and-distributed-workload-runtime",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Edge and distributed workload runtime",
+      "x": 1952,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Execution environments for low-latency, branch, edge, and geographically distributed workloads.",
+      "metadata": {
+        "rationale": "Covers specialized runtime placement patterns outside centralized hosting environments."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825178643,
+      "updatedAt": 1778825178643
+    },
+    {
+      "id": "g6-runtime-cost-and-resource-optimization",
+      "parentId": "g6-hosting-runtime-and-workload-platforms",
+      "label": "Runtime cost and resource optimization",
+      "x": 2136,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "teal",
+      "description": "Resource utilization optimization, workload rightsizing, consumption visibility, and hosting cost efficiency.",
+      "metadata": {
+        "rationale": "Addresses economic efficiency and sustainable consumption of hosting and runtime resources."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825178643,
+      "updatedAt": 1778825178643
     },
     {
       "id": "g7-integration-api-and-event-platforms",
@@ -1808,7 +2572,7 @@
       "label": "Integration, API and event platforms",
       "x": 810,
       "y": 1476,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "slate",
@@ -1823,7 +2587,8 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742070522
+      "updatedAt": 1778825735272,
+      "colorOverride": "sky"
     },
     {
       "id": "g7-api-management-and-developer-portal",
@@ -1839,14 +2604,15 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "API Platform Owner",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Provides governed exposure and consumption of APIs across internal and external ecosystems."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
     },
     {
       "id": "g7-integration-runtime-and-orchestration",
@@ -1862,14 +2628,15 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "Integration Platform Owner",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Covers execution and coordination of synchronous and asynchronous integration flows."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
     },
     {
       "id": "g7-event-streaming-and-messaging",
@@ -1885,14 +2652,15 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "Event Platform Owner",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Supports scalable event-driven integration and decoupled system communication."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
     },
     {
       "id": "g7-managed-file-transfer-and-batch-integration",
@@ -1908,14 +2676,15 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "Integration Platform Owner",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Addresses non-real-time and bulk-oriented enterprise integration patterns."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
     },
     {
       "id": "g7-canonical-schemas-and-contract-governance",
@@ -1931,14 +2700,15 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "Enterprise Architecture + Data Office",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Ensures interoperability and controlled evolution of integration interfaces."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
     },
     {
       "id": "g7-partner-and-open-banking-integration",
@@ -1954,14 +2724,15 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "Integration Platform Owner + Business Owner",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Focuses on ecosystem connectivity and regulated third-party integration."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
     },
     {
       "id": "g7-integration-observability-and-resilience",
@@ -1977,14 +2748,120 @@
       "metadata": {
         "groupId": "G7",
         "primaryOwnershipAnchor": "Integration Platform Owner",
-        "sourceTable": 10
+        "sourceTable": 10,
+        "rationale": "Provides operational reliability and transparency across integration landscapes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825217103
+    },
+    {
+      "id": "g7-api-security-and-access-control",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "API security and access control",
+      "x": 2128,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Authentication, authorization, token management, encryption, and policy-based protection for integration interfaces.",
+      "metadata": {
+        "rationale": "Separates security enforcement concerns from API lifecycle and runtime execution."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825217103,
+      "updatedAt": 1778825217103
+    },
+    {
+      "id": "g7-integration-topology-and-service-discovery",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Integration topology and service discovery",
+      "x": 2312,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Service registration, endpoint discovery, routing metadata, dependency visibility, and connectivity mapping.",
+      "metadata": {
+        "rationale": "Supports discoverability and runtime coordination of distributed integration assets."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825217103,
+      "updatedAt": 1778825217103
+    },
+    {
+      "id": "g7-real-time-data-distribution",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Real-time data distribution",
+      "x": 2496,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Low-latency propagation of operational data, business events, and state changes across platforms and channels.",
+      "metadata": {
+        "rationale": "Covers enterprise-wide dissemination of time-sensitive information beyond messaging infrastructure alone."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825217103,
+      "updatedAt": 1778825217103
+    },
+    {
+      "id": "g7-b2b-and-network-integration",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "B2B and network integration",
+      "x": 2680,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Enterprise connectivity with clearing networks, payment infrastructures, vendors, and institutional counterparties.",
+      "metadata": {
+        "rationale": "Captures structured enterprise-to-enterprise integration distinct from open banking APIs."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825217103,
+      "updatedAt": 1778825217103
+    },
+    {
+      "id": "g7-agentic-and-machine-integration",
+      "parentId": "g7-integration-api-and-event-platforms",
+      "label": "Agentic and machine integration",
+      "x": 2864,
+      "y": 1544,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "slate",
+      "description": "Governed integration patterns for AI agents, autonomous workflows, machine consumers, and tool invocation ecosystems.",
+      "metadata": {
+        "rationale": "Addresses emerging integration demands created by AI-native and autonomous system interactions."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825217103,
+      "updatedAt": 1778825217103
     },
     {
       "id": "g8-data-analytics-and-reporting-platforms",
@@ -1992,7 +2869,7 @@
       "label": "Data, analytics and reporting platforms",
       "x": 80,
       "y": 1912,
-      "w": 680,
+      "w": 2239,
       "h": 404,
       "type": "parent",
       "color": "mint",
@@ -2007,7 +2884,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742084815
+      "updatedAt": 1778825120930
     },
     {
       "id": "g8-data-ingestion-and-landing",
@@ -2023,14 +2900,15 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Data Platform Owner",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Provides foundational acquisition and onboarding of data into the platform ecosystem."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
     },
     {
       "id": "g8-data-lake-warehouse-and-marts",
@@ -2046,14 +2924,15 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Data Platform Owner",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Provides governed analytical storage and consumption structures for enterprise reporting and analytics."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
     },
     {
       "id": "g8-metadata-lineage-and-catalogue",
@@ -2069,14 +2948,15 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Data Office",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Supports transparency, discoverability, ownership, and traceability across data assets."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
     },
     {
       "id": "g8-data-quality-and-reconciliation",
@@ -2092,14 +2972,15 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Data Office + Data Platform Owner",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Ensures trusted and controlled data suitable for operational and regulatory use."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
     },
     {
       "id": "g8-semantic-layer-and-bi-enablement",
@@ -2115,14 +2996,15 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Analytics Platform Owner",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Provides consistent analytical interpretation and business-facing reporting capabilities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
     },
     {
       "id": "g8-regulatory-and-management-reporting",
@@ -2138,14 +3020,15 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Reporting Platform Owner + Finance/Risk",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Addresses formal enterprise, financial, risk, and supervisory reporting obligations."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
     },
     {
       "id": "g8-data-access-privacy-and-retention-controls",
@@ -2161,14 +3044,120 @@
       "metadata": {
         "groupId": "G8",
         "primaryOwnershipAnchor": "Data Office + Privacy/Security",
-        "sourceTable": 11
+        "sourceTable": 11,
+        "rationale": "Provides governance and protection controls for compliant and secure data usage."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825120929
+    },
+    {
+      "id": "g8-streaming-and-real-time-analytics",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Streaming and real-time analytics",
+      "x": 1400,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Low-latency event processing, streaming analytics, and near real-time insight delivery.",
+      "metadata": {
+        "rationale": "Covers time-sensitive analytical and operational data processing capabilities."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825120929,
+      "updatedAt": 1778825120929
+    },
+    {
+      "id": "g8-master-and-reference-data-management",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Master and reference data management",
+      "x": 1584,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Consistent management, distribution, stewardship, and synchronization of shared enterprise data entities.",
+      "metadata": {
+        "rationale": "Establishes authoritative enterprise data domains and controlled reference consistency."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825120929,
+      "updatedAt": 1778825120929
+    },
+    {
+      "id": "g8-data-product-and-sharing-management",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Data product and sharing management",
+      "x": 1768,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Publication, subscription, commercialization, and governed sharing of reusable data products.",
+      "metadata": {
+        "rationale": "Supports reusable and discoverable consumption-oriented data delivery models."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825120929,
+      "updatedAt": 1778825120929
+    },
+    {
+      "id": "g8-advanced-analytics-and-data-science",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Advanced analytics and data science",
+      "x": 1952,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Statistical analysis, forecasting, experimentation, and analytical model development capabilities.",
+      "metadata": {
+        "rationale": "Provides advanced analytical methods beyond traditional business intelligence."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825120929,
+      "updatedAt": 1778825120929
+    },
+    {
+      "id": "g8-data-observability-and-operational-monitoring",
+      "parentId": "g8-data-analytics-and-reporting-platforms",
+      "label": "Data observability and operational monitoring",
+      "x": 2136,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "mint",
+      "description": "Monitoring, alerting, operational telemetry, and reliability insights for data pipelines and services.",
+      "metadata": {
+        "rationale": "Ensures operational resilience, transparency, and reliability of data platform services."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825120929,
+      "updatedAt": 1778825120929
     },
     {
       "id": "g9-ai-decision-and-agentic-platforms",
@@ -2176,7 +3165,7 @@
       "label": "AI, decision and agentic platforms",
       "x": 810,
       "y": 1912,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "sky",
@@ -2191,7 +3180,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742088640
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-foundation-model-access-and-model-catalogue",
@@ -2207,14 +3196,15 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "AI Platform Owner + AI Governance",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Covers governed discovery, selection, and controlled consumption of enterprise-approved AI models."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-retrieval-and-knowledge-base-services",
@@ -2230,14 +3220,15 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "AI Platform Owner + Data Office",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Provides enterprise knowledge retrieval and grounding services for AI and agentic workloads."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-prompt-tool-and-agent-templates",
@@ -2253,14 +3244,15 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "AI Platform Owner",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Standardizes reusable AI interaction and orchestration patterns across the enterprise."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-agent-runtime-and-tool-gateway",
@@ -2276,14 +3268,15 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "AI Platform Owner + Security",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Provides controlled execution and enterprise integration infrastructure for autonomous agents."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-ai-guardrails-and-safety-controls",
@@ -2299,14 +3292,15 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "AI Governance + Security",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Establishes operational safeguards and policy enforcement for AI usage."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-evaluation-monitoring-and-model-agent-lifecycle",
@@ -2322,14 +3316,15 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "AI Platform Owner + AI Governance",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Manages operational quality, observability, and lifecycle governance of AI assets."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
     },
     {
       "id": "g9-human-oversight-and-evidential-audit-trail",
@@ -2345,14 +3340,120 @@
       "metadata": {
         "groupId": "G9",
         "primaryOwnershipAnchor": "Risk/Compliance + AI Platform Owner",
-        "sourceTable": 12
+        "sourceTable": 12,
+        "rationale": "Supports accountable AI operations with reviewability and evidential traceability."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825054602
+    },
+    {
+      "id": "g9-decisioning-and-business-rules-services",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Decisioning and business rules services",
+      "x": 2128,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Centralized decision logic, policy rules, eligibility criteria, and explainable automated decisions.",
+      "metadata": {
+        "rationale": "Separates deterministic decision management from model execution and agent orchestration."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825054602,
+      "updatedAt": 1778825054602
+    },
+    {
+      "id": "g9-model-training-and-fine-tuning-services",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Model training and fine-tuning services",
+      "x": 2312,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Controlled training, tuning, validation, and packaging of enterprise-specific AI models.",
+      "metadata": {
+        "rationale": "Provides enterprise capabilities for adapting and operationalizing custom models."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825054602,
+      "updatedAt": 1778825054602
+    },
+    {
+      "id": "g9-ai-identity-consent-and-access-governance",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "AI identity, consent and access governance",
+      "x": 2496,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Policy-driven access, delegated permissions, consent controls, and accountability for AI interactions and agent actions.",
+      "metadata": {
+        "rationale": "Addresses identity propagation and delegated authority patterns unique to AI and agents."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825054602,
+      "updatedAt": 1778825054602
+    },
+    {
+      "id": "g9-ai-cost-capacity-and-consumption-management",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "AI cost, capacity and consumption management",
+      "x": 2680,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Quota controls, workload prioritization, token consumption tracking, and AI resource optimization.",
+      "metadata": {
+        "rationale": "Provides financial and operational governance for high-scale AI platform usage."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825054602,
+      "updatedAt": 1778825054602
+    },
+    {
+      "id": "g9-multi-agent-orchestration-and-collaboration",
+      "parentId": "g9-ai-decision-and-agentic-platforms",
+      "label": "Multi-agent orchestration and collaboration",
+      "x": 2864,
+      "y": 1976,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "sky",
+      "description": "Coordination of specialized agents, delegated tasks, workflow state, and collaborative execution patterns.",
+      "metadata": {
+        "rationale": "Captures emerging enterprise patterns for coordinated agent ecosystems and workflows."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825054602,
+      "updatedAt": 1778825054602
     },
     {
       "id": "g10-security-identity-and-trust-platforms",
@@ -2360,7 +3461,7 @@
       "label": "Security, identity and trust platforms",
       "x": 80,
       "y": 2348,
-      "w": 680,
+      "w": 2239,
       "h": 404,
       "type": "parent",
       "color": "coral",
@@ -2375,7 +3476,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742093419
+      "updatedAt": 1778825277483
     },
     {
       "id": "g10-workforce-identity-and-access-management",
@@ -2387,18 +3488,19 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "Authentication, authorization, lifecycle, federation, privileged access integration, and access reviews.",
+      "description": "Managed workforce authentication, authorization, lifecycle, federation, privileged access integration, and access reviews across enterprise platforms.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Identity Platform Owner",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Defines reusable identity and access outcomes for employees, contractors, and internal users."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
     },
     {
       "id": "g10-customer-identity-and-access-management",
@@ -2410,18 +3512,19 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "Reusable customer authentication, consent, strong customer authentication, and delegated access patterns.",
+      "description": "Reusable customer authentication, consent, strong customer authentication, delegated access, and digital identity patterns for external channels.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Customer IAM Owner",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Separates external customer identity outcomes from internal workforce identity needs."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
     },
     {
       "id": "g10-privileged-access-and-secrets-management",
@@ -2433,18 +3536,19 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "Privileged access control, secrets, credentials, vaulting, rotation, break-glass, and audit.",
+      "description": "Controlled privileged access, credential vaulting, secret rotation, break-glass access, and privileged activity auditability.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Security Platform Owner",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Groups high-risk access and secret management outcomes that require stronger controls than standard identity services."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
     },
     {
       "id": "g10-key-certificate-and-cryptographic-services",
@@ -2456,18 +3560,19 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "HSM, key management, certificate lifecycle, encryption services, and cryptographic standards.",
+      "description": "Managed cryptographic keys, certificates, signing, encryption, HSM services, and cryptographic standards across platforms.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Security Platform Owner",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Represents shared cryptographic trust services used by multiple platform and product domains."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
     },
     {
       "id": "g10-policy-as-code-and-authorization-services",
@@ -2479,18 +3584,19 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "Reusable policy enforcement, entitlement decisions, least privilege, and context-aware controls.",
+      "description": "Consistent policy decisions, entitlement evaluation, least-privilege enforcement, and context-aware authorization across reusable control points.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Security Platform Owner + EA",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Covers authorization and policy decision outcomes that are shared across identity, application, and platform boundaries."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
     },
     {
       "id": "g10-threat-vulnerability-and-exposure-management",
@@ -2502,18 +3608,19 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "Scanning, prioritization, remediation workflow, threat intelligence, and exposure reporting.",
+      "description": "Threat intelligence, vulnerability discovery, exposure prioritization, remediation workflow, and risk-based security posture reporting.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Security Operations Owner",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Combines discovery and prioritization outcomes for weaknesses and externalized security exposure."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
     },
     {
       "id": "g10-security-telemetry-and-fraud-signals",
@@ -2525,18 +3632,124 @@
       "h": 40,
       "type": "leaf",
       "color": "coral",
-      "description": "Reusable security events, behavioral signals, fraud detection feeds, and integration with monitoring platforms.",
+      "description": "Reusable security events, behavioral signals, fraud indicators, detection feeds, and monitoring integrations for security analytics.",
       "metadata": {
         "groupId": "G10",
         "primaryOwnershipAnchor": "Security Operations Owner",
-        "sourceTable": 13
+        "sourceTable": 13,
+        "rationale": "Covers signal production and integration outcomes that support detection, fraud analytics, and operational monitoring."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825277482
+    },
+    {
+      "id": "g10-service-device-and-workload-identity",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Service, device and workload identity",
+      "x": 1400,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Trusted identity, attestation, and access relationships for services, devices, workloads, APIs, and automated agents.",
+      "metadata": {
+        "rationale": "Covers non-human identity outcomes that are distinct from workforce and customer identity."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825277482,
+      "updatedAt": 1778825277482
+    },
+    {
+      "id": "g10-zero-trust-access-and-segmentation",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Zero trust access and segmentation",
+      "x": 1584,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Risk-based access paths, network segmentation, private access, session controls, and adaptive trust boundaries for users and workloads.",
+      "metadata": {
+        "rationale": "Groups reusable access perimeter and segmentation outcomes without tying them to specific network technologies."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825277482,
+      "updatedAt": 1778825277482
+    },
+    {
+      "id": "g10-application-api-and-channel-security",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Application, API and channel security",
+      "x": 1768,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable protection for applications, APIs, digital channels, bots, abusive traffic, and externally exposed interaction surfaces.",
+      "metadata": {
+        "rationale": "Covers runtime protection outcomes for application and channel surfaces that are separate from identity and network access."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825277482,
+      "updatedAt": 1778825277482
+    },
+    {
+      "id": "g10-data-protection-and-tokenization-services",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Data protection and tokenization services",
+      "x": 1952,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Reusable data masking, tokenization, leakage prevention, protection policy enforcement, and sensitive data control services.",
+      "metadata": {
+        "rationale": "Defines shared protection outcomes for sensitive data handled across platforms and products."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825277482,
+      "updatedAt": 1778825277482
+    },
+    {
+      "id": "g10-security-orchestration-and-incident-response",
+      "parentId": "g10-security-identity-and-trust-platforms",
+      "label": "Security orchestration and incident response",
+      "x": 2136,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "coral",
+      "description": "Coordinated security case handling, response playbooks, containment actions, escalation paths, and incident evidence capture.",
+      "metadata": {
+        "rationale": "Represents reusable response outcomes that act on telemetry and threats without duplicating detection or exposure management."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825277482,
+      "updatedAt": 1778825277482
     },
     {
       "id": "g11-observability-resilience-and-it-operations-platforms",
@@ -2544,7 +3757,7 @@
       "label": "Observability, resilience and IT operations platforms",
       "x": 810,
       "y": 2348,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "amber",
@@ -2559,7 +3772,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742096965
+      "updatedAt": 1778825318023
     },
     {
       "id": "g11-metrics-logs-and-traces",
@@ -2575,14 +3788,15 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "Observability Platform Owner",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Core observability telemetry foundation spanning operational data collection and analysis."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
     },
     {
       "id": "g11-service-level-objectives-and-error-budgets",
@@ -2598,14 +3812,15 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "SRE/Service Reliability Owner",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Defines measurable operational reliability expectations and governance."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
     },
     {
       "id": "g11-alerting-aiops-and-event-correlation",
@@ -2621,14 +3836,15 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "Operations Platform Owner",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Transforms telemetry into prioritized operational signals and automated insights."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
     },
     {
       "id": "g11-incident-response-and-communication",
@@ -2644,14 +3860,15 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "Service Management + Operations",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Coordinates operational response and stakeholder communication during service disruption."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
     },
     {
       "id": "g11-dependency-and-critical-service-mapping",
@@ -2667,14 +3884,15 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "Operational Resilience Owner",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Provides operational visibility into service relationships and business impact."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
     },
     {
       "id": "g11-disaster-recovery-and-resilience-testing",
@@ -2690,14 +3908,15 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "Operational Resilience Owner",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Validates operational continuity and recovery readiness under disruption scenarios."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
     },
     {
       "id": "g11-runbook-and-remediation-automation",
@@ -2713,14 +3932,120 @@
       "metadata": {
         "groupId": "G11",
         "primaryOwnershipAnchor": "Operations Platform Owner",
-        "sourceTable": 14
+        "sourceTable": 14,
+        "rationale": "Standardizes and automates operational recovery and remediation activities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825318022
+    },
+    {
+      "id": "g11-capacity-and-performance-management",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Capacity and performance management",
+      "x": 2128,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Resource utilization forecasting, workload performance analysis, and operational scaling insights.",
+      "metadata": {
+        "rationale": "Ensures platforms operate within performance and scalability expectations."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825318022,
+      "updatedAt": 1778825318022
+    },
+    {
+      "id": "g11-configuration-and-state-observability",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Configuration and state observability",
+      "x": 2312,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Visibility into infrastructure, platform, and application configuration states and drift.",
+      "metadata": {
+        "rationale": "Supports operational diagnostics and governance through configuration awareness."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825318022,
+      "updatedAt": 1778825318022
+    },
+    {
+      "id": "g11-operational-change-and-release-visibility",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Operational change and release visibility",
+      "x": 2496,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Track operational changes, deployments, releases, and their impact on service health.",
+      "metadata": {
+        "rationale": "Connects operational events and releases to reliability and incident outcomes."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825318022,
+      "updatedAt": 1778825318022
+    },
+    {
+      "id": "g11-service-status-and-operational-reporting",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Service status and operational reporting",
+      "x": 2680,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Operational health reporting, service status visibility, and reliability trend analysis.",
+      "metadata": {
+        "rationale": "Provides operational transparency and service health communication."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825318022,
+      "updatedAt": 1778825318022
+    },
+    {
+      "id": "g11-operational-continuity-and-failover-orchestration",
+      "parentId": "g11-observability-resilience-and-it-operations-platforms",
+      "label": "Operational continuity and failover orchestration",
+      "x": 2864,
+      "y": 2416,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "amber",
+      "description": "Coordinate service continuity actions, failover execution, and operational recovery workflows.",
+      "metadata": {
+        "rationale": "Focuses on coordinated continuity execution distinct from resilience testing."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825318022,
+      "updatedAt": 1778825318022
     },
     {
       "id": "g12-workplace-productivity-and-collaboration-platforms",
@@ -2728,7 +4053,7 @@
       "label": "Workplace, productivity and collaboration platforms",
       "x": 80,
       "y": 2784,
-      "w": 680,
+      "w": 2239,
       "h": 404,
       "type": "parent",
       "color": "lavender",
@@ -2743,7 +4068,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742100985
+      "updatedAt": 1778825364564
     },
     {
       "id": "g12-collaboration-messaging-and-meetings",
@@ -2759,14 +4084,15 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Workplace Platform Owner",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Core synchronous and asynchronous communication capabilities for workforce collaboration."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
     },
     {
       "id": "g12-document-records-and-knowledge-management",
@@ -2782,14 +4108,15 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Workplace Platform Owner + Legal/Records",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Manages enterprise content, institutional knowledge, and compliant information retention."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
     },
     {
       "id": "g12-endpoint-and-device-management",
@@ -2805,14 +4132,15 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Endpoint Platform Owner",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Covers management and operational control of employee computing endpoints."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
     },
     {
       "id": "g12-enterprise-search-and-employee-portal",
@@ -2828,14 +4156,15 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Workplace Platform Owner",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Provides unified discovery and navigation experiences for employees."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
     },
     {
       "id": "g12-productivity-automation",
@@ -2851,14 +4180,15 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Workplace Platform Owner + Low-code CoE",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Supports workflow simplification and task automation within workplace tooling."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
     },
     {
       "id": "g12-information-protection-and-dlp",
@@ -2874,14 +4204,15 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Security/Privacy + Workplace Owner",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Protects enterprise information across collaboration and productivity environments."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
     },
     {
       "id": "g12-workplace-analytics-and-adoption",
@@ -2897,14 +4228,120 @@
       "metadata": {
         "groupId": "G12",
         "primaryOwnershipAnchor": "Workplace Platform Owner",
-        "sourceTable": 15
+        "sourceTable": 15,
+        "rationale": "Measures workplace effectiveness, user adoption, and employee experience outcomes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825364560
+    },
+    {
+      "id": "g12-digital-workspace-and-application-delivery",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Digital workspace and application delivery",
+      "x": 1400,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Virtual desktops, workspace provisioning, secure application access, and managed user environments.",
+      "metadata": {
+        "rationale": "Separates workspace delivery concerns from underlying endpoint lifecycle management."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825364560,
+      "updatedAt": 1778825364560
+    },
+    {
+      "id": "g12-employee-communication-and-engagement",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Employee communication and engagement",
+      "x": 1584,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Enterprise broadcasting, employee communities, campaigns, announcements, and engagement experiences.",
+      "metadata": {
+        "rationale": "Focuses on organizational communication and workforce engagement rather than collaboration tooling itself."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825364560,
+      "updatedAt": 1778825364560
+    },
+    {
+      "id": "g12-workplace-identity-and-access-experience",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Workplace identity and access experience",
+      "x": 1768,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Employee sign-on experiences, workspace access policies, profile synchronization, and productivity access journeys.",
+      "metadata": {
+        "rationale": "Addresses workforce-facing identity consumption patterns distinct from enterprise IAM platform capabilities."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825364560,
+      "updatedAt": 1778825364560
+    },
+    {
+      "id": "g12-workplace-ai-assistance",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Workplace AI assistance",
+      "x": 1952,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "AI-assisted authoring, summarization, meeting assistance, and employee productivity augmentation.",
+      "metadata": {
+        "rationale": "Captures employee-facing AI productivity services without overlapping enterprise AI platform engineering."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825364560,
+      "updatedAt": 1778825364560
+    },
+    {
+      "id": "g12-printing-and-output-services",
+      "parentId": "g12-workplace-productivity-and-collaboration-platforms",
+      "label": "Printing and output services",
+      "x": 2136,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "lavender",
+      "description": "Managed printing, secure output handling, document rendering, and workplace output governance.",
+      "metadata": {
+        "rationale": "Represents a distinct workplace service domain frequently managed with endpoint and collaboration services."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825364560,
+      "updatedAt": 1778825364560
     },
     {
       "id": "g13-corporate-and-enterprise-management-platforms",
@@ -2912,7 +4349,7 @@
       "label": "Corporate and enterprise management platforms",
       "x": 810,
       "y": 2784,
-      "w": 680,
+      "w": 2237,
       "h": 404,
       "type": "parent",
       "color": "peach",
@@ -2927,7 +4364,7 @@
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778742104922
+      "updatedAt": 1778825399976
     },
     {
       "id": "g13-crm-and-relationship-management",
@@ -2943,14 +4380,15 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "Business Function Owner + CRM Platform Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Covers enterprise relationship and engagement management outcomes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
     },
     {
       "id": "g13-finance-procurement-and-expense-platforms",
@@ -2966,14 +4404,15 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "Finance/Procurement Platform Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Groups enterprise financial and commercial control capabilities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
     },
     {
       "id": "g13-hr-and-workforce-platforms",
@@ -2989,14 +4428,15 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "HR Platform Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Represents enterprise workforce and people-management outcomes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
     },
     {
       "id": "g13-governance-risk-and-compliance-platforms",
@@ -3012,14 +4452,15 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "Risk/Compliance Platform Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Captures enterprise governance and control-management capabilities."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
     },
     {
       "id": "g13-portfolio-strategy-and-demand-platforms",
@@ -3035,14 +4476,15 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "Portfolio Management Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Supports enterprise investment and strategic execution governance."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
     },
     {
       "id": "g13-legal-and-regulatory-case-management",
@@ -3058,14 +4500,15 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "Legal/Compliance Platform Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Addresses enterprise legal operations and regulatory response handling."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
     },
     {
       "id": "g13-third-party-and-outsourcing-management",
@@ -3081,14 +4524,120 @@
       "metadata": {
         "groupId": "G13",
         "primaryOwnershipAnchor": "Sourcing/Vendor Platform Owner",
-        "sourceTable": 16
+        "sourceTable": 16,
+        "rationale": "Covers enterprise supplier and outsourcing governance outcomes."
       },
       "isManualPositioningEnabled": false,
       "isLockedAsIs": false,
       "isTextLabel": false,
       "isOnCanvas": true,
       "createdAt": 1778716800000,
-      "updatedAt": 1778716800000
+      "updatedAt": 1778825399974
+    },
+    {
+      "id": "g13-enterprise-asset-and-facility-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Enterprise asset and facility management",
+      "x": 2128,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Lifecycle, maintenance, allocation, occupancy, and operational oversight of enterprise assets and facilities.",
+      "metadata": {
+        "rationale": "Represents enterprise physical asset and workplace management capabilities."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825399974,
+      "updatedAt": 1778825399974
+    },
+    {
+      "id": "g13-enterprise-content-and-records-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Enterprise content and records management",
+      "x": 2312,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Document lifecycle, retention, classification, records governance, and controlled information access capabilities.",
+      "metadata": {
+        "rationale": "Separates enterprise information governance from collaboration tooling."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825399974,
+      "updatedAt": 1778825399974
+    },
+    {
+      "id": "g13-contract-and-obligation-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Contract and obligation management",
+      "x": 2496,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Authoring, negotiation, obligation tracking, renewal, and compliance oversight for enterprise agreements.",
+      "metadata": {
+        "rationale": "Provides dedicated management of contractual commitments and obligations."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825399974,
+      "updatedAt": 1778825399974
+    },
+    {
+      "id": "g13-corporate-performance-and-esg-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Corporate performance and ESG management",
+      "x": 2680,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Enterprise objective tracking, KPI governance, sustainability reporting, and ESG performance oversight.",
+      "metadata": {
+        "rationale": "Groups enterprise performance and sustainability management outcomes."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825399974,
+      "updatedAt": 1778825399974
+    },
+    {
+      "id": "g13-enterprise-policy-and-control-management",
+      "parentId": "g13-corporate-and-enterprise-management-platforms",
+      "label": "Enterprise policy and control management",
+      "x": 2864,
+      "y": 2848,
+      "w": 175,
+      "h": 45,
+      "type": "leaf",
+      "color": "peach",
+      "description": "Policy lifecycle, control ownership, standards governance, attestations, and exception management capabilities.",
+      "metadata": {
+        "rationale": "Focuses on enterprise-wide policy and control governance distinct from broader GRC workflows."
+      },
+      "isManualPositioningEnabled": false,
+      "isLockedAsIs": false,
+      "isTextLabel": false,
+      "isOnCanvas": true,
+      "createdAt": 1778825399974,
+      "updatedAt": 1778825399974
     }
   ],
   "settings": {
@@ -3124,17 +4673,7 @@
       "x": 24,
       "y": 24,
       "w": 1928,
-      "h": 888
-    },
-    "aspectRatioFrame": {
-      "x": 0,
-      "y": -88,
-      "w": 1976,
-      "h": 1112
-    },
-    "aspectRatioTarget": {
-      "w": 16,
-      "h": 9
+      "h": 1224
     }
   },
   "heatmap": {
@@ -3155,14 +4694,14 @@
         "id": "view-default",
         "name": "Default view",
         "createdAt": 1778739721445,
-        "updatedAt": 1778770553044,
+        "updatedAt": 1778825719710,
         "templateId": "full-model-default@1",
         "nodeStatesById": {
           "enterprise-platform-capability-model": {
             "x": 24,
             "y": 24,
             "w": 1928,
-            "h": 888,
+            "h": 1224,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
@@ -3171,7 +4710,7 @@
             "x": 32,
             "y": 72,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
@@ -3252,7 +4791,7 @@
             "x": 416,
             "y": 72,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
@@ -3312,7 +4851,7 @@
             "isManualPositioningEnabled": false
           },
           "g1-channel-telemetry-and-journey-analytics": {
-            "x": 520,
+            "x": 424,
             "y": 288,
             "w": 176,
             "h": 48,
@@ -3324,7 +4863,7 @@
             "x": 800,
             "y": 72,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
@@ -3384,7 +4923,7 @@
             "isManualPositioningEnabled": false
           },
           "g2-transaction-event-and-journal-services": {
-            "x": 904,
+            "x": 808,
             "y": 288,
             "w": 176,
             "h": 48,
@@ -3396,7 +4935,7 @@
             "x": 1184,
             "y": 72,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
@@ -3456,7 +4995,7 @@
             "isManualPositioningEnabled": false
           },
           "g3-workflow-audit-trail-and-compliance-evidence": {
-            "x": 1288,
+            "x": 1192,
             "y": 288,
             "w": 176,
             "h": 48,
@@ -3468,7 +5007,7 @@
             "x": 1568,
             "y": 72,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
@@ -3528,7 +5067,7 @@
             "isManualPositioningEnabled": false
           },
           "g4-third-party-support-integration": {
-            "x": 1672,
+            "x": 1576,
             "y": 288,
             "w": 176,
             "h": 48,
@@ -3538,16 +5077,16 @@
           },
           "g5-developer-low-code-and-automation-platforms": {
             "x": 32,
-            "y": 352,
+            "y": 464,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g5-internal-developer-portal-and-service-catalogue": {
             "x": 40,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3556,7 +5095,7 @@
           },
           "g5-golden-paths-and-solution-templates": {
             "x": 224,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3565,7 +5104,7 @@
           },
           "g5-ci-cd-and-devsecops-automation": {
             "x": 40,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3574,7 +5113,7 @@
           },
           "g5-low-code-application-platform": {
             "x": 224,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3583,7 +5122,7 @@
           },
           "g5-citizen-developer-governance": {
             "x": 40,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3592,7 +5131,7 @@
           },
           "g5-test-quality-and-release-automation": {
             "x": 224,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3600,8 +5139,8 @@
             "isManualPositioningEnabled": false
           },
           "g5-robotic-and-desktop-automation": {
-            "x": 136,
-            "y": 568,
+            "x": 40,
+            "y": 680,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3610,16 +5149,16 @@
           },
           "g6-hosting-runtime-and-workload-platforms": {
             "x": 416,
-            "y": 352,
+            "y": 464,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g6-mainframe-and-high-integrity-transaction-runtime": {
             "x": 424,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3628,7 +5167,7 @@
           },
           "g6-private-cloud-and-infrastructure-runtime": {
             "x": 608,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3637,7 +5176,7 @@
           },
           "g6-public-cloud-landing-zones": {
             "x": 424,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3646,7 +5185,7 @@
           },
           "g6-container-serverless-and-application-runtime": {
             "x": 608,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3655,7 +5194,7 @@
           },
           "g6-workload-placement-and-hosting-patterns": {
             "x": 424,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3664,7 +5203,7 @@
           },
           "g6-environment-provisioning-and-configuration": {
             "x": 608,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3672,8 +5211,8 @@
             "isManualPositioningEnabled": false
           },
           "g6-capacity-performance-backup-and-disaster-recovery": {
-            "x": 520,
-            "y": 568,
+            "x": 424,
+            "y": 680,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3682,16 +5221,16 @@
           },
           "g7-integration-api-and-event-platforms": {
             "x": 800,
-            "y": 352,
+            "y": 464,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g7-api-management-and-developer-portal": {
             "x": 808,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3700,7 +5239,7 @@
           },
           "g7-integration-runtime-and-orchestration": {
             "x": 992,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3709,7 +5248,7 @@
           },
           "g7-event-streaming-and-messaging": {
             "x": 808,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3718,7 +5257,7 @@
           },
           "g7-managed-file-transfer-and-batch-integration": {
             "x": 992,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3727,7 +5266,7 @@
           },
           "g7-canonical-schemas-and-contract-governance": {
             "x": 808,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3736,7 +5275,7 @@
           },
           "g7-partner-and-open-banking-integration": {
             "x": 992,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3744,8 +5283,8 @@
             "isManualPositioningEnabled": false
           },
           "g7-integration-observability-and-resilience": {
-            "x": 904,
-            "y": 568,
+            "x": 808,
+            "y": 680,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3754,16 +5293,16 @@
           },
           "g8-data-analytics-and-reporting-platforms": {
             "x": 1184,
-            "y": 352,
+            "y": 464,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g8-data-ingestion-and-landing": {
             "x": 1192,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3772,7 +5311,7 @@
           },
           "g8-data-lake-warehouse-and-marts": {
             "x": 1376,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3781,7 +5320,7 @@
           },
           "g8-metadata-lineage-and-catalogue": {
             "x": 1192,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3790,7 +5329,7 @@
           },
           "g8-data-quality-and-reconciliation": {
             "x": 1376,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3799,7 +5338,7 @@
           },
           "g8-semantic-layer-and-bi-enablement": {
             "x": 1192,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3808,7 +5347,7 @@
           },
           "g8-regulatory-and-management-reporting": {
             "x": 1376,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3816,8 +5355,8 @@
             "isManualPositioningEnabled": false
           },
           "g8-data-access-privacy-and-retention-controls": {
-            "x": 1288,
-            "y": 568,
+            "x": 1192,
+            "y": 680,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3826,16 +5365,16 @@
           },
           "g9-ai-decision-and-agentic-platforms": {
             "x": 1568,
-            "y": 352,
+            "y": 464,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g9-foundation-model-access-and-model-catalogue": {
             "x": 1576,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3844,7 +5383,7 @@
           },
           "g9-retrieval-and-knowledge-base-services": {
             "x": 1760,
-            "y": 400,
+            "y": 512,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3853,7 +5392,7 @@
           },
           "g9-prompt-tool-and-agent-templates": {
             "x": 1576,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3862,7 +5401,7 @@
           },
           "g9-agent-runtime-and-tool-gateway": {
             "x": 1760,
-            "y": 456,
+            "y": 568,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3871,7 +5410,7 @@
           },
           "g9-ai-guardrails-and-safety-controls": {
             "x": 1576,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3880,7 +5419,7 @@
           },
           "g9-evaluation-monitoring-and-model-agent-lifecycle": {
             "x": 1760,
-            "y": 512,
+            "y": 624,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3888,8 +5427,8 @@
             "isManualPositioningEnabled": false
           },
           "g9-human-oversight-and-evidential-audit-trail": {
-            "x": 1672,
-            "y": 568,
+            "x": 1576,
+            "y": 680,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3898,16 +5437,16 @@
           },
           "g10-security-identity-and-trust-platforms": {
             "x": 224,
-            "y": 632,
+            "y": 856,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g10-workforce-identity-and-access-management": {
             "x": 232,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3916,7 +5455,7 @@
           },
           "g10-customer-identity-and-access-management": {
             "x": 416,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3925,7 +5464,7 @@
           },
           "g10-privileged-access-and-secrets-management": {
             "x": 232,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3934,7 +5473,7 @@
           },
           "g10-key-certificate-and-cryptographic-services": {
             "x": 416,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3943,7 +5482,7 @@
           },
           "g10-policy-as-code-and-authorization-services": {
             "x": 232,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3952,7 +5491,7 @@
           },
           "g10-threat-vulnerability-and-exposure-management": {
             "x": 416,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3960,8 +5499,8 @@
             "isManualPositioningEnabled": false
           },
           "g10-security-telemetry-and-fraud-signals": {
-            "x": 328,
-            "y": 848,
+            "x": 232,
+            "y": 1072,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3970,16 +5509,16 @@
           },
           "g11-observability-resilience-and-it-operations-platforms": {
             "x": 608,
-            "y": 632,
+            "y": 856,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g11-metrics-logs-and-traces": {
             "x": 616,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3988,7 +5527,7 @@
           },
           "g11-service-level-objectives-and-error-budgets": {
             "x": 800,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -3997,7 +5536,7 @@
           },
           "g11-alerting-aiops-and-event-correlation": {
             "x": 616,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4006,7 +5545,7 @@
           },
           "g11-incident-response-and-communication": {
             "x": 800,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4015,7 +5554,7 @@
           },
           "g11-dependency-and-critical-service-mapping": {
             "x": 616,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4024,7 +5563,7 @@
           },
           "g11-disaster-recovery-and-resilience-testing": {
             "x": 800,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4032,8 +5571,8 @@
             "isManualPositioningEnabled": false
           },
           "g11-runbook-and-remediation-automation": {
-            "x": 712,
-            "y": 848,
+            "x": 616,
+            "y": 1072,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4042,16 +5581,16 @@
           },
           "g12-workplace-productivity-and-collaboration-platforms": {
             "x": 992,
-            "y": 632,
+            "y": 856,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g12-collaboration-messaging-and-meetings": {
             "x": 1000,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4060,7 +5599,7 @@
           },
           "g12-document-records-and-knowledge-management": {
             "x": 1184,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4069,7 +5608,7 @@
           },
           "g12-endpoint-and-device-management": {
             "x": 1000,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4078,7 +5617,7 @@
           },
           "g12-enterprise-search-and-employee-portal": {
             "x": 1184,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4087,7 +5626,7 @@
           },
           "g12-productivity-automation": {
             "x": 1000,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4096,7 +5635,7 @@
           },
           "g12-information-protection-and-dlp": {
             "x": 1184,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4104,8 +5643,8 @@
             "isManualPositioningEnabled": false
           },
           "g12-workplace-analytics-and-adoption": {
-            "x": 1096,
-            "y": 848,
+            "x": 1000,
+            "y": 1072,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4114,16 +5653,16 @@
           },
           "g13-corporate-and-enterprise-management-platforms": {
             "x": 1376,
-            "y": 632,
+            "y": 856,
             "w": 376,
-            "h": 272,
+            "h": 384,
             "isOnCanvas": true,
             "lockedForView": false,
             "isManualPositioningEnabled": false
           },
           "g13-crm-and-relationship-management": {
             "x": 1384,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4132,7 +5671,7 @@
           },
           "g13-finance-procurement-and-expense-platforms": {
             "x": 1568,
-            "y": 680,
+            "y": 904,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4141,7 +5680,7 @@
           },
           "g13-hr-and-workforce-platforms": {
             "x": 1384,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4150,7 +5689,7 @@
           },
           "g13-governance-risk-and-compliance-platforms": {
             "x": 1568,
-            "y": 736,
+            "y": 960,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4159,7 +5698,7 @@
           },
           "g13-portfolio-strategy-and-demand-platforms": {
             "x": 1384,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4168,7 +5707,7 @@
           },
           "g13-legal-and-regulatory-case-management": {
             "x": 1568,
-            "y": 792,
+            "y": 1016,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4176,8 +5715,629 @@
             "isManualPositioningEnabled": false
           },
           "g13-third-party-and-outsourcing-management": {
-            "x": 1480,
-            "y": 848,
+            "x": 1384,
+            "y": 1072,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-api-and-integration-acceleration": {
+            "x": 224,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-development-environment-and-workspace-management": {
+            "x": 40,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-platform-observability-and-engineering-insights": {
+            "x": 224,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-software-supply-chain-and-artifact-management": {
+            "x": 40,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g5-ai-assisted-development-and-automation": {
+            "x": 224,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-operating-model-governance": {
+            "x": 40,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-risk-and-control-governance": {
+            "x": 224,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-sourcing-and-vendor-governance": {
+            "x": 40,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g0-platform-interoperability-and-integration-governance": {
+            "x": 224,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-decisioning-and-business-rules-services": {
+            "x": 1760,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-model-training-and-fine-tuning-services": {
+            "x": 1576,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-ai-identity-consent-and-access-governance": {
+            "x": 1760,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-ai-cost-capacity-and-consumption-management": {
+            "x": 1576,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g9-multi-agent-orchestration-and-collaboration": {
+            "x": 1760,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-streaming-and-real-time-analytics": {
+            "x": 1376,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-master-and-reference-data-management": {
+            "x": 1192,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-product-and-sharing-management": {
+            "x": 1376,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-advanced-analytics-and-data-science": {
+            "x": 1192,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g8-data-observability-and-operational-monitoring": {
+            "x": 1376,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-runtime-observability-and-telemetry": {
+            "x": 608,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-runtime-security-and-workload-isolation": {
+            "x": 424,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-runtime-patching-and-lifecycle-management": {
+            "x": 608,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-edge-and-distributed-workload-runtime": {
+            "x": 424,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g6-runtime-cost-and-resource-optimization": {
+            "x": 608,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-api-security-and-access-control": {
+            "x": 992,
+            "y": 680,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-integration-topology-and-service-discovery": {
+            "x": 808,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-real-time-data-distribution": {
+            "x": 992,
+            "y": 736,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-b2b-and-network-integration": {
+            "x": 808,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g7-agentic-and-machine-integration": {
+            "x": 992,
+            "y": 792,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-service-device-and-workload-identity": {
+            "x": 416,
+            "y": 1072,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-zero-trust-access-and-segmentation": {
+            "x": 232,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-application-api-and-channel-security": {
+            "x": 416,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-data-protection-and-tokenization-services": {
+            "x": 232,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g10-security-orchestration-and-incident-response": {
+            "x": 416,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-capacity-and-performance-management": {
+            "x": 800,
+            "y": 1072,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-configuration-and-state-observability": {
+            "x": 616,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-operational-change-and-release-visibility": {
+            "x": 800,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-service-status-and-operational-reporting": {
+            "x": 616,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g11-operational-continuity-and-failover-orchestration": {
+            "x": 800,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-digital-workspace-and-application-delivery": {
+            "x": 1184,
+            "y": 1072,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-employee-communication-and-engagement": {
+            "x": 1000,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-workplace-identity-and-access-experience": {
+            "x": 1184,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-workplace-ai-assistance": {
+            "x": 1000,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g12-printing-and-output-services": {
+            "x": 1184,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-enterprise-asset-and-facility-management": {
+            "x": 1568,
+            "y": 1072,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-enterprise-content-and-records-management": {
+            "x": 1384,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-contract-and-obligation-management": {
+            "x": 1568,
+            "y": 1128,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-corporate-performance-and-esg-management": {
+            "x": 1384,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g13-enterprise-policy-and-control-management": {
+            "x": 1568,
+            "y": 1184,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-customer-preferences-and-profile-management": {
+            "x": 608,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-omnichannel-session-and-context-continuity": {
+            "x": 424,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-customer-feedback-and-experience-management": {
+            "x": 608,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-digital-document-and-form-experience": {
+            "x": 424,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g1-channel-accessibility-and-experience-compliance": {
+            "x": 608,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-interest-accrual-and-fee-calculation": {
+            "x": 992,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-limit-exposure-and-position-management": {
+            "x": 808,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-financial-contract-and-obligation-management": {
+            "x": 992,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-customer-account-servicing": {
+            "x": 808,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g2-financial-posting-and-accounting-integration": {
+            "x": 992,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-business-process-modeling-and-design": {
+            "x": 1376,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-workflow-event-and-state-management": {
+            "x": 1192,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-operational-work-queue-management": {
+            "x": 1376,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-process-policy-and-control-management": {
+            "x": 1192,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g3-process-exception-and-remediation-management": {
+            "x": 1376,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-service-level-and-operational-performance-management": {
+            "x": 1760,
+            "y": 288,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-major-incident-and-crisis-coordination": {
+            "x": 1576,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-case-and-operational-task-management": {
+            "x": 1760,
+            "y": 344,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-operational-compliance-and-audit-evidence": {
+            "x": 1576,
+            "y": 400,
+            "w": 176,
+            "h": 48,
+            "isOnCanvas": true,
+            "lockedForView": false,
+            "isManualPositioningEnabled": false
+          },
+          "g4-service-communication-and-status-management": {
+            "x": 1760,
+            "y": 400,
             "w": 176,
             "h": 48,
             "isOnCanvas": true,
@@ -4186,9 +6346,9 @@
           }
         },
         "viewport": {
-          "x": 0,
-          "y": 0,
-          "zoom": 1
+          "zoom": 0.9133986928104575,
+          "x": 18.07843137254902,
+          "y": 18.07843137254902
         },
         "layout": {
           "mode": "balanced",
@@ -4196,17 +6356,7 @@
             "x": 24,
             "y": 24,
             "w": 1928,
-            "h": 888
-          },
-          "aspectRatioFrame": {
-            "x": 0,
-            "y": -88,
-            "w": 1976,
-            "h": 1112
-          },
-          "aspectRatioTarget": {
-            "w": 16,
-            "h": 9
+            "h": 1224
           },
           "isUserArranged": false,
           "preservePositions": true
@@ -4220,5 +6370,5 @@
       }
     }
   },
-  "timestamp": 1778770553044
+  "timestamp": 1778825735272
 }
