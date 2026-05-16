@@ -6,6 +6,7 @@ import type {
 } from "../../domain/commands/types";
 import type {
   CapabilityDocument,
+  LayoutMode,
   NodeId,
   VisualViewId,
   VisualViewport,
@@ -366,7 +367,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const before = get().doc;
     set({ isAutoLayoutRunning: true });
     try {
-      const result = await layoutAndRepair(before, true, affectedNodeIds);
+      const result = await layoutAndRepair(
+        before,
+        true,
+        affectedNodeIds,
+        undefined,
+        scopedAutoLayoutMode(before.settings.layoutMode),
+      );
       if (get().doc !== before) {
         const diagnostics = [
           ...result.diagnostics,
@@ -535,6 +542,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
   clearDiagnostics: () => set({ lastDiagnostics: [] }),
 }));
+
+function scopedAutoLayoutMode(mode: LayoutMode): LayoutMode {
+  return mode === "free" ? "uniform" : mode;
+}
 
 export function executeMany(
   label: string,

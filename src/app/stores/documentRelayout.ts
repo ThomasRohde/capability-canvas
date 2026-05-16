@@ -5,6 +5,7 @@ import type {
 } from "../../domain/commands/types";
 import type {
   CapabilityDocument,
+  LayoutMode,
   NodeId,
   VisualViewId,
 } from "../../domain/document/types";
@@ -131,13 +132,14 @@ export async function layoutAndRepair(
   force: boolean,
   affectedNodeIds?: NodeId[],
   viewId?: VisualViewId,
+  mode?: LayoutMode,
 ): Promise<{ doc: CapabilityDocument; diagnostics: Diagnostic[] }> {
   const resolved = resolveVisualDocument(doc, viewId);
   const result = await layoutDocument({
     doc: resolved,
     affectedNodeIds,
     force,
-    mode: resolved.settings.layoutMode,
+    mode: mode ?? resolved.settings.layoutMode,
   });
   const laidOut = applyLayoutPatches(resolved, result.patches);
   const repaired = ensureParentContainment(laidOut);

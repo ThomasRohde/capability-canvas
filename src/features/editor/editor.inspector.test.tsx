@@ -80,8 +80,11 @@ describe("editor inspector workflows", () => {
     expect(
       screen.getByText(/Preserve skips this subtree during auto layout/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Layout children" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Layout children" })).toHaveAttribute(
+    expect(
+      screen.getByText(/Tidy children rearranges only this container's/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tidy children" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tidy children" })).toHaveAttribute(
       "title",
       "Preserved subtrees are skipped by auto layout.",
     );
@@ -111,6 +114,7 @@ describe("editor inspector workflows", () => {
         },
       },
     });
+    setStoreLayoutMode("free");
     useUiStore.setState({ selectedNodeIds: ["risk"], inspectorTab: "layout" });
     renderEditor();
     const before = resolveVisualDocument(useDocumentStore.getState().doc);
@@ -125,7 +129,7 @@ describe("editor inspector workflows", () => {
     const beforeRisk = geometrySnapshot(before, riskIds);
     const beforeUnaffected = geometrySnapshot(before, unaffectedIds);
 
-    await userEvent.click(screen.getByRole("button", { name: "Layout children" }));
+    await userEvent.click(screen.getByRole("button", { name: "Tidy children" }));
 
     await waitFor(() =>
       expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
@@ -133,6 +137,7 @@ describe("editor inspector workflows", () => {
       ),
     );
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.settings.layoutMode).toBe("free");
     expect(geometrySnapshot(after, riskIds)).not.toEqual(beforeRisk);
     expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
     expect(after.nodesById.risk).toMatchObject({
@@ -150,7 +155,7 @@ describe("editor inspector workflows", () => {
       inspectorTab: "layout",
     });
     const { unmount } = renderEditor();
-    const leafButton = screen.getByRole("button", { name: "Layout children" });
+    const leafButton = screen.getByRole("button", { name: "Tidy children" });
     expect(leafButton).toBeDisabled();
     expect(leafButton).toHaveAttribute(
       "title",
@@ -163,7 +168,7 @@ describe("editor inspector workflows", () => {
       inspectorTab: "layout",
     });
     renderEditor();
-    const labelButton = screen.getByRole("button", { name: "Layout children" });
+    const labelButton = screen.getByRole("button", { name: "Tidy children" });
     expect(labelButton).toBeDisabled();
     expect(labelButton).toHaveAttribute(
       "title",
@@ -197,7 +202,7 @@ describe("editor inspector workflows", () => {
     });
     useUiStore.setState({ selectedNodeIds: ["empty"], inspectorTab: "layout" });
     const { unmount } = renderEditor();
-    const emptyButton = screen.getByRole("button", { name: "Layout children" });
+    const emptyButton = screen.getByRole("button", { name: "Tidy children" });
     expect(emptyButton).toBeDisabled();
     expect(emptyButton).toHaveAttribute(
       "title",
@@ -209,7 +214,7 @@ describe("editor inspector workflows", () => {
     useDocumentStore.setState({ isAutoLayoutRunning: true });
     renderEditor();
     const runningButton = screen.getByRole("button", {
-      name: "Layout children",
+      name: "Tidy children",
     });
     expect(runningButton).toBeDisabled();
     expect(runningButton).toHaveAttribute(

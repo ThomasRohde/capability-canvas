@@ -97,12 +97,13 @@ export function LayoutTab({
             Auto layout may arrange this parent's children. Manual keeps this
             parent's children at direct canvas positions. Preserve skips this
             subtree during auto layout and disables resize, but still allows
-            deliberate movement.
+            deliberate movement. Tidy children rearranges only this container's
+            visible children and keeps other branches fixed.
           </span>
         )}
       </div>
       <div className="cc-field">
-        <span className="cc-section-title">Scoped layout</span>
+        <span className="cc-section-title">Container cleanup</span>
         <button
           className="cc-btn"
           type="button"
@@ -113,7 +114,7 @@ export function LayoutTab({
           }
         >
           <LayoutTemplate />
-          Layout children
+          Tidy children
         </button>
       </div>
       <div className="cc-field-row">

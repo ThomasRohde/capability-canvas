@@ -375,6 +375,11 @@ test('layouts selected container children from the inspector only', async ({ pag
   await page.getByRole('dialog', { name: 'Review import' })
     .getByRole('button', { name: 'Apply import' })
     .click();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const layoutMode = page.getByLabel('Layout mode', { exact: true });
+  await layoutMode.selectOption('free');
+  await expect(layoutMode).toHaveValue('free');
+  await page.getByRole('button', { name: 'Close settings' }).click();
 
   const canvas = page.getByTestId('canvas');
   await expect(canvas.getByRole('button', { name: /Risk, parent capability/ })).toBeVisible();
@@ -384,15 +389,18 @@ test('layouts selected container children from the inspector only', async ({ pag
 
   await page.locator('.cc-outline').getByText('Risk', { exact: true }).click();
   await page.locator('.cc-inspector').getByRole('button', { name: 'Layout' }).click();
-  const layoutChildren = page
+  const tidyChildren = page
     .locator('.cc-inspector')
-    .getByRole('button', { name: 'Layout children' });
-  await expect(layoutChildren).toBeEnabled();
-  await layoutChildren.click();
+    .getByRole('button', { name: 'Tidy children' });
+  await expect(tidyChildren).toBeEnabled();
+  await tidyChildren.click();
 
   await expect.poll(() => canvasNodePosition(page, 'Credit Risk')).not.toEqual(creditBefore);
   expect(await canvasNodePosition(page, 'Operations')).toEqual(operationsBefore);
   expect(await canvasNodePosition(page, 'Risk')).toEqual(riskBefore);
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await expect(page.getByLabel('Layout mode', { exact: true })).toHaveValue('free');
+  await page.getByRole('button', { name: 'Close settings' }).click();
 });
 
 test('loads viewer route read-only', async ({ page }) => {

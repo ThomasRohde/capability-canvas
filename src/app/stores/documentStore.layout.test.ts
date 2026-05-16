@@ -284,6 +284,49 @@ describe("document store layout orchestration", () => {
     expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
   });
 
+  it("tidies scoped children in Freeform without changing the active layout mode", async () => {
+    const doc = twoRootRelayoutDocument();
+    doc.settings.layoutMode = "free";
+    doc.layout.mode = "free";
+    doc.nodesById["a-leaf-1"] = {
+      ...doc.nodesById["a-leaf-1"]!,
+      x: 360,
+      y: 196,
+    };
+    doc.nodesById["a-leaf-2"] = {
+      ...doc.nodesById["a-leaf-2"]!,
+      x: 48,
+      y: 76,
+    };
+    doc.visual = createVisualWorkspaceFromDocument(doc);
+    useDocumentStore.setState({
+      doc,
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    const scopedIds = ["a-group", "a-leaf-1", "a-leaf-2"];
+    const unaffectedIds = ["root-b", "b-group", "b-leaf-1", "b-leaf-2"];
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeScoped = geometrySnapshot(before, scopedIds);
+    const beforeUnaffected = geometrySnapshot(before, unaffectedIds);
+
+    const diagnostics = await useDocumentStore
+      .getState()
+      .autoLayoutScope(["a-leaf-1", "a-leaf-2"]);
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      "free-layout-preserved",
+    );
+    expect(after.settings.layoutMode).toBe("free");
+    expect(after.layout.mode).toBe("free");
+    expect(geometrySnapshot(after, scopedIds)).not.toEqual(beforeScoped);
+    expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
+  });
+
   it("skips empty scoped auto layout without history", async () => {
     const diagnostics = await useDocumentStore.getState().autoLayoutScope([]);
 
