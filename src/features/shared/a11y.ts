@@ -30,6 +30,7 @@ interface FocusTrapOptions {
   initialFocusRef?: RefObject<HTMLElement | null>;
   onEscape?: () => void;
   disabled?: boolean;
+  restoreFocus?: boolean;
 }
 
 interface FocusReturnOptions {
@@ -106,8 +107,9 @@ export function useFocusTrap({
   initialFocusRef,
   onEscape,
   disabled = false,
+  restoreFocus = true,
 }: FocusTrapOptions) {
-  useFocusReturn({ active, initialFocusRef });
+  useFocusReturn({ active: active && restoreFocus, initialFocusRef });
 
   useEffect(() => {
     if (!active || disabled) return;

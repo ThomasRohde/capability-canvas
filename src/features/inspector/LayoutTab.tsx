@@ -1,5 +1,5 @@
 import { Info, LayoutTemplate, Lock } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   lockSubtree,
   moveNodesWithLayoutIntent,
@@ -11,8 +11,10 @@ import {
   isNodeOnCanvas,
   isCanvasLabelNode,
   isTextLabelNode,
+  type AutomaticLayoutMode,
   type CapabilityDocument,
   type CapabilityNode,
+  type LayoutMode,
 } from "../../domain/document/types";
 import {
   AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
@@ -21,6 +23,16 @@ import {
 import { snapCoordinate } from "../../domain/layout/grid";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
+
+const TIDY_LAYOUT_MODES: Array<{
+  value: AutomaticLayoutMode;
+  label: string;
+}> = [
+  { value: "adaptive", label: "Adaptive" },
+  { value: "balanced", label: "Balanced" },
+  { value: "flow", label: "Flow" },
+  { value: "uniform", label: "Uniform" },
+];
 
 export function LayoutTab({
   node,
@@ -35,6 +47,10 @@ export function LayoutTab({
   const isAutoLayoutRunning = useDocumentStore(
     (state) => state.isAutoLayoutRunning,
   );
+  const [tidyLayoutMode, setTidyLayoutMode] = useState<AutomaticLayoutMode>(
+    () => defaultTidyLayoutMode(doc.settings.layoutMode),
+  );
+  const tidyLayoutModeId = useId();
   const snap = (value: number) => snapCoordinate(doc, value);
   const isLabel = isCanvasLabelNode(node);
   const isContainer = node.type !== "leaf" && !isTextLabelNode(node);
@@ -53,6 +69,11 @@ export function LayoutTab({
       : !isContainer || childScopeIds.length === 0
         ? "This container has no visible child capabilities to arrange."
         : undefined;
+
+  useEffect(() => {
+    setTidyLayoutMode(defaultTidyLayoutMode(doc.settings.layoutMode));
+  }, [doc.settings.layoutMode, node.id]);
+
   return (
     <>
       {!isLabel && (
@@ -104,18 +125,43 @@ export function LayoutTab({
       </div>
       <div className="cc-field">
         <span className="cc-section-title">Container cleanup</span>
-        <button
-          className="cc-btn"
-          type="button"
-          disabled={!!layoutChildrenDisabledReason}
-          title={layoutChildrenDisabledReason}
-          onClick={() =>
-            void autoLayoutScope(childScopeIds, "Auto layout selected container")
-          }
-        >
-          <LayoutTemplate />
-          Tidy children
-        </button>
+        <div className="cc-tidy-layout-row">
+          <div className="cc-field">
+            <label htmlFor={tidyLayoutModeId}>Tidy algorithm</label>
+            <select
+              id={tidyLayoutModeId}
+              className="cc-select"
+              value={tidyLayoutMode}
+              disabled={!!layoutChildrenDisabledReason}
+              title={layoutChildrenDisabledReason}
+              onChange={(event) =>
+                setTidyLayoutMode(event.target.value as AutomaticLayoutMode)
+              }
+            >
+              {TIDY_LAYOUT_MODES.map((mode) => (
+                <option key={mode.value} value={mode.value}>
+                  {mode.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="cc-btn"
+            type="button"
+            disabled={!!layoutChildrenDisabledReason}
+            title={layoutChildrenDisabledReason}
+            onClick={() =>
+              void autoLayoutScope(
+                childScopeIds,
+                "Auto layout selected container",
+                tidyLayoutMode,
+              )
+            }
+          >
+            <LayoutTemplate />
+            Tidy children
+          </button>
+        </div>
       </div>
       <div className="cc-field-row">
         <NumberField
@@ -205,6 +251,10 @@ export function LayoutTab({
       )}
     </>
   );
+}
+
+function defaultTidyLayoutMode(mode: LayoutMode): AutomaticLayoutMode {
+  return mode === "free" ? "uniform" : mode;
 }
 
 function NumberField({

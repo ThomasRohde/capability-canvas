@@ -19,6 +19,7 @@ export type CapabilityColor =
   | "transparent";
 export type ColorPalette = "default" | "darker";
 export type LayoutMode = "uniform" | "flow" | "adaptive" | "balanced" | "free";
+export type AutomaticLayoutMode = Exclude<LayoutMode, "free">;
 export type LayoutAspectRatioPreset =
   | "auto"
   | "16:9"

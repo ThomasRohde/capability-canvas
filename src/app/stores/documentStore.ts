@@ -5,6 +5,7 @@ import type {
   Transaction,
 } from "../../domain/commands/types";
 import type {
+  AutomaticLayoutMode,
   CapabilityDocument,
   LayoutMode,
   NodeId,
@@ -95,6 +96,7 @@ interface DocumentState {
   autoLayoutScope: (
     affectedNodeIds: NodeId[],
     label?: string,
+    mode?: AutomaticLayoutMode,
   ) => Promise<Diagnostic[]>;
   updateSettings: (
     patch: Partial<CapabilityDocument["settings"]>,
@@ -352,6 +354,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   autoLayoutScope: async (
     affectedNodeIds,
     label = "Auto layout selected container",
+    mode,
   ) => {
     if (affectedNodeIds.length === 0) {
       const diagnostics = [
@@ -372,7 +375,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         true,
         affectedNodeIds,
         undefined,
-        scopedAutoLayoutMode(before.settings.layoutMode),
+        mode ?? scopedAutoLayoutMode(before.settings.layoutMode),
       );
       if (get().doc !== before) {
         const diagnostics = [
@@ -543,7 +546,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   clearDiagnostics: () => set({ lastDiagnostics: [] }),
 }));
 
-function scopedAutoLayoutMode(mode: LayoutMode): LayoutMode {
+function scopedAutoLayoutMode(mode: LayoutMode): AutomaticLayoutMode {
   return mode === "free" ? "uniform" : mode;
 }
 

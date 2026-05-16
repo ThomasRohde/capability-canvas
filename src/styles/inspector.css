@@ -74,6 +74,13 @@
   gap: 8px;
 }
 
+.cc-tidy-layout-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
 .cc-color-stack {
   display: grid;
   gap: 8px;

@@ -1863,6 +1863,9 @@ Codex must add timestamps and notes as work proceeds.
 - [x] Update Decision Log. 2026-05-16 08:09 +02:00.
 - [x] Update Outcomes and Retrospective. 2026-05-16 08:09 +02:00.
 - [x] Produce final implementation summary. 2026-05-16 08:09 +02:00: final response will summarize implementation, validation, smoke result, risks, and follow-up.
+- [x] Implement post-acceptance Tidy children algorithm selector. 2026-05-16 10:15 +02:00: scoped layout now accepts an explicit automatic layout mode, and the inspector exposes Adaptive, Balanced, Flow, and Uniform choices for selected-container tidy operations without changing the global layout mode.
+- [x] Validate post-acceptance Tidy children algorithm selector. 2026-05-16 10:15 +02:00: focused command-palette regressions passed; `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run build`, `npm run test:e2e`, and `git diff --check` passed from the final state.
+- [x] Run post-acceptance browser smoke test. 2026-05-16 10:19 +02:00: local dev server on `http://127.0.0.1:5174/`; selected Risk, opened Inspector -> Layout, changed Tidy algorithm from Uniform to Flow, clicked Tidy children, and confirmed Risk stayed anchored while its children moved and Operations stayed stable.
 
 ## 21. Discoveries During Implementation
 
@@ -1876,6 +1879,7 @@ Codex must add timestamps and notes as work proceeds.
 - 2026-05-16 07:55 +02:00: The default editor fixture opens in an automatic layout mode. Tests that assert actual geometry mutation must explicitly switch to Freeform; tests that run in automatic mode should assert disabled controls, unchanged geometry, and status feedback.
 - 2026-05-16 08:04 +02:00: Several commands stored visual workspace state but were scoped as `"source"`. Source-lock enforcement therefore needs command-type allowance for visual-workspace commands, and bulk layout commands should use `"visual"` scope so active-view overrides do not mutate imported source nodes.
 - 2026-05-16 08:09 +02:00: The existing Playwright bulk-align smoke test also assumed direct geometry tools were available in the default automatic layout. It was updated to switch the active view to Manual/Freeform before exercising align/undo/redo.
+- 2026-05-16 10:15 +02:00: Browser and UX review showed selected-container tidy was confusing when the active view was Manual/Freeform because the scoped command silently chose the Uniform algorithm. The inspector needs an explicit per-action automatic algorithm selector so users can tidy manual child placement with the algorithm they expect while keeping the global view mode unchanged.
 
 Codex must update this section when it finds:
 
@@ -1989,6 +1993,14 @@ Alternatives considered: require users to switch the whole view to Manual/Freefo
 
 Date/Author: 2026-05-16 / Codex
 
+Decision: Expose the selected-container Tidy children algorithm as a local inspector selector.
+
+Rationale: Tidy children is a scoped visual cleanup action, not a global mode switch. Users need to choose between Adaptive, Balanced, Flow, and Uniform for that one operation while preserving the current Manual/Freeform or automatic view mode.
+
+Alternatives considered: infer the algorithm only from global layout mode, switch the whole document mode before tidying, or add a toolbar mode for scoped layout. Those options either hide the algorithm choice or over-apply a local cleanup action to the whole canvas.
+
+Date/Author: 2026-05-16 / Codex
+
 ## 23. Outcomes and Retrospective
 
 - Implemented a central layout/editability policy that blocks direct geometry in automatic modes and blocks semantic source edits when `doc.access.sourceLocked` is true.
@@ -1998,6 +2010,7 @@ Date/Author: 2026-05-16 / Codex
 - Added optional persisted document access metadata (`access.sourceLocked`, `sourceLabel`, `reason`) through schema, parse, normalize, serialize, and round-trip tests.
 - Preserved source-locked visual preparation by allowing visual workspace commands and making bulk layout operations visual-scoped active-view edits instead of source-node edits.
 - Added source-lock UI read-only affordances in inspector, settings, context menu, and bulk controls while leaving active-view controls available.
+- Added a selected-container Tidy children algorithm selector in the inspector so scoped cleanup can run Adaptive, Balanced, Flow, or Uniform without changing global layout mode.
 - Updated tests across domain policy/commands, document schema, stores/history/layout, editor canvas/shell/inspector/settings, and Playwright E2E.
 - Changed from the initial plan only where repository architecture required it: visual workspace management commands remain source-scoped internally because changing them to visual scope would be dropped by the active-view adapter, so source-lock uses a narrow command-type allowance for those view-only commands.
 - Validation commands run and results:
@@ -2009,6 +2022,8 @@ Date/Author: 2026-05-16 / Codex
   - `git diff --check` passed.
 - Manual smoke result: local Vite app loaded at `http://127.0.0.1:5174/` in the in-app browser; canvas was visible; status showed `Automatic layout: Uniform` and `Source editable`; settings exposed `Manual / Freeform`.
 - Post-fix browser smoke result at 2026-05-16 08:55 +02:00: in the default `Automatic layout: Uniform` mode, an unselected text label selected and dragged from `440,496` to `488,520`, keyboard nudge moved it to `496,528`, and a regular capability drag stayed blocked with the Freeform notice.
+- Tidy selector validation result at 2026-05-16 10:15 +02:00: final validation passed with Vitest 450 tests across 37 files and Playwright 22 tests; the selected-container E2E confirms choosing Flow in the inspector tidies only the selected container children.
+- Tidy selector browser smoke result at 2026-05-16 10:19 +02:00: in the in-app browser, Flow tidy changed Fraud Risk and Operational Risk positions inside Risk, kept Risk at `x=808, y=360`, and left Operations at `x=1008, y=360`.
 - Remaining risk: source-locked color, heatmap data, metadata, and label edits are blocked because those are still source-node properties. The current data model has no visual-only label/color/metadata override workflow for all inspector fields beyond existing active-view geometry/view settings.
 - Follow-up recommendation: if source-locked presentation editing should include per-view labels, colors, or annotations, add explicit visual override commands and UI copy rather than storing those edits on source nodes.
 

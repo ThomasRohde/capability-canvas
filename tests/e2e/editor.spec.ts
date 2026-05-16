@@ -392,6 +392,10 @@ test('layouts selected container children from the inspector only', async ({ pag
   const tidyChildren = page
     .locator('.cc-inspector')
     .getByRole('button', { name: 'Tidy children' });
+  const tidyAlgorithm = page.locator('.cc-inspector').getByLabel('Tidy algorithm');
+  await expect(tidyAlgorithm).toHaveValue('uniform');
+  await tidyAlgorithm.selectOption('flow');
+  await expect(tidyAlgorithm).toHaveValue('flow');
   await expect(tidyChildren).toBeEnabled();
   await tidyChildren.click();
 

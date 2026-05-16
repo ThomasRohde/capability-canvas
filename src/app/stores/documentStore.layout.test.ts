@@ -315,16 +315,23 @@ describe("document store layout orchestration", () => {
 
     const diagnostics = await useDocumentStore
       .getState()
-      .autoLayoutScope(["a-leaf-1", "a-leaf-2"]);
+      .autoLayoutScope(["a-leaf-1", "a-leaf-2"], "Tidy with flow", "flow");
 
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
       "free-layout-preserved",
     );
+    expect(
+      diagnostics.find((diagnostic) => diagnostic.code === "layout-applied")
+        ?.message,
+    ).toContain("Scoped flow auto layout");
     expect(after.settings.layoutMode).toBe("free");
     expect(after.layout.mode).toBe("free");
     expect(geometrySnapshot(after, scopedIds)).not.toEqual(beforeScoped);
     expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Tidy with flow",
+    );
   });
 
   it("skips empty scoped auto layout without history", async () => {

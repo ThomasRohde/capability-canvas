@@ -80,7 +80,8 @@
   background: var(--cc-slate-50);
 }
 
-.cc-input:disabled {
+.cc-input:disabled,
+.cc-select:disabled {
   color: var(--cc-slate-500);
   background: var(--cc-slate-100);
   cursor: not-allowed;

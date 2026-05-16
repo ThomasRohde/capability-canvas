@@ -83,6 +83,11 @@ describe("editor inspector workflows", () => {
     expect(
       screen.getByText(/Tidy children rearranges only this container's/),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Tidy algorithm")).toBeDisabled();
+    expect(screen.getByLabelText("Tidy algorithm")).toHaveAttribute(
+      "title",
+      "Preserved subtrees are skipped by auto layout.",
+    );
     expect(screen.getByRole("button", { name: "Tidy children" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Tidy children" })).toHaveAttribute(
       "title",
@@ -128,7 +133,11 @@ describe("editor inspector workflows", () => {
     ];
     const beforeRisk = geometrySnapshot(before, riskIds);
     const beforeUnaffected = geometrySnapshot(before, unaffectedIds);
+    const tidyAlgorithm = screen.getByLabelText("Tidy algorithm");
+    expect(tidyAlgorithm).toHaveValue("uniform");
 
+    await userEvent.selectOptions(tidyAlgorithm, "flow");
+    expect(tidyAlgorithm).toHaveValue("flow");
     await userEvent.click(screen.getByRole("button", { name: "Tidy children" }));
 
     await waitFor(() =>
@@ -136,6 +145,12 @@ describe("editor inspector workflows", () => {
         "Auto layout selected container",
       ),
     );
+    expect(
+      useDocumentStore
+        .getState()
+        .lastDiagnostics.find((diagnostic) => diagnostic.code === "layout-applied")
+        ?.message,
+    ).toContain("Scoped flow auto layout");
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.settings.layoutMode).toBe("free");
     expect(geometrySnapshot(after, riskIds)).not.toEqual(beforeRisk);
@@ -156,6 +171,7 @@ describe("editor inspector workflows", () => {
     });
     const { unmount } = renderEditor();
     const leafButton = screen.getByRole("button", { name: "Tidy children" });
+    expect(screen.getByLabelText("Tidy algorithm")).toBeDisabled();
     expect(leafButton).toBeDisabled();
     expect(leafButton).toHaveAttribute(
       "title",
@@ -169,6 +185,7 @@ describe("editor inspector workflows", () => {
     });
     renderEditor();
     const labelButton = screen.getByRole("button", { name: "Tidy children" });
+    expect(screen.getByLabelText("Tidy algorithm")).toBeDisabled();
     expect(labelButton).toBeDisabled();
     expect(labelButton).toHaveAttribute(
       "title",
@@ -203,6 +220,7 @@ describe("editor inspector workflows", () => {
     useUiStore.setState({ selectedNodeIds: ["empty"], inspectorTab: "layout" });
     const { unmount } = renderEditor();
     const emptyButton = screen.getByRole("button", { name: "Tidy children" });
+    expect(screen.getByLabelText("Tidy algorithm")).toBeDisabled();
     expect(emptyButton).toBeDisabled();
     expect(emptyButton).toHaveAttribute(
       "title",
@@ -216,6 +234,7 @@ describe("editor inspector workflows", () => {
     const runningButton = screen.getByRole("button", {
       name: "Tidy children",
     });
+    expect(screen.getByLabelText("Tidy algorithm")).toBeDisabled();
     expect(runningButton).toBeDisabled();
     expect(runningButton).toHaveAttribute(
       "title",

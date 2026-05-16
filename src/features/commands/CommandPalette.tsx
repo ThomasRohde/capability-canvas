@@ -25,14 +25,20 @@ interface CommandResult<TContext> {
   availability: CommandAvailability;
 }
 
+interface ClosePaletteOptions {
+  restoreFocus?: boolean;
+}
+
 export function CommandPalette<TContext>({
   commands,
   context,
 }: CommandPaletteProps<TContext>) {
   const inputId = useId();
   const listId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -50,10 +56,18 @@ export function CommandPalette<TContext>({
     [commands, context, query],
   );
   const activeResult = results[activeIndex];
-  const closePalette = () => {
+  const closePalette = (options: ClosePaletteOptions = {}) => {
+    const returnTarget =
+      options.restoreFocus === false ? null : returnFocusRef.current;
     setOpen(false);
     setQuery("");
     setActiveIndex(0);
+    if (returnTarget && document.contains(returnTarget)) {
+      window.requestAnimationFrame(() => {
+        returnTarget.focus();
+        window.requestAnimationFrame(() => returnTarget.focus());
+      });
+    }
   };
 
   useEffect(() => {
@@ -63,6 +77,14 @@ export function CommandPalette<TContext>({
       if (event.key.toLowerCase() !== "k") return;
       if (isEditableTarget(event.target)) return;
       event.preventDefault();
+      const activeElement =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      returnFocusRef.current =
+        activeElement && activeElement !== document.body
+          ? activeElement
+          : triggerRef.current;
       setOpen(true);
     };
     window.addEventListener("keydown", onKeyDown);
@@ -73,6 +95,7 @@ export function CommandPalette<TContext>({
     active: open,
     containerRef: dialogRef,
     initialFocusRef: inputRef,
+    restoreFocus: false,
     onEscape: closePalette,
   });
 
@@ -90,13 +113,14 @@ export function CommandPalette<TContext>({
   }, [activeIndex, results.length]);
 
   const openPalette = () => {
+    returnFocusRef.current = triggerRef.current;
     setOpen(true);
   };
 
   const runResult = (result: CommandResult<TContext> | undefined) => {
     if (!result?.availability.valid) return;
     result.command.run(context);
-    closePalette();
+    closePalette({ restoreFocus: false });
   };
 
   const moveActive = (delta: 1 | -1) => {
@@ -139,6 +163,7 @@ export function CommandPalette<TContext>({
   return (
     <>
       <button
+        ref={triggerRef}
         className="cc-icon-btn"
         type="button"
         aria-label="Open command palette"
@@ -188,7 +213,7 @@ export function CommandPalette<TContext>({
                 className="cc-icon-btn"
                 type="button"
                 aria-label="Close command palette"
-                onClick={closePalette}
+                onClick={() => closePalette()}
               >
                 <X aria-hidden="true" />
               </button>
