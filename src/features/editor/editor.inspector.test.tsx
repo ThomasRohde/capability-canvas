@@ -1,11 +1,13 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
-import { lockSubtree } from "../../domain/commands/operations";
-import type { CapabilityDocument } from "../../domain/document/types";
+import { addLabel, lockSubtree } from "../../domain/commands/operations";
+import { createNode } from "../../domain/document/defaults";
+import { ROOT_PARENT_ID, type CapabilityDocument } from "../../domain/document/types";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
+import { geometrySnapshot } from "../../test/documentAssertions";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
 
 describe("editor inspector workflows", () => {
@@ -78,10 +80,142 @@ describe("editor inspector workflows", () => {
     expect(
       screen.getByText(/Preserve skips this subtree during auto layout/),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Layout children" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Layout children" })).toHaveAttribute(
+      "title",
+      "Preserved subtrees are skipped by auto layout.",
+    );
     expect(screen.getByLabelText("X")).not.toBeDisabled();
     expect(screen.getByLabelText("Y")).not.toBeDisabled();
     expect(screen.getByLabelText("W")).toBeDisabled();
     expect(screen.getByLabelText("H")).toBeDisabled();
+  });
+
+  it("runs scoped auto layout for the selected container children", async () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        nodesById: {
+          ...doc.nodesById,
+          "credit-risk": {
+            ...doc.nodesById["credit-risk"]!,
+            x: doc.nodesById.risk!.x + 300,
+            y: doc.nodesById.risk!.y + 160,
+          },
+          "fraud-risk": {
+            ...doc.nodesById["fraud-risk"]!,
+            x: doc.nodesById.risk!.x + 48,
+            y: doc.nodesById.risk!.y + 48,
+          },
+        },
+      },
+    });
+    useUiStore.setState({ selectedNodeIds: ["risk"], inspectorTab: "layout" });
+    renderEditor();
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const riskIds = ["risk", "credit-risk", "fraud-risk", "operational-risk"];
+    const unaffectedIds = [
+      "operations",
+      "process-management",
+      "data-management",
+      "technology-operations",
+      "vendor-management",
+    ];
+    const beforeRisk = geometrySnapshot(before, riskIds);
+    const beforeUnaffected = geometrySnapshot(before, unaffectedIds);
+
+    await userEvent.click(screen.getByRole("button", { name: "Layout children" }));
+
+    await waitFor(() =>
+      expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+        "Auto layout selected container",
+      ),
+    );
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(geometrySnapshot(after, riskIds)).not.toEqual(beforeRisk);
+    expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
+    expect(after.nodesById.risk).toMatchObject({
+      x: before.nodesById.risk!.x,
+      y: before.nodesById.risk!.y,
+    });
+  });
+
+  it("disables scoped layout for leaf and text-label selections", () => {
+    useDocumentStore
+      .getState()
+      .execute(addLabel("Annotation", { id: "annotation", x: 24, y: 24 }));
+    useUiStore.setState({
+      selectedNodeIds: ["digital-onboarding"],
+      inspectorTab: "layout",
+    });
+    const { unmount } = renderEditor();
+    const leafButton = screen.getByRole("button", { name: "Layout children" });
+    expect(leafButton).toBeDisabled();
+    expect(leafButton).toHaveAttribute(
+      "title",
+      "This container has no visible child capabilities to arrange.",
+    );
+
+    unmount();
+    useUiStore.setState({
+      selectedNodeIds: ["annotation"],
+      inspectorTab: "layout",
+    });
+    renderEditor();
+    const labelButton = screen.getByRole("button", { name: "Layout children" });
+    expect(labelButton).toBeDisabled();
+    expect(labelButton).toHaveAttribute(
+      "title",
+      "This container has no visible child capabilities to arrange.",
+    );
+  });
+
+  it("disables scoped layout for empty containers and while layout is running", () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        nodesById: {
+          ...doc.nodesById,
+          empty: createNode({
+            id: "empty",
+            label: "Empty",
+            type: "root",
+            x: 32,
+            y: 32,
+            w: 180,
+            h: 80,
+          }),
+        },
+        childrenByParentId: {
+          ...doc.childrenByParentId,
+          [ROOT_PARENT_ID]: [...(doc.childrenByParentId[ROOT_PARENT_ID] ?? []), "empty"],
+          empty: [],
+        },
+      },
+    });
+    useUiStore.setState({ selectedNodeIds: ["empty"], inspectorTab: "layout" });
+    const { unmount } = renderEditor();
+    const emptyButton = screen.getByRole("button", { name: "Layout children" });
+    expect(emptyButton).toBeDisabled();
+    expect(emptyButton).toHaveAttribute(
+      "title",
+      "This container has no visible child capabilities to arrange.",
+    );
+
+    unmount();
+    useUiStore.setState({ selectedNodeIds: ["risk"], inspectorTab: "layout" });
+    useDocumentStore.setState({ isAutoLayoutRunning: true });
+    renderEditor();
+    const runningButton = screen.getByRole("button", {
+      name: "Layout children",
+    });
+    expect(runningButton).toBeDisabled();
+    expect(runningButton).toHaveAttribute(
+      "title",
+      "Auto layout is already running.",
+    );
   });
 
   it("commits numeric X/Y movement in Freeform without parent mode conversion", () => {

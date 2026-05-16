@@ -227,6 +227,105 @@ describe("document store layout orchestration", () => {
     expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
   });
 
+  it("scopes explicit auto layout to selected container children", async () => {
+    const doc = twoRootRelayoutDocument();
+    doc.nodesById["a-leaf-1"] = {
+      ...doc.nodesById["a-leaf-1"]!,
+      x: 360,
+      y: 196,
+    };
+    doc.nodesById["a-leaf-2"] = {
+      ...doc.nodesById["a-leaf-2"]!,
+      x: 48,
+      y: 76,
+    };
+    useDocumentStore.setState({
+      doc,
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    const scopedIds = ["a-group", "a-leaf-1", "a-leaf-2"];
+    const unaffectedIds = ["root-b", "b-group", "b-leaf-1", "b-leaf-2"];
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeScoped = geometrySnapshot(before, scopedIds);
+    const beforeUnaffected = geometrySnapshot(before, unaffectedIds);
+    const beforeGroup = before.nodesById["a-group"]!;
+
+    const diagnostics = await useDocumentStore
+      .getState()
+      .autoLayoutScope(["a-leaf-1", "a-leaf-2"]);
+
+    let after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(
+      diagnostics.some((diagnostic) => diagnostic.code === "layout-applied"),
+    ).toBe(true);
+    expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
+    expect(geometrySnapshot(after, scopedIds)).not.toEqual(beforeScoped);
+    expect(after.nodesById["a-group"]).toMatchObject({
+      x: beforeGroup.x,
+      y: beforeGroup.y,
+    });
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Auto layout selected container",
+    );
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+
+    useDocumentStore.getState().undo();
+    after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(geometrySnapshot(after, scopedIds)).toEqual(beforeScoped);
+    expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
+
+    useDocumentStore.getState().redo();
+    after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(geometrySnapshot(after, scopedIds)).not.toEqual(beforeScoped);
+    expect(geometrySnapshot(after, unaffectedIds)).toEqual(beforeUnaffected);
+  });
+
+  it("skips empty scoped auto layout without history", async () => {
+    const diagnostics = await useDocumentStore.getState().autoLayoutScope([]);
+
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({ code: "layout-scope-empty" }),
+    );
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it("permits scoped auto layout on source-locked documents", async () => {
+    const doc = twoRootRelayoutDocument();
+    doc.access = { sourceLocked: true };
+    doc.nodesById["a-leaf-1"] = {
+      ...doc.nodesById["a-leaf-1"]!,
+      x: 360,
+      y: 196,
+    };
+    useDocumentStore.setState({
+      doc,
+      past: [],
+      future: [],
+      dirty: false,
+      lastDiagnostics: [],
+      isAutoLayoutRunning: false,
+    });
+    const beforeX = doc.nodesById["a-leaf-1"]!.x;
+
+    const diagnostics = await useDocumentStore
+      .getState()
+      .autoLayoutScope(["a-leaf-1", "a-leaf-2"]);
+
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      "source-locked-semantic-edit-blocked",
+    );
+    expect(
+      resolveVisualDocument(useDocumentStore.getState().doc).nodesById[
+        "a-leaf-1"
+      ]!.x,
+    ).not.toBe(beforeX);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
   it("expands the parent after Freeform direct child movement", () => {
     setStoreLayoutMode("free");
     const before = resolveVisualDocument(useDocumentStore.getState().doc);

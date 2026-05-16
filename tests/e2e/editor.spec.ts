@@ -344,6 +344,57 @@ test('supports panel rail, padding controls and outline actions', async ({ page 
   await expect(page.getByRole('menuitem', { name: 'Duplicate' })).toBeVisible();
 });
 
+test('layouts selected container children from the inspector only', async ({ page }) => {
+  await gotoEditor(page);
+  const payload = await page.evaluate(() => {
+    const testWindow = window as unknown as {
+      __ccTestSerializeDocument?: () => {
+        title?: string;
+        nodes: Array<Record<string, unknown>>;
+      };
+    };
+    const doc = testWindow.__ccTestSerializeDocument?.();
+    if (!doc) throw new Error('Missing test document serializer.');
+    const risk = doc.nodes.find((node) => node.id === 'risk');
+    const credit = doc.nodes.find((node) => node.id === 'credit-risk');
+    const fraud = doc.nodes.find((node) => node.id === 'fraud-risk');
+    if (!risk || !credit || !fraud) throw new Error('Missing scoped layout fixture nodes.');
+    doc.title = 'Scoped layout e2e';
+    credit.x = Number(risk.x) + 300;
+    credit.y = Number(risk.y) + 160;
+    fraud.x = Number(risk.x) + 48;
+    fraud.y = Number(risk.y) + 48;
+    return JSON.stringify(doc);
+  });
+
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Import pasted JSON' }).click();
+  const pasteDialog = page.getByRole('dialog', { name: 'Import pasted JSON' });
+  await pasteDialog.getByRole('textbox').fill(payload);
+  await pasteDialog.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Review import' })
+    .getByRole('button', { name: 'Apply import' })
+    .click();
+
+  const canvas = page.getByTestId('canvas');
+  await expect(canvas.getByRole('button', { name: /Risk, parent capability/ })).toBeVisible();
+  const operationsBefore = await canvasNodePosition(page, 'Operations');
+  const riskBefore = await canvasNodePosition(page, 'Risk');
+  const creditBefore = await canvasNodePosition(page, 'Credit Risk');
+
+  await page.locator('.cc-outline').getByText('Risk', { exact: true }).click();
+  await page.locator('.cc-inspector').getByRole('button', { name: 'Layout' }).click();
+  const layoutChildren = page
+    .locator('.cc-inspector')
+    .getByRole('button', { name: 'Layout children' });
+  await expect(layoutChildren).toBeEnabled();
+  await layoutChildren.click();
+
+  await expect.poll(() => canvasNodePosition(page, 'Credit Risk')).not.toEqual(creditBefore);
+  expect(await canvasNodePosition(page, 'Operations')).toEqual(operationsBefore);
+  expect(await canvasNodePosition(page, 'Risk')).toEqual(riskBefore);
+});
+
 test('loads viewer route read-only', async ({ page }) => {
   await page.goto('/viewer', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Capability Canvas Viewer')).toBeVisible();
@@ -612,6 +663,19 @@ function nodeIdToLabel(nodeId: string) {
     'fraud-risk': 'Fraud Risk',
     'operational-risk': 'Operational Risk',
   }[nodeId]!;
+}
+
+async function canvasNodePosition(page: Page, label: string) {
+  return page
+    .locator(`.cc-node[aria-label^="${label},"]`)
+    .first()
+    .evaluate((element) => {
+      const style = element as HTMLElement;
+      return {
+        left: Number(style.style.left.replace('px', '')),
+        top: Number(style.style.top.replace('px', '')),
+      };
+    });
 }
 
 test('Ctrl+A expands from selected risk child to risk siblings', async ({ page }) => {

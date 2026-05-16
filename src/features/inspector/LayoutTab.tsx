@@ -1,4 +1,4 @@
-import { Info, Lock } from "lucide-react";
+import { Info, LayoutTemplate, Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   lockSubtree,
@@ -7,7 +7,11 @@ import {
   setManualPositioning,
 } from "../../domain/commands/operations";
 import {
+  childrenOf,
+  isNodeOnCanvas,
   isCanvasLabelNode,
+  isTextLabelNode,
+  type CapabilityDocument,
   type CapabilityNode,
 } from "../../domain/document/types";
 import {
@@ -18,15 +22,37 @@ import { snapCoordinate } from "../../domain/layout/grid";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
 
-export function LayoutTab({ node }: { node: CapabilityNode }) {
+export function LayoutTab({
+  node,
+  viewDoc,
+}: {
+  node: CapabilityNode;
+  viewDoc: CapabilityDocument;
+}) {
   const doc = useDocumentStore((state) => state.doc);
   const execute = useDocumentStore((state) => state.execute);
+  const autoLayoutScope = useDocumentStore((state) => state.autoLayoutScope);
+  const isAutoLayoutRunning = useDocumentStore(
+    (state) => state.isAutoLayoutRunning,
+  );
   const snap = (value: number) => snapCoordinate(doc, value);
   const isLabel = isCanvasLabelNode(node);
+  const isContainer = node.type !== "leaf" && !isTextLabelNode(node);
+  const childScopeIds = childrenOf(viewDoc, node.id).filter((childId) => {
+    const child = viewDoc.nodesById[childId];
+    return !!child && isNodeOnCanvas(child) && !isTextLabelNode(child);
+  });
   const directGeometryBlocked = isAutomaticLayoutMode(doc.settings.layoutMode);
   const geometryTitle = directGeometryBlocked
     ? AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE
     : undefined;
+  const layoutChildrenDisabledReason = isAutoLayoutRunning
+    ? "Auto layout is already running."
+    : node.isLockedAsIs
+      ? "Preserved subtrees are skipped by auto layout."
+      : !isContainer || childScopeIds.length === 0
+        ? "This container has no visible child capabilities to arrange."
+        : undefined;
   return (
     <>
       {!isLabel && (
@@ -74,6 +100,21 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
             deliberate movement.
           </span>
         )}
+      </div>
+      <div className="cc-field">
+        <span className="cc-section-title">Scoped layout</span>
+        <button
+          className="cc-btn"
+          type="button"
+          disabled={!!layoutChildrenDisabledReason}
+          title={layoutChildrenDisabledReason}
+          onClick={() =>
+            void autoLayoutScope(childScopeIds, "Auto layout selected container")
+          }
+        >
+          <LayoutTemplate />
+          Layout children
+        </button>
       </div>
       <div className="cc-field-row">
         <NumberField

@@ -84,7 +84,7 @@ export function Inspector({
           />
         )}
         {viewNode && !readonly && tab === "layout" && (
-          <LayoutTab node={viewNode} />
+          <LayoutTab node={viewNode} viewDoc={viewDoc} />
         )}
         {sourceNode && !readonly && tab === "data" && (
           <DataTab node={sourceNode} />

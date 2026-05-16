@@ -6,6 +6,7 @@ import type {
 } from "../../domain/commands/types";
 import type {
   CapabilityDocument,
+  NodeId,
   VisualViewId,
   VisualViewport,
 } from "../../domain/document/types";
@@ -18,6 +19,7 @@ import {
   updateActiveViewViewport,
 } from "../../domain/visual/workspace";
 import {
+  info,
   warning,
   type Diagnostic,
 } from "../../domain/validation/diagnostics";
@@ -89,6 +91,10 @@ interface DocumentState {
   setDiagnostics: (diagnostics: Diagnostic[]) => void;
   reset: () => void;
   autoLayout: (force?: boolean) => Promise<Diagnostic[]>;
+  autoLayoutScope: (
+    affectedNodeIds: NodeId[],
+    label?: string,
+  ) => Promise<Diagnostic[]>;
   updateSettings: (
     patch: Partial<CapabilityDocument["settings"]>,
     options?: { autoLayout?: boolean },
@@ -320,6 +326,67 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
               state.past,
               createHistoryEntry({
                 label: "Auto layout",
+                before,
+                after: result.doc,
+              }),
+            )
+          : state.past,
+        future: changed ? clearRedo() : state.future,
+        ...(changed ? markDirty(state) : {}),
+        lastDiagnostics: result.diagnostics,
+        isAutoLayoutRunning: false,
+      });
+      return result.diagnostics;
+    } catch (error) {
+      const diagnostics = [
+        warning(
+          "layout-failed",
+          `Auto layout failed. ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      ];
+      set({ lastDiagnostics: diagnostics, isAutoLayoutRunning: false });
+      return diagnostics;
+    }
+  },
+  autoLayoutScope: async (
+    affectedNodeIds,
+    label = "Auto layout selected container",
+  ) => {
+    if (affectedNodeIds.length === 0) {
+      const diagnostics = [
+        info(
+          "layout-scope-empty",
+          "Auto layout skipped because no visible nodes matched the requested scope.",
+        ),
+      ];
+      set({ lastDiagnostics: diagnostics });
+      return diagnostics;
+    }
+    if (get().isAutoLayoutRunning) return get().lastDiagnostics;
+    const before = get().doc;
+    set({ isAutoLayoutRunning: true });
+    try {
+      const result = await layoutAndRepair(before, true, affectedNodeIds);
+      if (get().doc !== before) {
+        const diagnostics = [
+          ...result.diagnostics,
+          warning(
+            "layout-stale",
+            "Auto layout was skipped because the document changed before layout completed.",
+          ),
+        ];
+        set({ lastDiagnostics: diagnostics, isAutoLayoutRunning: false });
+        return diagnostics;
+      }
+      const state = get();
+      const changed = result.doc !== before;
+      set({
+        doc: result.doc,
+        past: changed
+          ? appendHistoryEntry(
+              state.past,
+              createHistoryEntry({
+                label,
                 before,
                 after: result.doc,
               }),
