@@ -44,6 +44,47 @@ describe("canvas layout action policy", () => {
     expect(result.diagnosticCode).toBe(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED);
   });
 
+  it("allows direct text-label movement in automatic modes", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "uniform";
+    doc.nodesById.annotation = createNode({
+      id: "annotation",
+      label: "Annotation",
+      type: "label",
+      parentId: null,
+    });
+
+    const result = evaluateCanvasLayoutIntent({
+      doc,
+      action: "move",
+      rootNodeIds: ["annotation"],
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.manualParentIdsToEnable).toEqual([]);
+    expect(result.skipAutoRelayout).toBe(true);
+  });
+
+  it("keeps mixed label and capability geometry locked in automatic modes", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "uniform";
+    doc.nodesById.annotation = createNode({
+      id: "annotation",
+      label: "Annotation",
+      type: "label",
+      parentId: null,
+    });
+
+    const result = evaluateCanvasLayoutIntent({
+      doc,
+      action: "move",
+      rootNodeIds: ["annotation", "credit-risk"],
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.diagnosticCode).toBe(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED);
+  });
+
   it("allows direct movement in Freeform mode without enabling per-parent Manual", () => {
     const doc = createSampleDocument();
     doc.settings.layoutMode = "free";

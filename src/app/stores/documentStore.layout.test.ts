@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  addLabel,
   addSubtreeToCanvas,
   addChild,
   deleteNodes,
@@ -149,6 +150,31 @@ describe("document store layout orchestration", () => {
     expect(after.nodesById["credit-risk"]!.x).toBe(beforeX);
     expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
     expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it("allows text-label movement in automatic layout", () => {
+    useDocumentStore
+      .getState()
+      .execute(addLabel("Annotation", { id: "annotation", x: 24, y: 24 }));
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const historyBefore = useDocumentStore.getState().past.length;
+
+    const diagnostics = useDocumentStore
+      .getState()
+      .execute(
+        moveNodesWithLayoutIntent(["annotation"], 16, 8, {
+          action: "keyboard-nudge",
+        }),
+      );
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(diagnostics).toHaveLength(0);
+    expect(after.nodesById.annotation).toMatchObject({
+      x: before.nodesById.annotation!.x + 16,
+      y: before.nodesById.annotation!.y + 8,
+    });
+    expect(after.layout.isUserArranged).toBe(before.layout.isUserArranged);
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore + 1);
   });
 
   it("switches from automatic to Freeform without moving current geometry", async () => {

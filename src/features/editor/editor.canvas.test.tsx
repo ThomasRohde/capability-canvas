@@ -940,6 +940,62 @@ describe("editor canvas workflows", () => {
     ).toBeInTheDocument();
   });
 
+  it("allows text labels to drag in automatic layout", () => {
+    useDocumentStore
+      .getState()
+      .execute(addTextLabel(null, "Canvas annotation"));
+    renderEditor();
+    const canvas = screen.getByTestId("canvas");
+    const label = within(canvas)
+      .getByText("Canvas annotation")
+      .closest(".cc-node") as HTMLElement;
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const labelBefore = Object.values(before.nodesById).find(
+      (node) => node.type === "label",
+    )!;
+    const expectedDx =
+      Math.round((labelBefore.x + 21) / before.settings.gridSize) *
+        before.settings.gridSize -
+      labelBefore.x;
+    const expectedDy =
+      Math.round((labelBefore.y + 21) / before.settings.gridSize) *
+        before.settings.gridSize -
+      labelBefore.y;
+    const startX = labelBefore.x + 20;
+    const startY = labelBefore.y + 20;
+
+    fireEvent(
+      label,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: startX,
+        clientY: startY,
+      }),
+    );
+    fireEvent(
+      window,
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        buttons: 1,
+        clientX: startX + 21,
+        clientY: startY + 21,
+      }),
+    );
+    fireEvent(window, new MouseEvent("pointerup", { bubbles: true }));
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.nodesById[labelBefore.id]).toMatchObject({
+      x: labelBefore.x + expectedDx,
+      y: labelBefore.y + expectedDy,
+    });
+    expect(expectedDx || expectedDy).not.toBe(0);
+    expect(
+      screen.queryByText(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps the canvas populated and preserves drop position when dragging a child outside its parent", async () => {
     useDocumentStore.setState({
       doc: useFreeformLayout(dragOutsideParentDocument()),

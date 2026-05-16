@@ -1,5 +1,6 @@
 import {
   isHierarchyAncestorOf,
+  isCanvasLabelNode,
   isTextLabelNode,
   ROOT_PARENT_ID,
   type CapabilityDocument,
@@ -95,7 +96,11 @@ export function evaluateCanvasLayoutIntent(
     );
   }
 
-  if (isDirectGeometryAction(input.action) && isAutomaticLayoutMode(mode)) {
+  if (
+    isDirectGeometryAction(input.action) &&
+    isAutomaticLayoutMode(mode) &&
+    !isCanvasLabelOnlyGeometry(input)
+  ) {
     return rejectIntent(
       AUTOMATIC_LAYOUT_GEOMETRY_LOCKED,
       AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
@@ -249,6 +254,13 @@ function isDirectGeometryAction(action: CanvasLayoutAction): boolean {
     action === "distribute" ||
     action === "same-size" ||
     action === "fit-parent"
+  );
+}
+
+function isCanvasLabelOnlyGeometry(input: CanvasLayoutIntentInput): boolean {
+  return (
+    input.rootNodeIds.length > 0 &&
+    input.rootNodeIds.every((id) => isCanvasLabelNode(input.doc.nodesById[id]))
   );
 }
 

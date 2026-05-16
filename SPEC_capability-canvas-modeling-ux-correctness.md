@@ -1981,9 +1981,18 @@ Alternatives considered: change all visual-view commands to `"visual"` scope, bu
 
 Date/Author: 2026-05-16 / Codex
 
+Decision: Treat text-label annotation geometry as visual-only and movable in automatic layout modes.
+
+Rationale: automatic layout owns capability card geometry, but canvas labels are manual annotations skipped by layout. Browser retesting showed adding a label in the default `Automatic layout: Uniform` mode selected the label but blocked drag with the capability movement notice, making label placement feel broken.
+
+Alternatives considered: require users to switch the whole view to Manual/Freeform before moving labels, but that over-applies capability layout ownership to annotation-only geometry.
+
+Date/Author: 2026-05-16 / Codex
+
 ## 23. Outcomes and Retrospective
 
 - Implemented a central layout/editability policy that blocks direct geometry in automatic modes and blocks semantic source edits when `doc.access.sourceLocked` is true.
+- Post-acceptance browser retesting at 2026-05-16 08:51 +02:00 found that text labels could be selected but not moved in the default automatic layout. The policy was narrowed so label-only geometry edits remain available in automatic modes while mixed label/capability and capability-only geometry edits stay locked.
 - Updated canvas drag/resize, keyboard/numeric movement, bulk align/distribute/sizing, inspector layout fields, context menus, command availability, toolbar buttons, status chips, settings/help copy, and blocked-action notices to match Manual/Freeform versus Automatic semantics.
 - Fixed Manual/Freeform resize minimums so parent/container resizing accounts for child bounds even when manual positioning is enabled.
 - Added optional persisted document access metadata (`access.sourceLocked`, `sourceLabel`, `reason`) through schema, parse, normalize, serialize, and round-trip tests.
@@ -1994,11 +2003,12 @@ Date/Author: 2026-05-16 / Codex
 - Validation commands run and results:
   - `npm run lint` passed.
   - `npm run typecheck` passed.
-  - `npm run test:run` passed, 439 tests across 37 files.
+  - `npm run test:run` passed, 443 tests across 37 files.
   - `npm run build` passed.
   - `npm run test:e2e` passed, 21 tests.
   - `git diff --check` passed.
 - Manual smoke result: local Vite app loaded at `http://127.0.0.1:5174/` in the in-app browser; canvas was visible; status showed `Automatic layout: Uniform` and `Source editable`; settings exposed `Manual / Freeform`.
+- Post-fix browser smoke result at 2026-05-16 08:55 +02:00: in the default `Automatic layout: Uniform` mode, an unselected text label selected and dragged from `440,496` to `488,520`, keyboard nudge moved it to `496,528`, and a regular capability drag stayed blocked with the Freeform notice.
 - Remaining risk: source-locked color, heatmap data, metadata, and label edits are blocked because those are still source-node properties. The current data model has no visual-only label/color/metadata override workflow for all inspector fields beyond existing active-view geometry/view settings.
 - Follow-up recommendation: if source-locked presentation editing should include per-view labels, colors, or annotations, add explicit visual override commands and UI copy rather than storing those edits on source nodes.
 
