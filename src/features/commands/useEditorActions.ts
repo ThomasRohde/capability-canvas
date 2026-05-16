@@ -17,6 +17,7 @@ import {
 } from "../../domain/document/types";
 import { makeId } from "../../domain/document/defaults";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
+import { isSourceModelEditable } from "../../domain/layout/canvasLayoutPolicy";
 import { gridSizeFor } from "../../domain/layout/grid";
 import { resolveSelectAllSelection } from "../../domain/selection/rules";
 import { useActiveVisualState } from "../../app/activeVisualState";
@@ -108,6 +109,7 @@ export function useEditorActions(
   const selectedNode = selectedNodeIds[0]
     ? doc.nodesById[selectedNodeIds[0]]
     : null;
+  const canEditSourceModel = isSourceModelEditable(doc);
   const selectedCanvasNodeIds = useMemo(
     () =>
       selectedNodeIds.filter((nodeId) =>
@@ -296,6 +298,7 @@ export function useEditorActions(
       selectedCanvasNodeIds,
       visibleSelectableNodeIds,
       selectedNode,
+      canEditSourceModel,
       hasFitBounds: displayBounds.w > 0 && displayBounds.h > 0,
       importBusy,
       isAutoLayoutRunning,
@@ -311,6 +314,7 @@ export function useEditorActions(
       importBusy,
       isAutoLayoutRunning,
       past.length,
+      canEditSourceModel,
       selectedCanvasNodeIds,
       selectedNode,
       selectedNodeIds,

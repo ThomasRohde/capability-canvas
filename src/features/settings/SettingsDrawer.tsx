@@ -23,6 +23,10 @@ import type {
   LayoutAspectRatioPreset,
   LayoutMode,
 } from "../../domain/document/types";
+import {
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -62,8 +66,8 @@ const LAYOUT_MODES: Array<{ value: LayoutMode; label: string; help: string }> = 
   },
   {
     value: "free",
-    label: "Freeform",
-    help: "Preserves current positions. Choose an automatic mode to rearrange nodes.",
+    label: "Manual / Freeform",
+    help: "Allows direct movement and resize while preserving current positions.",
   },
 ];
 
@@ -106,13 +110,16 @@ export function SettingsDrawer() {
   );
   const closeRef = useRef<HTMLButtonElement>(null);
   const { activeView } = useActiveVisualState({ doc });
+  const sourceEditable = isSourceModelEditable(doc);
+  const sourceLockReason =
+    doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
   const selectedLayoutHelp =
     LAYOUT_MODES.find((mode) => mode.value === doc.settings.layoutMode)?.help ??
     "";
   const layoutModeNotice =
     doc.settings.layoutMode === "free"
-      ? "Freeform preserves positions; Apply auto layout will not rearrange nodes."
-      : "Layout changes may move unlocked nodes in the active view.";
+      ? "Manual / Freeform allows direct movement and resize. Apply auto layout will not rearrange nodes."
+      : "Automatic layout owns geometry. Switch to Manual / Freeform before moving or resizing capabilities directly.";
   const commitNumericDocumentSetting = (
     field: NumericSettingsField,
     value: number,
@@ -152,10 +159,15 @@ export function SettingsDrawer() {
       </div>
       <div className="cc-export-body">
         <SettingsSection icon={<Settings2 size={16} />} title="Document">
+          {!sourceEditable && (
+            <div className="cc-info-card warning">{sourceLockReason}</div>
+          )}
           <TextSetting
             id="document-title"
             label="Title"
             value={doc.title}
+            disabled={!sourceEditable}
+            disabledReason={sourceLockReason}
             onCommit={(title) => execute(updateDocumentTitle(title))}
           />
         </SettingsSection>
@@ -166,6 +178,8 @@ export function SettingsDrawer() {
               id="color-palette"
               className="cc-select"
               value={doc.settings.colorPalette}
+              disabled={!sourceEditable}
+              title={!sourceEditable ? sourceLockReason : undefined}
               onChange={(event) =>
                 execute(
                   updateDocumentSettings({
@@ -185,6 +199,8 @@ export function SettingsDrawer() {
             label="Default leaf color"
             value={doc.settings.leafColor}
             colorPalette={doc.settings.colorPalette}
+            disabled={!sourceEditable}
+            disabledReason={sourceLockReason}
             onChange={(leafColor) =>
               execute(updateDocumentSettings({ leafColor }))
             }
@@ -194,6 +210,8 @@ export function SettingsDrawer() {
               key={group.id}
               group={group}
               settings={doc.settings}
+              disabled={!sourceEditable}
+              disabledReason={sourceLockReason}
               onChange={commitNumericDocumentSetting}
             />
           ))}
@@ -233,7 +251,8 @@ export function SettingsDrawer() {
               id="layout-aspect-ratio"
               className="cc-select"
               value={doc.settings.layoutAspectRatioPreset}
-              disabled={isAutoLayoutRunning}
+              disabled={isAutoLayoutRunning || !sourceEditable}
+              title={!sourceEditable ? sourceLockReason : undefined}
               onChange={(event) =>
                 void updateSettings(
                   {
@@ -259,7 +278,8 @@ export function SettingsDrawer() {
                 value={doc.settings.customLayoutAspectRatioWidth}
                 min={0.01}
                 step="any"
-                disabled={isAutoLayoutRunning}
+                disabled={isAutoLayoutRunning || !sourceEditable}
+                disabledReason={sourceLockReason}
                 onChange={(customLayoutAspectRatioWidth) =>
                   void updateSettings(
                     { customLayoutAspectRatioWidth },
@@ -273,7 +293,8 @@ export function SettingsDrawer() {
                 value={doc.settings.customLayoutAspectRatioHeight}
                 min={0.01}
                 step="any"
-                disabled={isAutoLayoutRunning}
+                disabled={isAutoLayoutRunning || !sourceEditable}
+                disabledReason={sourceLockReason}
                 onChange={(customLayoutAspectRatioHeight) =>
                   void updateSettings(
                     { customLayoutAspectRatioHeight },
@@ -297,6 +318,8 @@ export function SettingsDrawer() {
           <CheckSetting
             label="Snap movement to grid"
             checked={doc.settings.gridEnabled}
+            disabled={!sourceEditable}
+            disabledReason={sourceLockReason}
             onChange={(gridEnabled) =>
               execute(updateDocumentSettings({ gridEnabled }))
             }
@@ -309,6 +332,8 @@ export function SettingsDrawer() {
               min={GRID_SIZE_FIELD.min}
               max={GRID_SIZE_FIELD.max}
               step={GRID_SIZE_FIELD.step}
+              disabled={!sourceEditable}
+              disabledReason={sourceLockReason}
               onChange={(value) =>
                 commitNumericDocumentSetting(GRID_SIZE_FIELD, value)
               }
@@ -316,6 +341,8 @@ export function SettingsDrawer() {
             <CheckSetting
               label="Snap resizing to grid"
               checked={doc.settings.resizeSnapToGrid}
+              disabled={!sourceEditable}
+              disabledReason={sourceLockReason}
               onChange={(resizeSnapToGrid) =>
                 execute(updateDocumentSettings({ resizeSnapToGrid }))
               }
@@ -326,6 +353,8 @@ export function SettingsDrawer() {
               key={group.id}
               group={group}
               settings={doc.settings}
+              disabled={!sourceEditable}
+              disabledReason={sourceLockReason}
               onChange={commitNumericDocumentSetting}
             />
           ))}
@@ -369,6 +398,8 @@ export function SettingsDrawer() {
               id="heatmap-palette"
               className="cc-select"
               value={doc.heatmap.palette}
+              disabled={!sourceEditable}
+              title={!sourceEditable ? sourceLockReason : undefined}
               onChange={(event) =>
                 execute(
                   updateHeatmapSettings({
@@ -385,6 +416,8 @@ export function SettingsDrawer() {
             label="Fallback color"
             value={doc.heatmap.fallbackColor}
             colorPalette={doc.settings.colorPalette}
+            disabled={!sourceEditable}
+            disabledReason={sourceLockReason}
             onChange={(fallbackColor) =>
               execute(updateHeatmapSettings({ fallbackColor }))
             }
@@ -455,10 +488,14 @@ export function SettingsDrawer() {
 function NumberSettingGroup({
   group,
   settings,
+  disabled = false,
+  disabledReason,
   onChange,
 }: {
   group: NumericSettingsGroup;
   settings: DiagramSettings;
+  disabled?: boolean;
+  disabledReason?: string;
   onChange: (field: NumericSettingsField, value: number) => void;
 }) {
   return (
@@ -474,6 +511,8 @@ function NumberSettingGroup({
             min={field.min}
             max={field.max}
             step={field.step}
+            disabled={disabled}
+            disabledReason={disabledReason}
             onChange={(value) => onChange(field, value)}
           />
         ))}
@@ -550,11 +589,13 @@ function CheckSetting({
   label,
   checked,
   disabled = false,
+  disabledReason,
   onChange,
 }: {
   label: string;
   checked: boolean;
   disabled?: boolean;
+  disabledReason?: string;
   onChange: (value: boolean) => void;
 }) {
   return (
@@ -563,6 +604,7 @@ function CheckSetting({
         type="checkbox"
         checked={checked}
         disabled={disabled}
+        title={disabled ? disabledReason : undefined}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span className="cc-check-label">{label}</span>
@@ -574,11 +616,15 @@ function ColorSetting({
   label,
   value,
   colorPalette,
+  disabled = false,
+  disabledReason,
   onChange,
 }: {
   label: string;
   value: CapabilityColor;
   colorPalette: ColorPalette;
+  disabled?: boolean;
+  disabledReason?: string;
   onChange: (value: CapabilityColor) => void;
 }) {
   return (
@@ -586,9 +632,11 @@ function ColorSetting({
       <ColorSwatchMatrix
         activeColor={value}
         colorPalette={colorPalette}
+        disabled={disabled}
         labelForColor={(color) => `Set ${label.toLowerCase()} ${color}`}
         onSelect={onChange}
       />
+      {disabled && <div className="cc-field-hint">{disabledReason}</div>}
     </SettingField>
   );
 }
@@ -601,6 +649,7 @@ function NumberSetting({
   max,
   step = 1,
   disabled = false,
+  disabledReason,
   onChange,
 }: {
   id: string;
@@ -610,6 +659,7 @@ function NumberSetting({
   max?: number;
   step?: number | "any";
   disabled?: boolean;
+  disabledReason?: string;
   onChange: (value: number) => void;
 }) {
   const normalizedValue = clampNumber(value, min, max);
@@ -643,6 +693,7 @@ function NumberSetting({
         step={step}
         value={draft}
         disabled={disabled}
+        title={disabled ? disabledReason : undefined}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {
@@ -665,11 +716,15 @@ function TextSetting({
   id,
   label,
   value,
+  disabled = false,
+  disabledReason,
   onCommit,
 }: {
   id: string;
   label: string;
   value: string;
+  disabled?: boolean;
+  disabledReason?: string;
   onCommit: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
@@ -690,6 +745,8 @@ function TextSetting({
         id={id}
         className="cc-input"
         value={draft}
+        disabled={disabled}
+        title={disabled ? disabledReason : undefined}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {

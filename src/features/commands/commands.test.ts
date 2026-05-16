@@ -178,6 +178,7 @@ function createCommandContext(
     actions?: Partial<EditorCommandContext["actions"]>;
   } = {},
 ): EditorCommandContext {
+  const { actions, ...contextPatch } = patch;
   return {
     selectedNodeIds: [],
     selectedCanvasNodeIds: [],
@@ -188,7 +189,8 @@ function createCommandContext(
     isAutoLayoutRunning: false,
     canUndo: false,
     canRedo: false,
-    ...patch,
+    ...contextPatch,
+    canEditSourceModel: contextPatch.canEditSourceModel ?? true,
     actions: {
       addRoot: () => {},
       addLabel: () => {},
@@ -212,7 +214,7 @@ function createCommandContext(
       cancelTransientPreview: () => {},
       undo: () => {},
       redo: () => {},
-      ...patch.actions,
+      ...actions,
     },
   };
 }

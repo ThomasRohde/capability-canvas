@@ -28,6 +28,22 @@ describe("document JSON adapter", () => {
     expect(serializeDocument(parsed.doc!)).toEqual(wire);
   });
 
+  it("round-trips optional source-lock access metadata", () => {
+    const doc = {
+      ...createSampleDocument(),
+      access: {
+        sourceLocked: true,
+        sourceLabel: "Published release",
+        reason: "Published releases are managed upstream.",
+      },
+    };
+
+    const parsed = parseDocument(serializeDocument(doc));
+
+    expect(parsed.doc?.access).toEqual(doc.access);
+    expect(serializeDocument(parsed.doc!).access).toEqual(doc.access);
+  });
+
   it("round-trips canvas label nodes with shape and font styling", () => {
     const result = runTransaction(
       createSampleDocument(),

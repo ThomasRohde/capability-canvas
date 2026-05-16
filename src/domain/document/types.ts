@@ -195,6 +195,12 @@ export interface VisualWorkspace {
   [key: string]: unknown;
 }
 
+export interface DocumentAccessState {
+  sourceLocked: boolean;
+  sourceLabel?: string;
+  reason?: string;
+}
+
 export interface CapabilityDocument {
   schema: typeof DOCUMENT_SCHEMA;
   version: typeof DOCUMENT_VERSION;
@@ -204,6 +210,7 @@ export interface CapabilityDocument {
   layout: LayoutMetadata;
   heatmap: HeatmapState;
   visual: VisualWorkspace;
+  access?: DocumentAccessState;
   timestamp: number;
   title: string;
 }
@@ -216,6 +223,7 @@ export interface WireDocument {
   layout: LayoutMetadata;
   heatmap: HeatmapState;
   visual?: VisualWorkspace;
+  access?: DocumentAccessState;
   timestamp: number;
   title?: string;
 }

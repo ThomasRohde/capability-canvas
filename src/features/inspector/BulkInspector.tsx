@@ -9,6 +9,12 @@ import type {
   CapabilityDocument,
   CapabilityNode,
 } from "../../domain/document/types";
+import {
+  AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isAutomaticLayoutMode,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { canMultiSelect } from "../../domain/selection/rules";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { BulkNumberField, CommitNumberInput } from "../shared/CommitTextInput";
@@ -35,6 +41,9 @@ export function BulkInspector({
     .map((nodeId) => viewDoc.nodesById[nodeId])
     .filter((node): node is CapabilityNode => !!node);
   const allowed = canMultiSelect(viewDoc, selected, { hierarchy: "canvas" });
+  const sourceEditable = isSourceModelEditable(doc);
+  const sourceLockReason =
+    doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
 
   return (
     <>
@@ -49,8 +58,15 @@ export function BulkInspector({
             selected={selected}
             nodes={selectedNodes}
             viewDoc={viewDoc}
+            disabled={!sourceEditable}
+            disabledReason={sourceLockReason}
           />
-          <BulkHeatmapEditor selected={selected} nodes={selectedNodes} />
+          <BulkHeatmapEditor
+            selected={selected}
+            nodes={selectedNodes}
+            disabled={!sourceEditable}
+            disabledReason={sourceLockReason}
+          />
         </>
       ) : tab === "layout" ? (
         <BulkLayoutEditor
@@ -89,10 +105,14 @@ export function BulkColorEditor({
   selected,
   nodes,
   viewDoc,
+  disabled,
+  disabledReason,
 }: {
   selected: string[];
   nodes: CapabilityNode[];
   viewDoc: CapabilityDocument;
+  disabled: boolean;
+  disabledReason?: string;
 }) {
   const execute = useDocumentStore((state) => state.execute);
   const activeColor = commonValue(
@@ -110,9 +130,11 @@ export function BulkColorEditor({
       <ColorSwatchMatrix
         activeColor={activeColor}
         colorPalette={viewDoc.settings.colorPalette}
+        disabled={disabled}
         labelForColor={(color) => `Set selected color ${color}`}
         onSelect={(color) => execute(updateNodeColors(selected, color))}
       />
+      {disabled && <span className="cc-field-hint">{disabledReason}</span>}
     </div>
   );
 }
@@ -120,9 +142,13 @@ export function BulkColorEditor({
 export function BulkHeatmapEditor({
   selected,
   nodes,
+  disabled,
+  disabledReason,
 }: {
   selected: string[];
   nodes: CapabilityNode[];
+  disabled: boolean;
+  disabledReason?: string;
 }) {
   const execute = useDocumentStore((state) => state.execute);
   const heatmapValue = commonValue(nodes.map((node) => node.heatmapValue));
@@ -134,6 +160,8 @@ export function BulkHeatmapEditor({
         <button
           className="cc-status-link-btn"
           type="button"
+          disabled={disabled}
+          title={disabled ? disabledReason : undefined}
           onClick={() => execute(updateNodeHeatmapValues(selected, undefined))}
         >
           Clear selected
@@ -148,8 +176,11 @@ export function BulkHeatmapEditor({
         value={
           heatmapValue === "" || heatmapValue === undefined ? "" : heatmapValue
         }
+        disabled={disabled}
+        title={disabled ? disabledReason : undefined}
         onCommit={(value) => execute(updateNodeHeatmapValues(selected, value))}
       />
+      {disabled && <span className="cc-field-hint">{disabledReason}</span>}
     </div>
   );
 }
@@ -170,7 +201,10 @@ export function BulkLayoutEditor({
   const noneManual = nodes.every((node) => !node.isManualPositioningEnabled);
   const allLocked = nodes.every((node) => node.isLockedAsIs);
   const anyLocked = nodes.some((node) => node.isLockedAsIs);
-  const resizeTitle = anyLocked
+  const directGeometryBlocked = isAutomaticLayoutMode(doc.settings.layoutMode);
+  const resizeTitle = directGeometryBlocked
+    ? AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE
+    : anyLocked
     ? "Preserved capabilities cannot be resized."
     : undefined;
   return (
@@ -215,7 +249,7 @@ export function BulkLayoutEditor({
           id="bulk-layout-width"
           label="W"
           value={width}
-          disabled={anyLocked}
+          disabled={directGeometryBlocked || anyLocked}
           title={resizeTitle}
           onCommit={(w) =>
             execute(updateNodeSizes(selected, { w: Math.max(1, w) }))
@@ -225,7 +259,7 @@ export function BulkLayoutEditor({
           id="bulk-layout-height"
           label="H"
           value={height}
-          disabled={anyLocked}
+          disabled={directGeometryBlocked || anyLocked}
           title={resizeTitle}
           onCommit={(h) =>
             execute(updateNodeSizes(selected, { h: Math.max(1, h) }))

@@ -559,6 +559,12 @@ test('views drawer remains readable on a narrow viewport', async ({ page }) => {
 
 test('bulk-selects sibling leaves, aligns, undoes and redoes', async ({ page }) => {
   await gotoEditor(page);
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const layoutMode = page.getByLabel('Layout mode', { exact: true });
+  await layoutMode.selectOption('free');
+  await expect(layoutMode).toHaveValue('free');
+  await page.getByRole('button', { name: 'Close settings' }).click();
+
   const canvas = page.getByTestId('canvas');
   const nodeX = (nodeId: string) =>
     page

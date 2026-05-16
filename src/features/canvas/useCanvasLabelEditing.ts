@@ -12,6 +12,7 @@ import {
   type NodeId,
 } from "../../domain/document/types";
 import { normalizeNodeLabel } from "../../domain/document/labels";
+import { evaluateCanvasLayoutIntent } from "../../domain/layout/canvasLayoutPolicy";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useTransientStore } from "../../app/stores/transientStore";
 import { useUiStore } from "../../app/stores/uiStore";
@@ -31,6 +32,7 @@ export function useCanvasLabelEditing({
 }) {
   const execute = useDocumentStore((state) => state.execute);
   const setSelection = useUiStore((state) => state.setSelection);
+  const showSelectionNotice = useUiStore((state) => state.showSelectionNotice);
   const labelEditRequest = useUiStore((state) => state.labelEditRequest);
   const clearLabelEditRequest = useUiStore(
     (state) => state.clearLabelEditRequest,
@@ -59,6 +61,17 @@ export function useCanvasLabelEditing({
   const startLabelEdit = useCallback(
     (nodeId: NodeId) => {
       if (readonly) return;
+      const editIntent = evaluateCanvasLayoutIntent({
+        doc,
+        action: "rename",
+        rootNodeIds: [nodeId],
+      });
+      if (!editIntent.allowed) {
+        showSelectionNotice(
+          editIntent.message ?? "This capability cannot be renamed right now.",
+        );
+        return;
+      }
       const sourceNode = doc.nodesById[nodeId];
       const viewNode = viewDoc.nodesById[nodeId];
       if (!sourceNode || !viewNode || !isNodeOnCanvas(viewNode)) return;
@@ -70,9 +83,10 @@ export function useCanvasLabelEditing({
     },
     [
       closeContextMenu,
-      doc.nodesById,
+      doc,
       readonly,
       setSelection,
+      showSelectionNotice,
       viewDoc.nodesById,
     ],
   );

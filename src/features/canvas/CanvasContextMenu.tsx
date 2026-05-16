@@ -18,6 +18,8 @@ export function CanvasContextMenu({
   hasCanvasChildren,
   hasSourceChildren,
   isCollapsed,
+  canEditSourceModel,
+  sourceEditReason,
   onKeyDown,
   onInspect,
   onAddChild,
@@ -35,6 +37,8 @@ export function CanvasContextMenu({
   hasCanvasChildren: boolean;
   hasSourceChildren: boolean;
   isCollapsed: boolean;
+  canEditSourceModel: boolean;
+  sourceEditReason?: string;
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onInspect: (nodeId: NodeId) => void;
   onAddChild: (nodeId: NodeId) => void;
@@ -72,6 +76,8 @@ export function CanvasContextMenu({
         <button
           type="button"
           role="menuitem"
+          disabled={!canEditSourceModel}
+          title={!canEditSourceModel ? sourceEditReason : undefined}
           onClick={() => onAddChild(menu.nodeId)}
         >
           Add child
@@ -80,6 +86,8 @@ export function CanvasContextMenu({
       <button
         type="button"
         role="menuitem"
+        disabled={!canEditSourceModel}
+        title={!canEditSourceModel ? sourceEditReason : undefined}
         onClick={() => onDuplicate(menu.nodeId)}
       >
         Duplicate
@@ -97,6 +105,8 @@ export function CanvasContextMenu({
         <button
           type="button"
           role="menuitem"
+          disabled={!canEditSourceModel}
+          title={!canEditSourceModel ? sourceEditReason : undefined}
           onClick={() => onImportAiJson(menu.nodeId)}
         >
           Import AI JSON...
@@ -131,6 +141,8 @@ export function CanvasContextMenu({
         type="button"
         role="menuitem"
         className="danger"
+        disabled={!canEditSourceModel}
+        title={!canEditSourceModel ? sourceEditReason : undefined}
         onClick={() => onDeleteFromModel(menu.nodeId)}
       >
         Delete from model

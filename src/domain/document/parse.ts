@@ -53,6 +53,7 @@ export function parseDocument(input: unknown): ParseResult {
       : undefined,
   };
   doc.heatmap = { ...DEFAULT_HEATMAP, ...parsed.data.heatmap };
+  doc.access = parsed.data.access ? { ...parsed.data.access } : undefined;
   doc.timestamp = parsed.data.timestamp;
 
   const idCounts = new Map<string, number>();

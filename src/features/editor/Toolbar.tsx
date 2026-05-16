@@ -80,6 +80,16 @@ export function Toolbar() {
     "model.add-child",
     commandContext,
   );
+  const addRootAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "model.add-root",
+    commandContext,
+  );
+  const addLabelAvailable = getEditorCommandAvailability(
+    commandRegistry,
+    "model.add-label",
+    commandContext,
+  );
   const autoLayoutAvailable = getEditorCommandAvailability(
     commandRegistry,
     "layout.auto-layout",
@@ -255,6 +265,7 @@ export function Toolbar() {
             className="cc-btn"
             type="button"
             aria-label="Add root"
+            disabled={!addRootAvailable?.valid}
             onClick={editorActions.addRoot}
           >
             <Plus />
@@ -264,6 +275,7 @@ export function Toolbar() {
             className="cc-btn"
             type="button"
             aria-label="Add label"
+            disabled={!addLabelAvailable?.valid}
             onClick={editorActions.addLabel}
           >
             <Type />

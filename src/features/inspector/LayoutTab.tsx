@@ -10,6 +10,10 @@ import {
   isCanvasLabelNode,
   type CapabilityNode,
 } from "../../domain/document/types";
+import {
+  AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
+  isAutomaticLayoutMode,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { snapCoordinate } from "../../domain/layout/grid";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { showManualPositioningNoticeForDiagnostics } from "../shared/layoutIntentNotice";
@@ -19,6 +23,10 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
   const execute = useDocumentStore((state) => state.execute);
   const snap = (value: number) => snapCoordinate(doc, value);
   const isLabel = isCanvasLabelNode(node);
+  const directGeometryBlocked = isAutomaticLayoutMode(doc.settings.layoutMode);
+  const geometryTitle = directGeometryBlocked
+    ? AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE
+    : undefined;
   return (
     <>
       {!isLabel && (
@@ -72,6 +80,8 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           key={`x-${node.id}-${node.x}`}
           label="X"
           value={node.x}
+          disabled={directGeometryBlocked}
+          title={geometryTitle}
           onCommit={(x) => {
             const delta = snap(x) - node.x;
             if (delta !== 0)
@@ -88,6 +98,8 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           key={`y-${node.id}-${node.y}`}
           label="Y"
           value={node.y}
+          disabled={directGeometryBlocked}
+          title={geometryTitle}
           onCommit={(y) => {
             const delta = snap(y) - node.y;
             if (delta !== 0)
@@ -104,9 +116,11 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           key={`w-${node.id}-${node.w}`}
           label="W"
           value={node.w}
-          disabled={node.isLockedAsIs}
+          disabled={node.isLockedAsIs || directGeometryBlocked}
           title={
-            node.isLockedAsIs ? "Preserved nodes cannot be resized." : undefined
+            node.isLockedAsIs
+              ? "Preserved nodes cannot be resized."
+              : geometryTitle
           }
           onCommit={(w) => {
             const next =
@@ -120,9 +134,11 @@ export function LayoutTab({ node }: { node: CapabilityNode }) {
           key={`h-${node.id}-${node.h}`}
           label="H"
           value={node.h}
-          disabled={node.isLockedAsIs}
+          disabled={node.isLockedAsIs || directGeometryBlocked}
           title={
-            node.isLockedAsIs ? "Preserved nodes cannot be resized." : undefined
+            node.isLockedAsIs
+              ? "Preserved nodes cannot be resized."
+              : geometryTitle
           }
           onCommit={(h) => {
             const next =

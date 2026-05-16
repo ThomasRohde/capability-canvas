@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createNode } from "../document/defaults";
 import { createSampleDocument } from "../fixtures/sample";
-import { evaluateCanvasLayoutIntent } from "./canvasLayoutPolicy";
+import {
+  AUTOMATIC_LAYOUT_GEOMETRY_LOCKED,
+  SOURCE_LOCKED_SEMANTIC_EDIT_BLOCKED,
+  evaluateCanvasLayoutIntent,
+  isSourceModelEditable,
+} from "./canvasLayoutPolicy";
 
 describe("canvas layout action policy", () => {
-  it("enables the arranging parent for direct child movement in automatic modes", () => {
+  it("blocks direct child movement in automatic modes", () => {
     const doc = createSampleDocument();
     doc.settings.layoutMode = "adaptive";
 
@@ -14,13 +19,13 @@ describe("canvas layout action policy", () => {
       rootNodeIds: ["digital-onboarding"],
     });
 
-    expect(result.allowed).toBe(true);
-    expect(result.manualParentIdsToEnable).toEqual(["digital"]);
-    expect(result.diagnosticCode).toBe("manual-positioning-enabled-by-move");
+    expect(result.allowed).toBe(false);
+    expect(result.manualParentIdsToEnable).toEqual([]);
+    expect(result.diagnosticCode).toBe(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED);
     expect(result.skipAutoRelayout).toBe(true);
   });
 
-  it("does not enable Manual again when the parent is already Manual", () => {
+  it("blocks keyboard movement in automatic modes even when the parent is already Manual", () => {
     const doc = createSampleDocument();
     doc.settings.layoutMode = "uniform";
     doc.nodesById.digital = {
@@ -34,12 +39,12 @@ describe("canvas layout action policy", () => {
       rootNodeIds: ["digital-onboarding"],
     });
 
-    expect(result.allowed).toBe(true);
+    expect(result.allowed).toBe(false);
     expect(result.manualParentIdsToEnable).toEqual([]);
-    expect(result.diagnosticCode).toBeUndefined();
+    expect(result.diagnosticCode).toBe(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED);
   });
 
-  it("does not enable Manual in Freeform mode", () => {
+  it("allows direct movement in Freeform mode without enabling per-parent Manual", () => {
     const doc = createSampleDocument();
     doc.settings.layoutMode = "free";
 
@@ -54,27 +59,27 @@ describe("canvas layout action policy", () => {
     expect(result.skipAutoRelayout).toBe(true);
   });
 
-  it("does not enable Manual when the arranging parent is already locked", () => {
+  it("blocks resize in automatic modes", () => {
     const doc = createSampleDocument();
     doc.settings.layoutMode = "balanced";
-    doc.nodesById.digital = {
-      ...doc.nodesById.digital!,
-      isLockedAsIs: true,
-    };
 
     const result = evaluateCanvasLayoutIntent({
       doc,
-      action: "move",
+      action: "resize",
       rootNodeIds: ["digital-onboarding"],
     });
 
-    expect(result.allowed).toBe(true);
+    expect(result.allowed).toBe(false);
+    expect(result.diagnosticCode).toBe(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED);
     expect(result.manualParentIdsToEnable).toEqual([]);
   });
 
-  it("does not set Manual for root movement", () => {
+  it("allows root movement in Freeform mode without enabling per-parent Manual", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "free";
+
     const result = evaluateCanvasLayoutIntent({
-      doc: createSampleDocument(),
+      doc,
       action: "move",
       rootNodeIds: ["retail-banking"],
     });
@@ -83,31 +88,40 @@ describe("canvas layout action policy", () => {
     expect(result.manualParentIdsToEnable).toEqual([]);
   });
 
-  it("uses only selected movement roots, not their descendants, for Manual scope", () => {
+  it("does not use descendants to create hidden Manual scopes in Freeform mode", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "free";
+
     const result = evaluateCanvasLayoutIntent({
-      doc: createSampleDocument(),
+      doc,
       action: "move",
       rootNodeIds: ["operations"],
     });
 
     expect(result.allowed).toBe(true);
-    expect(result.manualParentIdsToEnable).toEqual(["retail-banking"]);
+    expect(result.manualParentIdsToEnable).toEqual([]);
   });
 
   it("deduplicates the shared arranging parent for sibling multi-select movement", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "free";
+
     const result = evaluateCanvasLayoutIntent({
-      doc: createSampleDocument(),
+      doc,
       action: "keyboard-nudge",
       rootNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
     });
 
     expect(result.allowed).toBe(true);
-    expect(result.manualParentIdsToEnable).toEqual(["risk"]);
+    expect(result.manualParentIdsToEnable).toEqual([]);
   });
 
   it("rejects mixed-parent movement selections", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "free";
+
     const result = evaluateCanvasLayoutIntent({
-      doc: createSampleDocument(),
+      doc,
       action: "move",
       rootNodeIds: ["credit-risk", "process-management"],
     });
@@ -116,7 +130,7 @@ describe("canvas layout action policy", () => {
     expect(result.diagnosticCode).toBe("invalid-selection");
   });
 
-  it("enables the destination parent for drag reparenting in automatic modes", () => {
+  it("allows explicit reparenting in automatic modes without direct geometry scope", () => {
     const result = evaluateCanvasLayoutIntent({
       doc: createSampleDocument(),
       action: "reparent",
@@ -193,6 +207,46 @@ describe("canvas layout action policy", () => {
 
     expect(result.allowed).toBe(true);
     expect(result.requestAutoRelayout).toBe(false);
+    expect(result.skipAutoRelayout).toBe(true);
+  });
+
+  it("detects editable and source-locked source models", () => {
+    const editable = createSampleDocument();
+    const locked = {
+      ...createSampleDocument(),
+      access: { sourceLocked: true },
+    };
+
+    expect(isSourceModelEditable(editable)).toBe(true);
+    expect(isSourceModelEditable(locked)).toBe(false);
+  });
+
+  it("blocks semantic edits on source-locked models", () => {
+    const doc = createSampleDocument();
+    doc.access = { sourceLocked: true };
+
+    const result = evaluateCanvasLayoutIntent({
+      doc,
+      action: "add-child",
+      rootNodeIds: ["risk"],
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.diagnosticCode).toBe(SOURCE_LOCKED_SEMANTIC_EDIT_BLOCKED);
+  });
+
+  it("permits visual movement on source-locked models in Freeform mode", () => {
+    const doc = createSampleDocument();
+    doc.settings.layoutMode = "free";
+    doc.access = { sourceLocked: true };
+
+    const result = evaluateCanvasLayoutIntent({
+      doc,
+      action: "move",
+      rootNodeIds: ["credit-risk"],
+    });
+
+    expect(result.allowed).toBe(true);
     expect(result.skipAutoRelayout).toBe(true);
   });
 });

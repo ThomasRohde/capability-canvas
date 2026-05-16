@@ -14,6 +14,7 @@ import {
   isCanvasLabelNode,
   type NodeId,
 } from "../../domain/document/types";
+import { evaluateCanvasLayoutIntent } from "../../domain/layout/canvasLayoutPolicy";
 import {
   findDropTarget,
   isAcceptableDropTarget,
@@ -47,6 +48,7 @@ export function useCanvasNodeInteractions({
 }) {
   const execute = useDocumentStore((state) => state.execute);
   const setSelection = useUiStore((state) => state.setSelection);
+  const showSelectionNotice = useUiStore((state) => state.showSelectionNotice);
 
   const nodeIdsWithDescendants = useCallback(
     (nodeIds: NodeId[]) => {
@@ -87,6 +89,11 @@ export function useCanvasNodeInteractions({
       }
       if (readonly) return;
       const selectionRoots = selected.includes(nodeId) ? selected : [nodeId];
+      const moveIntent = evaluateCanvasLayoutIntent({
+        doc: viewDoc,
+        action: "move",
+        rootNodeIds: selectionRoots,
+      });
       const dragRootId = nodeId;
       const activeSelection = nodeIdsWithDescendants(selectionRoots);
       const draggedSet = new Set(activeSelection);
@@ -108,6 +115,13 @@ export function useCanvasNodeInteractions({
         const screenDy = move.clientY - dragStart.startY;
         if (!useTransientStore.getState().drag) {
           if (Math.abs(screenDx) <= 2 && Math.abs(screenDy) <= 2) return;
+          if (!moveIntent.allowed) {
+            showSelectionNotice(
+              moveIntent.message ?? "This capability cannot be moved right now.",
+            );
+            stopListening();
+            return;
+          }
           useTransientStore.getState().startDrag(dragStart);
         }
         const current = useTransientStore.getState().drag;
@@ -191,6 +205,10 @@ export function useCanvasNodeInteractions({
             );
           }
         }
+        stopListening();
+      };
+
+      const stopListening = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
@@ -208,6 +226,7 @@ export function useCanvasNodeInteractions({
       readonly,
       selected,
       setSelection,
+      showSelectionNotice,
       viewDoc,
       viewport,
     ],
@@ -216,6 +235,18 @@ export function useCanvasNodeInteractions({
   const handleResizePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLSpanElement>, node: CapabilityNode) => {
       event.stopPropagation();
+      if (readonly) return;
+      const resizeIntent = evaluateCanvasLayoutIntent({
+        doc: viewDoc,
+        action: "resize",
+        rootNodeIds: [node.id],
+      });
+      if (!resizeIntent.allowed) {
+        showSelectionNotice(
+          resizeIntent.message ?? "This capability cannot be resized right now.",
+        );
+        return;
+      }
       const startClientX = event.clientX;
       const startClientY = event.clientY;
       useTransientStore.getState().startResize({
@@ -259,7 +290,7 @@ export function useCanvasNodeInteractions({
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [execute, viewDoc, viewport],
+    [execute, readonly, showSelectionNotice, viewDoc, viewport],
   );
 
   return {

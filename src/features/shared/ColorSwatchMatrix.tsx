@@ -18,11 +18,13 @@ type ColorMatrixStyle = CSSProperties & {
 export function ColorSwatchMatrix({
   activeColor,
   colorPalette,
+  disabled = false,
   labelForColor,
   onSelect,
 }: {
   activeColor?: CapabilityColor | "";
   colorPalette: ColorPalette;
+  disabled?: boolean;
   labelForColor: (color: CapabilityColor) => string;
   onSelect: (color: CapabilityColor) => void;
 }) {
@@ -43,6 +45,7 @@ export function ColorSwatchMatrix({
             aria-pressed={activeColor === color}
             className={`cc-color-swatch ${activeColor === color ? "on" : ""}`}
             title={label}
+            disabled={disabled}
             style={{
               color: style.isTransparent
                 ? "var(--cc-slate-400)"

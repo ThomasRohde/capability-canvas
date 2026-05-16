@@ -112,6 +112,28 @@ describe("editor shell", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows layout mode and source-lock state in the status bar", () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        access: { sourceLocked: true },
+      },
+    });
+
+    renderEditor();
+
+    expect(
+      screen.getByLabelText("Layout mode Automatic layout: Uniform"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Model editability Source locked"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add root" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add label" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add child" })).toBeDisabled();
+  });
+
   it("opens the command palette by keyboard and explains disabled commands", async () => {
     useUiStore.setState({ selectedNodeIds: [] });
     renderEditor();
@@ -245,7 +267,7 @@ describe("editor shell", () => {
       within(dialog).getByText("Open the selected capability context menu"),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByText(/direct parent switches to Manual/),
+      within(dialog).getByText(/Switch to Manual \/ Freeform before dragging/),
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(/Freeform preserves current positions/),

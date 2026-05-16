@@ -11,6 +11,10 @@ import type {
   LabelShape,
   VisualNodeState,
 } from "../../domain/document/types";
+import {
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { ColorSwatchMatrix } from "../shared/ColorSwatchMatrix";
 import {
@@ -50,9 +54,13 @@ export function PropertiesTab({
   activeViewState?: VisualNodeState;
 }) {
   const execute = useDocumentStore((state) => state.execute);
+  const doc = useDocumentStore((state) => state.doc);
   const colorPalette = useDocumentStore(
     (state) => state.doc.settings.colorPalette,
   );
+  const sourceEditable = isSourceModelEditable(doc);
+  const sourceLockReason =
+    doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
   const isLabel = isCanvasLabelNode(node);
   return (
     <>
@@ -62,12 +70,17 @@ export function PropertiesTab({
         viewNode={viewNode}
         activeViewState={activeViewState}
       />
+      {!sourceEditable && (
+        <div className="cc-info-card warning">{sourceLockReason}</div>
+      )}
       <div className="cc-field">
         <label htmlFor="node-label">Label</label>
         <CommitTextInput
           id="node-label"
           className="cc-input"
           value={node.label}
+          disabled={!sourceEditable}
+          title={!sourceEditable ? sourceLockReason : undefined}
           normalize={normalizeNodeLabel}
           onCommit={(label) => execute(updateNode(node.id, { label }))}
         />
@@ -79,6 +92,8 @@ export function PropertiesTab({
             id="node-description"
             className="cc-textarea"
             value={node.description ?? ""}
+            disabled={!sourceEditable}
+            title={!sourceEditable ? sourceLockReason : undefined}
             onCommit={(description) =>
               execute(updateNode(node.id, { description }))
             }
@@ -86,11 +101,19 @@ export function PropertiesTab({
           />
         </div>
       )}
-      {isLabel && <LabelStyleEditor node={node} />}
+      {isLabel && (
+        <LabelStyleEditor
+          node={node}
+          disabled={!sourceEditable}
+          disabledReason={sourceLockReason}
+        />
+      )}
       <ColorEditor
         node={node}
         viewNode={viewNode}
         colorPalette={colorPalette}
+        disabled={!sourceEditable}
+        disabledReason={sourceLockReason}
       />
       {!isLabel && (
         <>
@@ -103,6 +126,8 @@ export function PropertiesTab({
               max={1}
               step={0.01}
               value={node.heatmapValue ?? ""}
+              disabled={!sourceEditable}
+              title={!sourceEditable ? sourceLockReason : undefined}
               onCommit={(heatmapValue) =>
                 execute(updateNode(node.id, { heatmapValue }))
               }
@@ -121,7 +146,15 @@ export function PropertiesTab({
   );
 }
 
-function LabelStyleEditor({ node }: { node: CapabilityNode }) {
+function LabelStyleEditor({
+  node,
+  disabled,
+  disabledReason,
+}: {
+  node: CapabilityNode;
+  disabled: boolean;
+  disabledReason?: string;
+}) {
   const execute = useDocumentStore((state) => state.execute);
   const documentFont = useDocumentStore((state) => state.doc.settings.fontFamily);
   const textStyle = node.textStyle ?? {};
@@ -144,6 +177,8 @@ function LabelStyleEditor({ node }: { node: CapabilityNode }) {
               key={shape.value}
               type="button"
               className={(textStyle.shape ?? "none") === shape.value ? "on" : ""}
+              disabled={disabled}
+              title={disabled ? disabledReason : undefined}
               onClick={() => updateTextStyle({ shape: shape.value })}
             >
               {shape.label}
@@ -157,6 +192,8 @@ function LabelStyleEditor({ node }: { node: CapabilityNode }) {
           id="label-font-family"
           className="cc-select"
           value={selectedFont}
+          disabled={disabled}
+          title={disabled ? disabledReason : undefined}
           onChange={(event) =>
             updateTextStyle({ fontFamily: event.currentTarget.value })
           }
@@ -177,6 +214,8 @@ function LabelStyleEditor({ node }: { node: CapabilityNode }) {
           max={72}
           step={1}
           value={textStyle.fontSize ?? 14}
+          disabled={disabled}
+          title={disabled ? disabledReason : undefined}
           onCommit={(fontSize) => updateTextStyle({ fontSize: fontSize ?? 14 })}
         />
       </div>
@@ -198,10 +237,14 @@ function ColorEditor({
   node,
   viewNode,
   colorPalette,
+  disabled,
+  disabledReason,
 }: {
   node: CapabilityNode;
   viewNode: CapabilityNode;
   colorPalette: ColorPalette;
+  disabled: boolean;
+  disabledReason?: string;
 }) {
   const execute = useDocumentStore((state) => state.execute);
   const usesLeafDefault = viewNode.type === "leaf" && !isTextLabelNode(viewNode);
@@ -217,6 +260,8 @@ function ColorEditor({
             type="button"
             aria-label="Use default leaf color"
             className="cc-btn"
+            disabled={disabled}
+            title={disabled ? disabledReason : undefined}
             onClick={() =>
               execute(updateNode(node.id, { colorOverride: undefined }))
             }
@@ -227,6 +272,7 @@ function ColorEditor({
         <ColorSwatchMatrix
           activeColor={activeColor}
           colorPalette={colorPalette}
+          disabled={disabled}
           labelForColor={(color) => `Set color ${color}`}
           onSelect={(color) => execute(updateNode(node.id, { color }))}
         />

@@ -2,7 +2,6 @@ import {
   addChild,
   deleteNodes,
   reparentNode,
-  resizeNode,
 } from "../domain/commands/operations";
 import type { Transaction } from "../domain/commands/types";
 import { createEmptyDocument, createNode } from "../domain/document/defaults";
@@ -15,7 +14,6 @@ import { useDocumentStore } from "../app/stores/documentStore";
 export const SCOPED_RELAYOUT_CASES: Array<[string, () => Transaction]> = [
   ["add", () => addChild("a-group")],
   ["delete", () => deleteNodes(["a-leaf-2"])],
-  ["resize", () => resizeNode("a-group", 520, 220)],
   ["reparent", () => reparentNode("a-leaf-2", "root-a")],
 ];
 

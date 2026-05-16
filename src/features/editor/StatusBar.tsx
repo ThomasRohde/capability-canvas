@@ -11,6 +11,10 @@ import { useEffect, useState } from "react";
 import { APP_VERSION } from "../../app/version";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
+import {
+  isAutomaticLayoutMode,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { IconButton } from "../shared/IconButton";
 
 export function StatusBar({ readonly = false }: { readonly?: boolean }) {
@@ -50,6 +54,12 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
   const saveText = readonly
     ? { primary: "Read-only view", secondary: "Read-only" }
     : statusText(saveStatus, lastSaveError, lastRestoredAt);
+  const layoutModeLabel = formatLayoutMode(doc.settings.layoutMode);
+  const editableLabel = readonly
+    ? "Read-only route"
+    : isSourceModelEditable(doc)
+      ? "Source editable"
+      : "Source locked";
 
   useEffect(() => {
     if (!selectionNotice) return;
@@ -71,6 +81,21 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       <span>{saveText.primary}</span>
       <span className="cc-divider" style={{ height: 14 }} />
       <span>{saveText.secondary}</span>
+      <span className="cc-divider" style={{ height: 14 }} />
+      <span
+        className="cc-status-chip"
+        aria-label={`Layout mode ${layoutModeLabel}`}
+      >
+        {layoutModeLabel}
+      </span>
+      <span
+        className={`cc-status-chip ${
+          readonly || !isSourceModelEditable(doc) ? "locked" : ""
+        }`}
+        aria-label={`Model editability ${editableLabel}`}
+      >
+        {editableLabel}
+      </span>
       {diagnostics.length > 0 && (
         <>
           <span className="cc-divider" style={{ height: 14 }} />
@@ -200,6 +225,14 @@ export function StatusBar({ readonly = false }: { readonly?: boolean }) {
       )}
     </footer>
   );
+}
+
+function formatLayoutMode(mode: ReturnType<typeof useDocumentStore.getState>["doc"]["settings"]["layoutMode"]): string {
+  if (mode === "free") return "Manual layout: Freeform";
+  const label = `${mode.slice(0, 1).toUpperCase()}${mode.slice(1)}`;
+  return isAutomaticLayoutMode(mode)
+    ? `Automatic layout: ${label}`
+    : `Layout: ${label}`;
 }
 
 function statusText(

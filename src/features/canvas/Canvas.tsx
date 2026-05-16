@@ -23,6 +23,10 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
+import {
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
@@ -169,6 +173,9 @@ export function Canvas({
         (childId) => !isCanvasLabelNode(viewDoc.nodesById[childId]),
       )
     : false;
+  const canEditSourceModel = isSourceModelEditable(doc);
+  const sourceEditReason =
+    doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
 
   const handleNodeRef = useCallback(
     (nodeId: NodeId, element: HTMLDivElement | null) => {
@@ -383,6 +390,8 @@ export function Canvas({
           hasCanvasChildren={contextHasCanvasChildren}
           hasSourceChildren={contextHasSourceChildren}
           isCollapsed={!!contextViewState?.isCollapsed}
+          canEditSourceModel={canEditSourceModel}
+          sourceEditReason={sourceEditReason}
           onKeyDown={handleContextMenuKeyDown}
           onInspect={inspectNode}
           onAddChild={(nodeId) => {

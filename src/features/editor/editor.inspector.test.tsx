@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { lockSubtree } from "../../domain/commands/operations";
-import { MANUAL_POSITIONING_NOTICE } from "../../domain/layout/canvasLayoutPolicy";
+import type { CapabilityDocument } from "../../domain/document/types";
 import { resolveVisualDocument } from "../../domain/visual/workspace";
 import { installEditorTestHooks, renderEditor } from "../../test/editorHarness";
 
@@ -60,6 +60,7 @@ describe("editor inspector workflows", () => {
   });
 
   it("clarifies preserved layout and disables size fields for locked nodes", () => {
+    setStoreLayoutMode("free");
     useDocumentStore.getState().execute(lockSubtree("risk", true));
     useUiStore.setState({ selectedNodeIds: ["risk"], inspectorTab: "layout" });
 
@@ -83,7 +84,8 @@ describe("editor inspector workflows", () => {
     expect(screen.getByLabelText("H")).toBeDisabled();
   });
 
-  it("switches the arranging parent to Manual after numeric X/Y movement", () => {
+  it("commits numeric X/Y movement in Freeform without parent mode conversion", () => {
+    setStoreLayoutMode("free");
     useUiStore.setState({
       selectedNodeIds: ["digital-onboarding"],
       inspectorTab: "layout",
@@ -99,9 +101,8 @@ describe("editor inspector workflows", () => {
     expect(after.nodesById["digital-onboarding"]!.x).toBe(
       before.nodesById["digital-onboarding"]!.x + 16,
     );
-    expect(after.nodesById.digital!.isManualPositioningEnabled).toBe(true);
+    expect(after.nodesById.digital!.isManualPositioningEnabled).toBe(false);
     expect(useDocumentStore.getState().past).toHaveLength(1);
-    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
   });
 
   it("shows source model and active view status in the inspector", () => {
@@ -122,6 +123,33 @@ describe("editor inspector workflows", () => {
     expect(within(inspector).getByText("Auto layout")).toBeInTheDocument();
   });
 
+  it("marks source-locked inspector source fields read-only", () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        access: {
+          sourceLocked: true,
+          reason: "Published releases are managed upstream.",
+        },
+      },
+    });
+    useUiStore.setState({
+      selectedNodeIds: ["digital-onboarding"],
+      inspectorTab: "inspector",
+    });
+
+    renderEditor();
+
+    expect(
+      screen.getByText("Published releases are managed upstream."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Label")).toBeDisabled();
+    expect(screen.getByLabelText("Description")).toBeDisabled();
+    expect(screen.getByLabelText("Heatmap value")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Set color slate" })).toBeDisabled();
+  });
+
   it("does not apply an Enter-committed inspector label to the next selected parent", async () => {
     useUiStore.setState({
       selectedNodeIds: ["risk"],
@@ -136,7 +164,7 @@ describe("editor inspector workflows", () => {
       within(screen.getByTestId("canvas")).getByText("Operations"),
     );
 
-    const doc = useDocumentStore.getState().doc;
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(doc.nodesById.risk!.label).toBe("Risk renamed");
     expect(doc.nodesById.operations!.label).toBe("Operations");
     expect(screen.getByLabelText("Label")).toHaveValue("Operations");
@@ -201,6 +229,7 @@ describe("editor inspector workflows", () => {
   });
 
   it("shows bulk layout controls for size, manual, and preserve edits", async () => {
+    setStoreLayoutMode("free");
     useUiStore.setState({
       selectedNodeIds: ["credit-risk", "fraud-risk", "operational-risk"],
       inspectorTab: "layout",
@@ -217,7 +246,7 @@ describe("editor inspector workflows", () => {
       }),
     );
 
-    const doc = useDocumentStore.getState().doc;
+    const doc = resolveVisualDocument(useDocumentStore.getState().doc);
     for (const nodeId of ["credit-risk", "fraud-risk", "operational-risk"]) {
       expect(doc.nodesById[nodeId]!.w).toBe(132);
       expect(doc.nodesById[nodeId]!.isManualPositioningEnabled).toBe(true);
@@ -238,3 +267,28 @@ describe("editor inspector workflows", () => {
     expect(screen.queryByLabelText("Heatmap value")).not.toBeInTheDocument();
   });
 });
+
+function setStoreLayoutMode(mode: CapabilityDocument["settings"]["layoutMode"]) {
+  const doc = useDocumentStore.getState().doc;
+  const viewId = doc.visual.activeViewId;
+  const view = doc.visual.viewsById[viewId];
+  useDocumentStore.setState({
+    doc: {
+      ...doc,
+      settings: { ...doc.settings, layoutMode: mode },
+      layout: { ...doc.layout, mode },
+      visual: {
+        ...doc.visual,
+        viewsById: view
+          ? {
+              ...doc.visual.viewsById,
+              [viewId]: {
+                ...view,
+                layout: { ...view.layout, mode },
+              },
+            }
+          : doc.visual.viewsById,
+      },
+    },
+  });
+}

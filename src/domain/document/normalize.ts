@@ -38,7 +38,8 @@ export function cloneDocument(doc: CapabilityDocument): CapabilityDocument {
         : undefined,
     },
     heatmap: { ...doc.heatmap },
-    visual: cloneVisualWorkspace(doc.visual)
+    visual: cloneVisualWorkspace(doc.visual),
+    access: doc.access ? { ...doc.access } : undefined
   };
 }
 

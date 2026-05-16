@@ -266,6 +266,14 @@ export const VisualWorkspaceSchema = z
   })
   .passthrough();
 
+export const DocumentAccessSchema = z
+  .object({
+    sourceLocked: z.boolean().default(false),
+    sourceLabel: z.string().optional(),
+    reason: z.string().optional(),
+  })
+  .passthrough();
+
 export const WireDocumentSchema = z
   .object({
     schema: z.literal(DOCUMENT_SCHEMA),
@@ -279,6 +287,7 @@ export const WireDocumentSchema = z
     layout: LayoutSchema,
     heatmap: HeatmapSchema,
     visual: VisualWorkspaceSchema.optional(),
+    access: DocumentAccessSchema.optional(),
     timestamp: finiteNumber,
     title: z.string().optional(),
   })

@@ -38,6 +38,7 @@ export interface EditorCommandContext {
   selectedCanvasNodeIds: NodeId[];
   visibleSelectableNodeIds: NodeId[];
   selectedNode: CapabilityNode | null;
+  canEditSourceModel: boolean;
   hasFitBounds: boolean;
   importBusy: boolean;
   isAutoLayoutRunning: boolean;
@@ -53,7 +54,10 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       group: "Model",
       label: "Add root",
       keywords: ["capability", "new"],
-      canRun: () => available(),
+      canRun: ({ canEditSourceModel }) =>
+        canEditSourceModel
+          ? available()
+          : unavailable("This source-locked model cannot be changed from this view."),
       run: ({ actions }) => actions.addRoot(),
     },
     {
@@ -61,7 +65,10 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       group: "Model",
       label: "Add label",
       keywords: ["annotation", "note", "text"],
-      canRun: () => available(),
+      canRun: ({ canEditSourceModel }) =>
+        canEditSourceModel
+          ? available()
+          : unavailable("This source-locked model cannot be changed from this view."),
       run: ({ actions }) => actions.addLabel(),
     },
     {
@@ -69,7 +76,9 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       group: "Model",
       label: "Add child",
       keywords: ["capability", "new"],
-      canRun: ({ selectedNode }) => {
+      canRun: ({ selectedNode, canEditSourceModel }) => {
+        if (!canEditSourceModel)
+          return unavailable("This source-locked model cannot be changed from this view.");
         if (!selectedNode) return unavailable("Select a capability first.");
         if (isTextLabelNode(selectedNode))
           return unavailable("Text labels cannot have children.");
@@ -83,7 +92,13 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       label: "Rename selected",
       keywords: ["edit", "label", "name"],
       shortcut: "Enter",
-      canRun: ({ selectedNodeIds, selectedCanvasNodeIds }) => {
+      canRun: ({
+        selectedNodeIds,
+        selectedCanvasNodeIds,
+        canEditSourceModel,
+      }) => {
+        if (!canEditSourceModel)
+          return unavailable("This source-locked model cannot be changed from this view.");
         if (selectedNodeIds.length === 0)
           return unavailable("Select one visible item first.");
         if (selectedNodeIds.length > 1)
@@ -100,8 +115,10 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       label: "Duplicate",
       keywords: ["copy", "clone"],
       shortcut: "Ctrl/Cmd+D",
-      canRun: ({ selectedNodeIds }) =>
-        selectedNodeIds.length > 0
+      canRun: ({ selectedNodeIds, canEditSourceModel }) =>
+        !canEditSourceModel
+          ? unavailable("This source-locked model cannot be changed from this view.")
+          : selectedNodeIds.length > 0
           ? available()
           : unavailable("Select at least one capability first."),
       run: ({ actions }) => actions.duplicateSelected(),
@@ -125,8 +142,10 @@ export function createEditorCommandRegistry(): CommandDefinition<EditorCommandCo
       keywords: ["remove", "source", "permanent"],
       shortcut: "Shift+Delete",
       tone: "danger",
-      canRun: ({ selectedNodeIds }) =>
-        selectedNodeIds.length > 0
+      canRun: ({ selectedNodeIds, canEditSourceModel }) =>
+        !canEditSourceModel
+          ? unavailable("This source-locked model cannot be changed from this view.")
+          : selectedNodeIds.length > 0
           ? available()
           : unavailable("Select at least one capability first."),
       run: ({ actions }) => actions.deleteFromModel(),

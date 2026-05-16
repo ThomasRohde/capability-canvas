@@ -20,6 +20,7 @@ export function serializeDocument(doc: CapabilityDocument): WireDocument {
     },
     heatmap: { ...doc.heatmap },
     visual: doc.visual,
+    access: doc.access ? { ...doc.access } : undefined,
     timestamp: doc.timestamp
   };
 }

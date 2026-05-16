@@ -2,11 +2,19 @@ import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateNode } from "../../domain/commands/operations";
 import type { CapabilityNode } from "../../domain/document/types";
+import {
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { nextMetadataKey } from "./inspectorUtils";
 
 export function DataTab({ node }: { node: CapabilityNode }) {
   const execute = useDocumentStore((state) => state.execute);
+  const doc = useDocumentStore((state) => state.doc);
+  const sourceEditable = isSourceModelEditable(doc);
+  const sourceLockReason =
+    doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
   const metadataText = JSON.stringify(node.metadata, null, 2);
   const [draft, setDraft] = useState(metadataText);
   const [error, setError] = useState<string | null>(null);
@@ -50,10 +58,15 @@ export function DataTab({ node }: { node: CapabilityNode }) {
       </dl>
       <div className="cc-field">
         <label htmlFor="metadata-json">Metadata JSON</label>
+        {!sourceEditable && (
+          <div className="cc-info-card warning">{sourceLockReason}</div>
+        )}
         <textarea
           id="metadata-json"
           className="cc-textarea"
           value={draft}
+          disabled={!sourceEditable}
+          title={!sourceEditable ? sourceLockReason : undefined}
           onChange={(event) => {
             setDraft(event.target.value);
             if (error) setError(null);
@@ -65,6 +78,8 @@ export function DataTab({ node }: { node: CapabilityNode }) {
       <button
         className="cc-btn"
         type="button"
+        disabled={!sourceEditable}
+        title={!sourceEditable ? sourceLockReason : undefined}
         onClick={() =>
           execute(
             updateNode(node.id, {

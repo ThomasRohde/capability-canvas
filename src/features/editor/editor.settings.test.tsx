@@ -259,6 +259,36 @@ describe("editor settings workflows", () => {
     ).toBeUndefined();
   });
 
+  it("keeps source-locked settings source fields read-only while active-view fields stay editable", async () => {
+    const doc = useDocumentStore.getState().doc;
+    useDocumentStore.setState({
+      doc: {
+        ...doc,
+        access: {
+          sourceLocked: true,
+          reason: "Published releases are managed upstream.",
+        },
+      },
+    });
+    renderEditor();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open settings" }),
+    );
+    const drawer = screen.getByRole("complementary", { name: "Settings" });
+
+    expect(within(drawer).getByLabelText("Title")).toBeDisabled();
+    expect(within(drawer).getByLabelText("Color palette")).toBeDisabled();
+    expect(
+      within(drawer).getByRole("button", {
+        name: "Set default leaf color mint",
+      }),
+    ).toBeDisabled();
+    expect(within(drawer).getByLabelText("Layout mode")).toBeEnabled();
+    expect(within(drawer).getByLabelText("Enable heatmap colors")).toBeEnabled();
+    expect(within(drawer).getByLabelText("Show title")).toBeEnabled();
+  });
+
   it("commits numeric settings on blur without history spam while typing", async () => {
     renderEditor();
     await userEvent.click(
@@ -391,7 +421,7 @@ describe("editor settings workflows", () => {
     expect(within(dialog).getByText(/with force/)).toBeInTheDocument();
   });
 
-  it("explains Freeform preservation and reports no-op auto layout diagnostics", async () => {
+  it("explains Manual / Freeform preservation and reports no-op auto layout diagnostics", async () => {
     renderEditor();
     const nodeIds = Object.keys(useDocumentStore.getState().doc.nodesById);
     const before = geometrySnapshot(
@@ -412,7 +442,7 @@ describe("editor settings workflows", () => {
     );
 
     expect(
-      within(drawer).getAllByText(/Freeform preserves/).length,
+      within(drawer).getAllByText(/Manual \/ Freeform allows direct movement/).length,
     ).toBeGreaterThan(0);
     await userEvent.click(
       within(drawer).getByRole("button", { name: "Apply auto layout" }),

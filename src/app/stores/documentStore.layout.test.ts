@@ -16,6 +16,7 @@ import {
   type CapabilityDocument,
 } from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
+import { AUTOMATIC_LAYOUT_GEOMETRY_LOCKED } from "../../domain/layout/canvasLayoutPolicy";
 import {
   createVisualWorkspaceFromDocument,
   resolveVisualDocument,
@@ -129,7 +130,49 @@ describe("document store layout orchestration", () => {
     expect(doc.layout.aspectRatioTarget).toBeUndefined();
   });
 
-  it("groups direct movement and Manual conversion into one undoable history entry", () => {
+  it("blocks direct movement in automatic layout without creating history", () => {
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const beforeX = before.nodesById["credit-risk"]!.x;
+
+    const diagnostics = useDocumentStore
+      .getState()
+      .execute(
+        moveNodesWithLayoutIntent(["credit-risk"], 16, 0, {
+          action: "keyboard-nudge",
+        }),
+      );
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      AUTOMATIC_LAYOUT_GEOMETRY_LOCKED,
+    );
+    expect(after.nodesById["credit-risk"]!.x).toBe(beforeX);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it("switches from automatic to Freeform without moving current geometry", async () => {
+    await useDocumentStore.getState().autoLayout(true);
+    const ids = Object.keys(useDocumentStore.getState().doc.nodesById);
+    const before = geometrySnapshot(
+      resolveVisualDocument(useDocumentStore.getState().doc),
+      ids,
+    );
+
+    await useDocumentStore
+      .getState()
+      .updateSettings({ layoutMode: "free" }, { autoLayout: true });
+
+    const after = resolveVisualDocument(useDocumentStore.getState().doc);
+    expect(after.settings.layoutMode).toBe("free");
+    expect(geometrySnapshot(after, ids)).toEqual(before);
+    expect(useDocumentStore.getState().past.at(-1)?.label).toBe(
+      "Set layout mode to free",
+    );
+  });
+
+  it("groups Freeform direct movement into one undoable history entry", () => {
+    setStoreLayoutMode("free");
     const before = resolveVisualDocument(useDocumentStore.getState().doc);
     const beforeX = before.nodesById["credit-risk"]!.x;
 
@@ -142,14 +185,9 @@ describe("document store layout orchestration", () => {
       );
 
     let after = resolveVisualDocument(useDocumentStore.getState().doc);
-    expect(diagnostics).toContainEqual(
-      expect.objectContaining({
-        code: "manual-positioning-enabled-by-move",
-        nodeId: "risk",
-      }),
-    );
+    expect(diagnostics).toHaveLength(0);
     expect(after.nodesById["credit-risk"]!.x).toBe(beforeX + 16);
-    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
     expect(useDocumentStore.getState().past).toHaveLength(1);
 
     useDocumentStore.getState().undo();
@@ -160,10 +198,11 @@ describe("document store layout orchestration", () => {
     useDocumentStore.getState().redo();
     after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.nodesById["credit-risk"]!.x).toBe(beforeX + 16);
-    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
   });
 
-  it("expands the parent before direct movement switches it to Manual", () => {
+  it("expands the parent after Freeform direct child movement", () => {
+    setStoreLayoutMode("free");
     const before = resolveVisualDocument(useDocumentStore.getState().doc);
     const parentBefore = before.nodesById.risk!;
     const childBefore = before.nodesById["credit-risk"]!;
@@ -179,19 +218,27 @@ describe("document store layout orchestration", () => {
       );
 
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
-    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
     expect(after.nodesById.risk!.w).toBeGreaterThan(parentBefore.w);
     expect(findParentContainmentViolations(after)).toEqual([]);
   });
 
-  it("only converts the moved root node's direct parent during parent movement", () => {
+  it("moves a parent subtree in Freeform without changing Manual flags", () => {
+    setStoreLayoutMode("free");
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const parentBefore = before.nodesById.risk!;
+    const childBefore = before.nodesById["credit-risk"]!;
+
     useDocumentStore
       .getState()
-      .execute(moveNodesWithLayoutIntent(["operations"], 8, 0));
+      .execute(moveNodesWithLayoutIntent(["risk"], 8, 0));
 
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
-    expect(after.nodesById.root!.isManualPositioningEnabled).toBe(true);
-    expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(false);
+    expect(after.nodesById.risk!.x).not.toBe(parentBefore.x);
+    expect(after.nodesById["credit-risk"]!.x).not.toBe(childBefore.x);
+    expectChildrenInsideParent(after, "risk", ["credit-risk"]);
+    expect(after.nodesById.root!.isManualPositioningEnabled).toBe(false);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
   });
 
   it("preserves drag reparent drop position and destination Manual intent in one history entry", () => {
@@ -532,4 +579,29 @@ function overlaps(
     a.y < b.y + b.h &&
     a.y + a.h > b.y
   );
+}
+
+function setStoreLayoutMode(mode: CapabilityDocument["settings"]["layoutMode"]) {
+  const doc = useDocumentStore.getState().doc;
+  const activeViewId = doc.visual.activeViewId;
+  const activeView = doc.visual.viewsById[activeViewId];
+  useDocumentStore.setState({
+    doc: {
+      ...doc,
+      settings: { ...doc.settings, layoutMode: mode },
+      layout: { ...doc.layout, mode },
+      visual: {
+        ...doc.visual,
+        viewsById: activeView
+          ? {
+              ...doc.visual.viewsById,
+              [activeViewId]: {
+                ...activeView,
+                layout: { ...activeView.layout, mode },
+              },
+            }
+          : doc.visual.viewsById,
+      },
+    },
+  });
 }

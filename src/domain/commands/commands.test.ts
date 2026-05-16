@@ -28,11 +28,17 @@ import {
 } from "./operations";
 import { createEmptyDocument, createNode } from "../document/defaults";
 import { createSampleDocument } from "../fixtures/sample";
-import { childrenOf, ROOT_PARENT_ID, type LayoutMode } from "../document/types";
+import {
+  childrenOf,
+  ROOT_PARENT_ID,
+  type CapabilityDocument,
+  type LayoutMode,
+} from "../document/types";
 import {
   ensureParentContainment,
   findParentContainmentViolations,
 } from "../layout/containment";
+import { AUTOMATIC_LAYOUT_GEOMETRY_LOCKED } from "../layout/canvasLayoutPolicy";
 import { applyLayoutPatches, layoutDocument } from "../layout/engine";
 import {
   createVisualWorkspaceFromDocument,
@@ -147,7 +153,7 @@ describe("commands", () => {
   });
 
   it("aligns sibling selections as one transaction", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     const result = runTransaction(
       doc,
       alignNodes(["credit-risk", "fraud-risk", "operational-risk"], "top"),
@@ -162,6 +168,7 @@ describe("commands", () => {
     "aligns parent containers %s without resizing their subtrees",
     (direction) => {
       const doc = createSampleDocument();
+      useFreeformLayout(doc);
       const before: Record<
         string,
         { w: number; h: number; childDx: number; childDy: number }
@@ -229,14 +236,8 @@ describe("commands", () => {
     },
   );
 
-  it.each([
-    "uniform",
-    "flow",
-    "adaptive",
-    "balanced",
-    "free",
-  ] satisfies LayoutMode[])(
-    "marks same-size bulk geometry as user-arranged in %s mode",
+  it.each(["uniform", "flow", "adaptive", "balanced"] satisfies LayoutMode[])(
+    "blocks same-size direct geometry in %s mode",
     (mode) => {
       const doc = parentSiblingDocument(mode);
 
@@ -245,22 +246,36 @@ describe("commands", () => {
         sameSize(["group-a", "group-b", "group-c"], "group-a"),
       );
 
-      expect(result.diagnostics).toHaveLength(0);
-      expect(result.doc.layout.mode).toBe(mode);
-      expect(result.doc.layout.isUserArranged).toBe(true);
-      expect(result.doc.layout.aspectRatioFrame).toBeUndefined();
-      expect(result.doc.layout.aspectRatioTarget).toBeUndefined();
-      expect(result.doc.nodesById["group-b"]).toMatchObject({
-        w: result.doc.nodesById["group-a"]!.w,
-        h: result.doc.nodesById["group-a"]!.h,
-      });
-      expect(result.doc.nodesById["group-c"]).toMatchObject({
-        w: result.doc.nodesById["group-a"]!.w,
-        h: result.doc.nodesById["group-a"]!.h,
-      });
-      expect(findParentContainmentViolations(result.doc)).toEqual([]);
+      expect(result.doc).toBe(doc);
+      expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+        AUTOMATIC_LAYOUT_GEOMETRY_LOCKED,
+      );
     },
   );
+
+  it("marks same-size bulk geometry as user-arranged in free mode", () => {
+    const doc = parentSiblingDocument("free");
+
+    const result = runTransaction(
+      doc,
+      sameSize(["group-a", "group-b", "group-c"], "group-a"),
+    );
+
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.doc.layout.mode).toBe("free");
+    expect(result.doc.layout.isUserArranged).toBe(true);
+    expect(result.doc.layout.aspectRatioFrame).toBeUndefined();
+    expect(result.doc.layout.aspectRatioTarget).toBeUndefined();
+    expect(result.doc.nodesById["group-b"]).toMatchObject({
+      w: result.doc.nodesById["group-a"]!.w,
+      h: result.doc.nodesById["group-a"]!.h,
+    });
+    expect(result.doc.nodesById["group-c"]).toMatchObject({
+      w: result.doc.nodesById["group-a"]!.w,
+      h: result.doc.nodesById["group-a"]!.h,
+    });
+    expect(findParentContainmentViolations(result.doc)).toEqual([]);
+  });
 
   it("duplicates selected parent subtrees as manual layout edits", () => {
     const doc = parentSiblingDocument("balanced");
@@ -297,7 +312,7 @@ describe("commands", () => {
   });
 
   it("updates selected capability colors as one transaction", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
 
     const result = runTransaction(doc, updateNodeColors(nodeIds, "lavender"));
@@ -310,7 +325,7 @@ describe("commands", () => {
   });
 
   it("updates selected sizes as one bulk transaction command", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
     const txn = updateNodeSizes(nodeIds, { w: 144, h: 64 });
 
@@ -324,7 +339,7 @@ describe("commands", () => {
   });
 
   it("updates and clears selected heatmap values in bulk", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
 
     const updated = runTransaction(
@@ -383,7 +398,7 @@ describe("commands", () => {
   });
 
   it("aligns centers to the selected group center", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     const nodeIds = ["credit-risk", "fraud-risk", "operational-risk"];
     const selected = nodeIds.map((id) => doc.nodesById[id]!);
     const minX = Math.min(...selected.map((node) => node.x));
@@ -400,7 +415,7 @@ describe("commands", () => {
   });
 
   it("uses configured right and bottom padding for resize containment", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     doc.settings.containerPaddingRight = 4;
     doc.settings.containerPaddingBottom = 8;
 
@@ -416,24 +431,30 @@ describe("commands", () => {
     });
   });
 
-  it("preserves explicit resize dimensions for manual-positioning parents", () => {
+  it("clamps manual-positioning parent resize to child bounds", () => {
     const manual = runTransaction(
-      createSampleDocument(),
+      useFreeformLayout(createSampleDocument()),
       setManualPositioning("risk", true),
     ).doc;
 
     const result = runTransaction(manual, resizeNode("risk", 100, 60));
+    const risk = manual.nodesById.risk!;
+    const children = childrenOf(manual, "risk").map(
+      (id) => manual.nodesById[id]!,
+    );
+    const childRight = Math.max(...children.map((child) => child.x + child.w));
+    const childBottom = Math.max(...children.map((child) => child.y + child.h));
 
     expect(result.diagnostics).toHaveLength(0);
     expect(result.doc.nodesById.risk).toMatchObject({
-      w: 100,
-      h: 60,
+      w: childRight - risk.x + manual.settings.containerPaddingRight,
+      h: childBottom - risk.y + manual.settings.containerPaddingBottom,
       isManualPositioningEnabled: true,
     });
   });
 
   it("shrinks oversized parents when fitting to children", () => {
-    const doc = createSampleDocument();
+    const doc = useFreeformLayout(createSampleDocument());
     const before = doc.nodesById.risk!;
     const oversized = {
       ...doc,
@@ -526,6 +547,7 @@ describe("commands", () => {
     const laidOut = ensureParentContainment(
       applyLayoutPatches(doc, layout.patches),
     ).doc;
+    useFreeformLayout(laidOut);
     const before = laidOut.nodesById.root!;
 
     const result = runTransaction(laidOut, fitParentToChildren("root"));
@@ -794,7 +816,7 @@ describe("commands", () => {
   });
 });
 
-function parentSiblingDocument(mode: LayoutMode = "adaptive") {
+function parentSiblingDocument(mode: LayoutMode = "free") {
   const doc = createEmptyDocument();
   doc.settings.layoutMode = mode;
   doc.layout = {
@@ -846,6 +868,22 @@ function parentSiblingDocument(mode: LayoutMode = "adaptive") {
   }
 
   doc.visual = createVisualWorkspaceFromDocument(doc);
+  return doc;
+}
+
+function useFreeformLayout<TDoc extends CapabilityDocument>(doc: TDoc): TDoc {
+  doc.settings.layoutMode = "free";
+  doc.layout = {
+    ...doc.layout,
+    mode: "free",
+  };
+  const activeView = doc.visual.viewsById[doc.visual.activeViewId];
+  if (activeView) {
+    activeView.layout = {
+      ...activeView.layout,
+      mode: "free",
+    };
+  }
   return doc;
 }
 

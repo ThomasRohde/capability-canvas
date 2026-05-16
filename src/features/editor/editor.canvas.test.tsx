@@ -16,6 +16,7 @@ import {
   runTransaction,
   setManualPositioning,
   updateActiveViewHeatmapSettings,
+  updateVisualNodeState,
 } from "../../domain/commands/operations";
 import { createEmptyDocument, createNode } from "../../domain/document/defaults";
 import { stringifyDocument } from "../../domain/document/serialize";
@@ -24,7 +25,10 @@ import {
   type CapabilityDocument,
 } from "../../domain/document/types";
 import { findParentContainmentViolations } from "../../domain/layout/containment";
-import { MANUAL_POSITIONING_NOTICE } from "../../domain/layout/canvasLayoutPolicy";
+import {
+  AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
+  MANUAL_POSITIONING_NOTICE,
+} from "../../domain/layout/canvasLayoutPolicy";
 import { warning } from "../../domain/validation/diagnostics";
 import {
   createVisualWorkspaceFromDocument,
@@ -268,6 +272,15 @@ describe("editor canvas workflows", () => {
     fireEvent.keyDown(document.activeElement ?? window, { key: "Escape" });
     await waitFor(() => expect(moreBulkActions).toHaveFocus());
 
+    act(() => {
+      useDocumentStore
+        .getState()
+        .execute(
+          updateVisualNodeState("view-default", "digital-onboarding", {
+            x: 900,
+          }),
+        );
+    });
     await userEvent.click(
       screen.getByRole("button", { name: "Open active view" }),
     );
@@ -806,6 +819,7 @@ describe("editor canvas workflows", () => {
   });
 
   it("snaps drag movement to the grid and previews dragged descendants", () => {
+    setStoreLayoutMode("free");
     renderEditor();
     const canvas = screen.getByTestId("canvas");
     const operations = within(canvas)
@@ -867,13 +881,13 @@ describe("editor canvas workflows", () => {
     );
     expect(after.nodesById.operations!.x % before.settings.gridSize).toBe(0);
     expect(after.nodesById["retail-banking"]!.isManualPositioningEnabled).toBe(
-      true,
+      false,
     );
     expect(after.nodesById.operations!.isManualPositioningEnabled).toBe(false);
-    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+    expect(screen.queryByText(MANUAL_POSITIONING_NOTICE)).not.toBeInTheDocument();
   });
 
-  it("switches the arranging parent to Manual after direct child drag", () => {
+  it("blocks direct child drag in automatic layout", () => {
     renderEditor();
     const canvas = screen.getByTestId("canvas");
     const creditRisk = within(canvas)
@@ -915,17 +929,20 @@ describe("editor canvas workflows", () => {
 
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.nodesById["credit-risk"]).toMatchObject({
-      x: nodeBefore.x + expectedDx,
-      y: nodeBefore.y + expectedDy,
+      x: nodeBefore.x,
+      y: nodeBefore.y,
     });
-    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(true);
-    expect(useDocumentStore.getState().past).toHaveLength(1);
-    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+    expect(expectedDx || expectedDy).not.toBe(0);
+    expect(after.nodesById.risk!.isManualPositioningEnabled).toBe(false);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+    expect(
+      screen.getByText(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE),
+    ).toBeInTheDocument();
   });
 
   it("keeps the canvas populated and preserves drop position when dragging a child outside its parent", async () => {
     useDocumentStore.setState({
-      doc: dragOutsideParentDocument(),
+      doc: useFreeformLayout(dragOutsideParentDocument()),
       past: [],
       future: [],
       dirty: false,
@@ -984,9 +1001,9 @@ describe("editor canvas workflows", () => {
     ).toEqual([]);
   });
 
-  it("preserves drop position and marks the destination Manual when dragging into another parent", async () => {
+  it("preserves drop position when dragging into another parent in Manual / Freeform", async () => {
     useDocumentStore.setState({
-      doc: dragOutsideParentDocument(),
+      doc: useFreeformLayout(dragOutsideParentDocument()),
       past: [],
       future: [],
       dirty: false,
@@ -1032,12 +1049,12 @@ describe("editor canvas workflows", () => {
         x: 64,
         y: 72,
       });
-      expect(resolved.nodesById.left!.isManualPositioningEnabled).toBe(true);
+      expect(resolved.nodesById.left!.isManualPositioningEnabled).toBe(false);
     });
-    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+    expect(screen.queryByText(MANUAL_POSITIONING_NOTICE)).not.toBeInTheDocument();
   });
 
-  it("switches the arranging parent to Manual after keyboard nudge", () => {
+  it("blocks keyboard nudge in automatic layout", () => {
     renderEditor();
     const before = resolveVisualDocument(useDocumentStore.getState().doc);
     const beforeX = before.nodesById["digital-onboarding"]!.x;
@@ -1046,11 +1063,13 @@ describe("editor canvas workflows", () => {
 
     const after = resolveVisualDocument(useDocumentStore.getState().doc);
     expect(after.nodesById["digital-onboarding"]!.x).toBe(
-      beforeX + before.settings.gridSize,
+      beforeX,
     );
-    expect(after.nodesById.digital!.isManualPositioningEnabled).toBe(true);
-    expect(useDocumentStore.getState().past).toHaveLength(1);
-    expect(screen.getByText(MANUAL_POSITIONING_NOTICE)).toBeInTheDocument();
+    expect(after.nodesById.digital!.isManualPositioningEnabled).toBe(false);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+    expect(
+      screen.getByText(AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE),
+    ).toBeInTheDocument();
   });
 
   it("adds a child under a Manual parent without moving existing canvas siblings", async () => {
@@ -1078,6 +1097,7 @@ describe("editor canvas workflows", () => {
   });
 
   it("allows locked capabilities to be dragged inside their parent", () => {
+    setStoreLayoutMode("free");
     useDocumentStore.getState().execute(lockSubtree("risk", true));
     useUiStore.setState({ selectedNodeIds: ["risk"] });
     renderEditor();
@@ -1138,6 +1158,7 @@ describe("editor canvas workflows", () => {
   });
 
   it("snaps resize handles to the grid when enabled", () => {
+    setStoreLayoutMode("free");
     useUiStore.setState({ selectedNodeIds: ["data-management"] });
     renderEditor();
     const canvas = screen.getByTestId("canvas");
@@ -1458,30 +1479,43 @@ describe("editor canvas workflows", () => {
     expect(findParentContainmentViolations(doc)).toEqual([]);
   });
 
-  it("marks same-size parent toolbar edits user-arranged in balanced mode", async () => {
+  it("blocks same-size parent toolbar edits in automatic layout", () => {
     useDocumentStore.setState({
       doc: balancedActiveViewDocument(useDocumentStore.getState().doc),
     });
     useUiStore.setState({
       selectedNodeIds: ["customer", "risk", "operations"],
     });
+    const before = resolveVisualDocument(useDocumentStore.getState().doc);
+    const historyBefore = useDocumentStore.getState().past.length;
     renderEditor();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Match size to first selected" }),
+    const button = screen.getByRole("button", {
+      name: "Match size to first selected",
+    });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute(
+      "title",
+      AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
     );
 
     const doc = resolveVisualDocument(useDocumentStore.getState().doc);
-    expect(doc.layout.isUserArranged).toBe(true);
-    expect(doc.layout.aspectRatioFrame).toBeUndefined();
-    expect(doc.layout.aspectRatioTarget).toBeUndefined();
+    expect(useDocumentStore.getState().past).toHaveLength(historyBefore);
+    expect(doc.layout.isUserArranged).toBe(false);
+    expect(doc.layout.aspectRatioFrame).toEqual({
+      x: 0,
+      y: 0,
+      w: 1280,
+      h: 720,
+    });
+    expect(doc.layout.aspectRatioTarget).toEqual({ w: 16, h: 9 });
     expect(doc.nodesById.risk).toMatchObject({
-      w: doc.nodesById.customer!.w,
-      h: doc.nodesById.customer!.h,
+      w: before.nodesById.risk!.w,
+      h: before.nodesById.risk!.h,
     });
     expect(doc.nodesById.operations).toMatchObject({
-      w: doc.nodesById.customer!.w,
-      h: doc.nodesById.customer!.h,
+      w: before.nodesById.operations!.w,
+      h: before.nodesById.operations!.h,
     });
     expect(findParentContainmentViolations(doc)).toEqual([]);
   });
@@ -1748,6 +1782,40 @@ function balancedActiveViewDocument(
           },
         },
       },
+    },
+  };
+}
+
+function setStoreLayoutMode(mode: CapabilityDocument["settings"]["layoutMode"]) {
+  const doc = useDocumentStore.getState().doc;
+  useDocumentStore.setState({ doc: withLayoutMode(doc, mode) });
+}
+
+function useFreeformLayout<TDoc extends CapabilityDocument>(doc: TDoc): TDoc {
+  return withLayoutMode(doc, "free") as TDoc;
+}
+
+function withLayoutMode(
+  doc: CapabilityDocument,
+  mode: CapabilityDocument["settings"]["layoutMode"],
+): CapabilityDocument {
+  const viewId = doc.visual.activeViewId;
+  const view = doc.visual.viewsById[viewId];
+  return {
+    ...doc,
+    settings: { ...doc.settings, layoutMode: mode },
+    layout: { ...doc.layout, mode },
+    visual: {
+      ...doc.visual,
+      viewsById: view
+        ? {
+            ...doc.visual.viewsById,
+            [viewId]: {
+              ...view,
+              layout: { ...view.layout, mode },
+            },
+          }
+        : doc.visual.viewsById,
     },
   };
 }

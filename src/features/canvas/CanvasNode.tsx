@@ -15,6 +15,7 @@ import {
   isTextLabelNode,
   type NodeId,
 } from "../../domain/document/types";
+import { evaluateCanvasLayoutIntent } from "../../domain/layout/canvasLayoutPolicy";
 import { resolveNodeFill } from "../heatmap/resolveNodeFill";
 import { MIN_NODE_HEIGHT, MIN_NODE_WIDTH } from "./canvasGeometry";
 import type { NodeViewModel } from "./selectors";
@@ -110,6 +111,17 @@ export const CanvasNode = memo(function CanvasNode({
     resize?.nodeId === node.id
       ? { w: resize.dx / viewportZoom, h: resize.dy / viewportZoom }
       : { w: 0, h: 0 };
+  const resizeIntent = evaluateCanvasLayoutIntent({
+    doc: viewDoc,
+    action: "resize",
+    rootNodeIds: [node.id],
+  });
+  const canShowResizeHandle =
+    !readonly &&
+    selectedState &&
+    !isEditing &&
+    resizeIntent.allowed &&
+    !node.isLockedAsIs;
 
   return (
     <div
@@ -180,9 +192,10 @@ export const CanvasNode = memo(function CanvasNode({
           {heatmapScore}
         </span>
       )}
-      {!readonly && selectedState && !isEditing && (
+      {canShowResizeHandle && (
         <span
           className="cc-resize"
+          title="Resize capability"
           onPointerDown={(event) => onResizePointerDown(event, node)}
         />
       )}

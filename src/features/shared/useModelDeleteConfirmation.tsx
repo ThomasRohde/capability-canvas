@@ -5,6 +5,12 @@ import {
   type CapabilityDocument,
   type NodeId,
 } from "../../domain/document/types";
+import {
+  SOURCE_LOCKED_SEMANTIC_EDIT_BLOCKED,
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
+import { error } from "../../domain/validation/diagnostics";
 import { useDocumentStore } from "../../app/stores/documentStore";
 import { useUiStore } from "../../app/stores/uiStore";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -18,7 +24,9 @@ interface ModelDeleteSummary {
 
 export function useModelDeleteConfirmation(doc: CapabilityDocument) {
   const execute = useDocumentStore((state) => state.execute);
+  const setDiagnostics = useDocumentStore((state) => state.setDiagnostics);
   const setSelection = useUiStore((state) => state.setSelection);
+  const showSelectionNotice = useUiStore((state) => state.showSelectionNotice);
   const [pendingNodeIds, setPendingNodeIds] = useState<NodeId[] | null>(null);
   const summary = useMemo(
     () => (pendingNodeIds ? summarizeModelDelete(doc, pendingNodeIds) : null),
@@ -26,6 +34,14 @@ export function useModelDeleteConfirmation(doc: CapabilityDocument) {
   );
 
   const requestDeleteFromModel = (nodeIds: NodeId[]) => {
+    if (!isSourceModelEditable(doc)) {
+      const message = doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
+      showSelectionNotice(message);
+      setDiagnostics([
+        error(SOURCE_LOCKED_SEMANTIC_EDIT_BLOCKED, message),
+      ]);
+      return;
+    }
     const uniqueNodeIds = [...new Set(nodeIds)].filter((id) => doc.nodesById[id]);
     if (uniqueNodeIds.length === 0) return;
     setPendingNodeIds(uniqueNodeIds);

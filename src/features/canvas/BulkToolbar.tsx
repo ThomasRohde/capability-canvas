@@ -25,6 +25,12 @@ import {
 } from "../../domain/commands/operations";
 import type { NodeId } from "../../domain/document/types";
 import {
+  AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
+  SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE,
+  isAutomaticLayoutMode,
+  isSourceModelEditable,
+} from "../../domain/layout/canvasLayoutPolicy";
+import {
   canAlign,
   canDistribute,
   canMultiSelect,
@@ -53,6 +59,13 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
   const alignAllowed = canAlign(viewDoc, selected, selectionOptions);
   const distributeAllowed = canDistribute(viewDoc, selected, selectionOptions);
   const sameSizeAllowed = bulkAllowed;
+  const directGeometryBlocked = isAutomaticLayoutMode(viewDoc.settings.layoutMode);
+  const directGeometryReason = directGeometryBlocked
+    ? AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE
+    : undefined;
+  const sourceEditable = isSourceModelEditable(doc);
+  const sourceLockReason =
+    doc.access?.reason || SOURCE_LOCKED_SEMANTIC_EDIT_MESSAGE;
   const anchor = selected[0];
   const anchorNode = anchor ? viewDoc.nodesById[anchor] : undefined;
 
@@ -85,88 +98,88 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
       <IconButton
         icon={AlignHorizontalJustifyStart}
         label="Align left"
-        tooltip={alignAllowed.reason}
-        disabled={!alignAllowed.valid}
+        tooltip={directGeometryReason ?? alignAllowed.reason}
+        disabled={directGeometryBlocked || !alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "left"))}
       />
       <IconButton
         icon={AlignHorizontalJustifyCenter}
         label="Align center"
-        tooltip={alignAllowed.reason}
-        disabled={!alignAllowed.valid}
+        tooltip={directGeometryReason ?? alignAllowed.reason}
+        disabled={directGeometryBlocked || !alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "center"))}
       />
       <IconButton
         icon={AlignHorizontalJustifyEnd}
         label="Align right"
-        tooltip={alignAllowed.reason}
-        disabled={!alignAllowed.valid}
+        tooltip={directGeometryReason ?? alignAllowed.reason}
+        disabled={directGeometryBlocked || !alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "right"))}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
         icon={AlignVerticalJustifyStart}
         label="Align top"
-        tooltip={alignAllowed.reason}
-        disabled={!alignAllowed.valid}
+        tooltip={directGeometryReason ?? alignAllowed.reason}
+        disabled={directGeometryBlocked || !alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "top"))}
       />
       <IconButton
         icon={AlignVerticalJustifyCenter}
         label="Align middle"
-        tooltip={alignAllowed.reason}
-        disabled={!alignAllowed.valid}
+        tooltip={directGeometryReason ?? alignAllowed.reason}
+        disabled={directGeometryBlocked || !alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "middle"))}
       />
       <IconButton
         icon={AlignVerticalJustifyEnd}
         label="Align bottom"
-        tooltip={alignAllowed.reason}
-        disabled={!alignAllowed.valid}
+        tooltip={directGeometryReason ?? alignAllowed.reason}
+        disabled={directGeometryBlocked || !alignAllowed.valid}
         onClick={() => execute(alignNodes(selected, "bottom"))}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
         icon={AlignHorizontalSpaceBetween}
         label="Distribute horizontal"
-        tooltip={distributeAllowed.reason}
-        disabled={!distributeAllowed.valid}
+        tooltip={directGeometryReason ?? distributeAllowed.reason}
+        disabled={directGeometryBlocked || !distributeAllowed.valid}
         onClick={() => execute(distributeNodes(selected, "horizontal"))}
       />
       <IconButton
         icon={AlignVerticalSpaceBetween}
         label="Distribute vertical"
-        tooltip={distributeAllowed.reason}
-        disabled={!distributeAllowed.valid}
+        tooltip={directGeometryReason ?? distributeAllowed.reason}
+        disabled={directGeometryBlocked || !distributeAllowed.valid}
         onClick={() => execute(distributeNodes(selected, "vertical"))}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
         icon={StretchHorizontal}
         label="Match width to first selected"
-        tooltip={sameSizeAllowed.reason}
-        disabled={!sameSizeAllowed.valid || !anchor}
+        tooltip={directGeometryReason ?? sameSizeAllowed.reason}
+        disabled={directGeometryBlocked || !sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor, "width"))}
       />
       <IconButton
         icon={StretchVertical}
         label="Match height to first selected"
-        tooltip={sameSizeAllowed.reason}
-        disabled={!sameSizeAllowed.valid || !anchor}
+        tooltip={directGeometryReason ?? sameSizeAllowed.reason}
+        disabled={directGeometryBlocked || !sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor, "height"))}
       />
       <IconButton
         icon={Scaling}
         label="Match size to first selected"
-        tooltip={sameSizeAllowed.reason}
-        disabled={!sameSizeAllowed.valid || !anchor}
+        tooltip={directGeometryReason ?? sameSizeAllowed.reason}
+        disabled={directGeometryBlocked || !sameSizeAllowed.valid || !anchor}
         onClick={() => anchor && execute(sameSize(selected, anchor))}
       />
       <span className="cc-toolbar-separator" />
       <BulkColorPicker
         selected={selected}
-        disabled={!bulkAllowed.valid}
-        reason={bulkAllowed.reason}
+        disabled={!bulkAllowed.valid || !sourceEditable}
+        reason={!sourceEditable ? sourceLockReason : bulkAllowed.reason}
       />
       <span className="cc-toolbar-separator" />
       <IconButton
@@ -203,7 +216,10 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
             <button
               type="button"
               role="menuitem"
+              disabled={!sourceEditable}
+              title={!sourceEditable ? sourceLockReason : undefined}
               onClick={() => {
+                if (!sourceEditable) return;
                 execute(duplicateNodes(selected));
                 setMoreOpen(false);
               }}
@@ -215,7 +231,10 @@ export function BulkToolbar({ selected }: { selected: NodeId[] }) {
               type="button"
               role="menuitem"
               className="danger"
+              disabled={!sourceEditable}
+              title={!sourceEditable ? sourceLockReason : undefined}
               onClick={() => {
+                if (!sourceEditable) return;
                 requestDeleteFromModel(selected);
                 setMoreOpen(false);
               }}

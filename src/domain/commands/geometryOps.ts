@@ -33,8 +33,14 @@ export function updateNodeSizes(
   return transaction(
     "Update selected sizes",
     [
-      command("update-node-sizes", { nodeIds, patch }, "source", (doc) => {
+      command("update-node-sizes", { nodeIds, patch }, "visual", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
+        const intentRejected = rejectDeniedLayoutIntent(
+          doc,
+          "resize",
+          nodeIds,
+        );
+        if (intentRejected) return intentRejected;
         const allowed = canBulkEditNodes(doc, nodeIds);
         if (!allowed.valid)
           return fail(
@@ -72,25 +78,9 @@ export function updateNodeSizes(
               "locked-node",
               "Preserved capabilities cannot be resized.",
             );
-          const childBounds = node.isManualPositioningEnabled
-            ? null
-            : boundsForNodes(next, layoutChildrenOf(next, nodeId));
-          const minW = childBounds
-            ? childBounds.x +
-              childBounds.w -
-              node.x +
-              (node.layoutPreferences?.marginRight ??
-                next.settings.containerPaddingRight)
-            : 80;
-          const minH = childBounds
-            ? childBounds.y +
-              childBounds.h -
-              node.y +
-              (node.layoutPreferences?.marginBottom ??
-                next.settings.containerPaddingBottom)
-            : 44;
-          const w = Math.max(minW, patch.w ?? node.w);
-          const h = Math.max(minH, patch.h ?? node.h);
+          const minSize = minimumSizeForNode(next, node);
+          const w = Math.max(minSize.w, patch.w ?? node.w);
+          const h = Math.max(minSize.h, patch.h ?? node.h);
           if (w === node.w && h === node.h) continue;
           next.nodesById[nodeId] = {
             ...node,
@@ -274,32 +264,18 @@ export function resizeNode(nodeId: NodeId, w: number, h: number): Transaction {
             "missing-node",
             "The selected capability no longer exists.",
           );
+        const intentRejected = rejectDeniedLayoutIntent(doc, "resize", [nodeId]);
+        if (intentRejected) return intentRejected;
         if (node.isLockedAsIs)
           return fail(
             doc,
             "locked-node",
             "Locked capabilities cannot be resized.",
           );
-        const childBounds = node.isManualPositioningEnabled
-          ? null
-          : boundsForNodes(doc, layoutChildrenOf(doc, nodeId));
-        const minW = childBounds
-          ? childBounds.x +
-            childBounds.w -
-            node.x +
-            (node.layoutPreferences?.marginRight ??
-              doc.settings.containerPaddingRight)
-          : 80;
-        const minH = childBounds
-          ? childBounds.y +
-            childBounds.h -
-            node.y +
-            (node.layoutPreferences?.marginBottom ??
-              doc.settings.containerPaddingBottom)
-          : 40;
+        const minSize = minimumSizeForNode(doc, node);
         return updateOnly(doc, nodeId, {
-          w: Math.max(w, minW),
-          h: Math.max(h, minH),
+          w: Math.max(w, minSize.w),
+          h: Math.max(h, minSize.h),
         });
       }),
     ],
@@ -327,6 +303,8 @@ export function alignNodes(
     `Align ${direction}`,
     [
       command("align-nodes", { nodeIds, direction }, "visual", (doc) => {
+        const intentRejected = rejectDeniedLayoutIntent(doc, "align", nodeIds);
+        if (intentRejected) return intentRejected;
         const allowed = canAlign(doc, nodeIds, { hierarchy: "canvas" });
         if (!allowed.valid)
           return fail(
@@ -373,6 +351,12 @@ export function distributeNodes(
     `Distribute ${axis}`,
     [
       command("distribute-nodes", { nodeIds, axis }, "visual", (doc) => {
+        const intentRejected = rejectDeniedLayoutIntent(
+          doc,
+          "distribute",
+          nodeIds,
+        );
+        if (intentRejected) return intentRejected;
         const allowed = canDistribute(doc, nodeIds, { hierarchy: "canvas" });
         if (!allowed.valid)
           return fail(
@@ -423,6 +407,12 @@ export function sameSize(
     [
       command("same-size", { nodeIds, anchorId, axis }, "visual", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
+        const intentRejected = rejectDeniedLayoutIntent(
+          doc,
+          "same-size",
+          nodeIds,
+        );
+        if (intentRejected) return intentRejected;
         const allowed = canBulkEditNodes(doc, nodeIds, {
           hierarchy: "canvas",
         });
@@ -478,6 +468,10 @@ export function fitParentToChildren(nodeId: NodeId): Transaction {
           "missing-node",
           "The selected capability no longer exists.",
         );
+      const intentRejected = rejectDeniedLayoutIntent(doc, "fit-parent", [
+        nodeId,
+      ]);
+      if (intentRejected) return intentRejected;
       if (node.isLockedAsIs)
         return fail(
           doc,
@@ -587,7 +581,7 @@ export function lockSubtrees(nodeIds: NodeId[], locked: boolean): Transaction {
   return transaction(
     locked ? "Preserve selected layouts" : "Stop preserving selected layouts",
     [
-      command("lock-subtrees", { nodeIds, locked }, "source", (doc) => {
+      command("lock-subtrees", { nodeIds, locked }, "visual", (doc) => {
         if (nodeIds.length === 0) return ok(doc);
         const allowed = canBulkEditNodes(doc, nodeIds);
         if (!allowed.valid)
@@ -663,7 +657,7 @@ export function setManualPositioningForNodes(
       command(
         "set-manual-positioning-for-nodes",
         { nodeIds, enabled },
-        "source",
+        "visual",
         (doc) => {
           if (nodeIds.length === 0) return ok(doc);
           const allowed = canBulkEditNodes(doc, nodeIds);
@@ -821,23 +815,32 @@ function containmentMargin(doc: CapabilityDocument, parent: CapabilityNode) {
 }
 
 function minimumSizeForNode(doc: CapabilityDocument, node: CapabilityNode) {
-  const childBounds = node.isManualPositioningEnabled
-    ? null
-    : boundsForNodes(doc, layoutChildrenOf(doc, node.id));
+  const childBounds = boundsForNodes(doc, layoutChildrenOf(doc, node.id));
+  const margin = containmentMargin(doc, node);
   return {
     w: childBounds
-      ? childBounds.x +
-        childBounds.w -
-        node.x +
-        (node.layoutPreferences?.marginRight ??
-          doc.settings.containerPaddingRight)
+      ? Math.max(80, childBounds.x + childBounds.w - node.x + margin.right)
       : 80,
     h: childBounds
-      ? childBounds.y +
-        childBounds.h -
-        node.y +
-        (node.layoutPreferences?.marginBottom ??
-          doc.settings.containerPaddingBottom)
+      ? Math.max(40, childBounds.y + childBounds.h - node.y + margin.bottom)
       : 40,
   };
+}
+
+function rejectDeniedLayoutIntent(
+  doc: CapabilityDocument,
+  action: CanvasLayoutAction,
+  nodeIds: NodeId[],
+) {
+  const intent = evaluateCanvasLayoutIntent({
+    doc,
+    action,
+    rootNodeIds: nodeIds,
+  });
+  if (intent.allowed) return null;
+  return fail(
+    doc,
+    intent.diagnosticCode ?? "layout-action-rejected",
+    intent.message ?? "The layout action could not be applied.",
+  );
 }
