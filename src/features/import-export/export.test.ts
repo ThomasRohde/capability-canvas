@@ -517,7 +517,7 @@ describe('exports', () => {
     expect(xml).toContain(`y="${child.y - parent.y}"`);
   });
 
-  it('exports Draw.io cells with fixed radii, top parent labels, and wrapped labels', () => {
+  it('exports Draw.io cells with fixed radii, top parent labels, and native-wrapped labels', () => {
     const xml = drawioExport(createExportFixture()).data as string;
     const rootCell = xml.match(/<mxCell id="root"[^>]+>/)?.[0] ?? '';
     const leafCell = xml.match(/<mxCell id="leaf"[^>]+>/)?.[0] ?? '';
@@ -527,7 +527,9 @@ describe('exports', () => {
     expect(rootCell).toContain('verticalAlign=top;spacingTop=4;spacingBottom=6;');
     expect(rootCell).not.toContain('overflow=fill');
     expect(rootCell).toContain('fontSize=14;fontStyle=1;');
-    expect(leafCell).toContain('value="Very long&lt;br&gt;onboarding..."');
+    expect(leafCell).toContain('value="Very long onboarding capability name that should fit"');
+    expect(leafCell).not.toContain('...');
+    expect(leafCell).not.toContain('&lt;br&gt;');
     expect(leafCell).toContain('absoluteArcSize=1;arcSize=12;');
     expect(leafCell).toContain('labelPosition=center;verticalLabelPosition=middle;');
     expect(leafCell).toContain('verticalAlign=middle;spacing=8;');

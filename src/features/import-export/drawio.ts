@@ -32,7 +32,7 @@ export function drawioExport(doc: CapabilityDocument): ExportResult {
       const x = parentNode ? node.x - parentNode.x : node.x;
       const y = parentNode ? node.y - parentNode.y : node.y;
       const style = drawioNodeStyle(nodeModel, model.fontFamily);
-      const value = drawioLabelValue(nodeModel);
+      const value = drawioLabelValue(node.label);
       return `<mxCell id="${escapeXml(node.id)}" value="${value}" style="${escapeXml(style)}" vertex="1" parent="${escapeXml(parent)}"><mxGeometry x="${num(x)}" y="${num(y)}" width="${num(node.w)}" height="${num(node.h)}" as="geometry"/></mxCell>`;
     })
   ];
@@ -78,8 +78,8 @@ function drawioNodeStyle(
   return `${style.join(';')};`;
 }
 
-function drawioLabelValue(node: VisualExportNodeModel): string {
-  return node.label.lines.map(escapeXml).join('&lt;br&gt;');
+function drawioLabelValue(label: string): string {
+  return escapeXml(label.trim().replace(/\s+/g, ' '));
 }
 
 function containerLabelTopSpacing(node: VisualExportNodeModel): number {
