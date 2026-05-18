@@ -29,6 +29,7 @@ import {
   AUTOMATIC_LAYOUT_GEOMETRY_LOCKED_MESSAGE,
   MANUAL_POSITIONING_NOTICE,
 } from "../../domain/layout/canvasLayoutPolicy";
+import { findTopLeftFreeLabelPlacement } from "../../domain/layout/labelPlacement";
 import { warning } from "../../domain/validation/diagnostics";
 import {
   createVisualWorkspaceFromDocument,
@@ -669,6 +670,9 @@ describe("editor canvas workflows", () => {
 
   it("creates a canvas label with inspector shape and font controls", async () => {
     renderEditor();
+    const expectedPlacement = findTopLeftFreeLabelPlacement(
+      resolveVisualDocument(useDocumentStore.getState().doc),
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Add label" }));
     const input = await screen.findByRole("textbox", {
@@ -687,6 +691,10 @@ describe("editor canvas workflows", () => {
       parentId: null,
       isTextLabel: true,
       isManualPositioningEnabled: true,
+      x: expectedPlacement.x,
+      y: expectedPlacement.y,
+      w: expectedPlacement.w,
+      h: expectedPlacement.h,
     });
     const outline = document.querySelector(".cc-outline") as HTMLElement;
     expect(within(outline).queryByText("Canvas annotation")).not.toBeInTheDocument();

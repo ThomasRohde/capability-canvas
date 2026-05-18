@@ -63,6 +63,41 @@ describe('exports', () => {
     expect(archimate).not.toContain('Launch note');
   });
 
+  it('exports custom canvas label font size without SVG class overrides', () => {
+    const withLabel = runTransaction(
+      createSampleDocument(),
+      addLabel('Styled note', {
+        id: 'label-styled',
+        x: 900,
+        y: 720,
+        w: 220,
+        h: 64,
+        shape: 'box',
+      }),
+    ).doc;
+    const labelNode = withLabel.nodesById['label-styled']!;
+    const doc = runTransaction(
+      withLabel,
+      updateNode('label-styled', {
+        textStyle: {
+          ...labelNode.textStyle,
+          fontFamily: 'Georgia',
+          fontSize: 28,
+          fontWeight: 600,
+        },
+      }),
+    ).doc;
+    const svg = svgExport(doc).data as string;
+    const html = htmlExport(doc).data as string;
+
+    expect(svg).not.toContain('.node-label { font-size');
+    expect(svg).not.toContain('.container-label { font-size');
+    expect(svg).toMatch(
+      /data-node-id="label-styled"[\s\S]*?<text text-anchor="middle" class="node-label" font-family="Georgia" font-size="28" font-weight="600"/,
+    );
+    expect(html).toContain('font-size="28" font-weight="600"');
+  });
+
   it('exports ArchiMate identifiers as XML NCNames with valid references', () => {
     const rootId = '14d27f0bc36a6810bc9fd9462f5d75ea';
     const spacedId = 'child capability';

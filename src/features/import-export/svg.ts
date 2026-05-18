@@ -34,8 +34,6 @@ export function renderSvg(
   ${renderDefs(model)}
   <style>
     text { font-family: "${escapeXml(model.fontFamily)}", Arial, sans-serif; fill: #0f172a; }
-    .node-label { font-size: 13px; font-weight: 500; }
-    .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }

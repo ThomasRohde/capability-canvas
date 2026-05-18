@@ -12,6 +12,18 @@ export interface OpenDocumentFileResult {
   };
 }
 
+export type SaveFileResult = { status: 'saved' } | { status: 'canceled' };
+
+export interface SaveFileOptions {
+  filename: string;
+  mimeType: string;
+  data: Blob | string;
+  types?: Array<{
+    description: string;
+    accept: Record<string, string[]>;
+  }>;
+}
+
 export async function openDocumentFile(): Promise<OpenDocumentFileResult | null> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
@@ -53,30 +65,50 @@ export async function openDocumentFile(): Promise<OpenDocumentFileResult | null>
 export async function saveDocumentFile(doc: CapabilityDocument): Promise<void> {
   const data = stringifyDocument(doc);
   const filename = `${safeFileBaseName(doc.title)}.capability-canvas.json`;
+  await saveFile({
+    filename,
+    data,
+    mimeType: 'application/json',
+    types: [
+      {
+        description: 'Capability Canvas JSON',
+        accept: { 'application/json': ['.json'] },
+      },
+    ],
+  });
+}
+
+export async function saveFile({
+  filename,
+  mimeType,
+  data,
+  types,
+}: SaveFileOptions): Promise<SaveFileResult> {
   if ('showSaveFilePicker' in window) {
     let handle: { createWritable(): Promise<FileSystemWritableFileStream> };
     try {
       handle = await (window as unknown as FileSystemWindow).showSaveFilePicker({
         suggestedName: filename,
-        types: [{ description: 'Capability Canvas JSON', accept: { 'application/json': ['.json'] } }]
+        ...(types ? { types } : {}),
       });
     } catch (error) {
-      if (isAbortError(error)) return;
+      if (isAbortError(error)) return { status: 'canceled' };
       throw error;
     }
     const writable = await handle.createWritable();
     await writable.write(data);
     await writable.close();
-    return;
+    return { status: 'saved' };
   }
 
-  const blob = new Blob([data], { type: 'application/json' });
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  return { status: 'saved' };
 }
 
 interface FileSystemWindow {

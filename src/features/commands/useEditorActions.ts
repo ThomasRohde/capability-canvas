@@ -19,6 +19,7 @@ import { makeId } from "../../domain/document/defaults";
 import { layoutDisplayBounds } from "../../domain/layout/displayBounds";
 import { isSourceModelEditable } from "../../domain/layout/canvasLayoutPolicy";
 import { gridSizeFor } from "../../domain/layout/grid";
+import { findTopLeftFreeLabelPlacement } from "../../domain/layout/labelPlacement";
 import { resolveSelectAllSelection } from "../../domain/selection/rules";
 import { useActiveVisualState } from "../../app/activeVisualState";
 import { useDocumentStore } from "../../app/stores/documentStore";
@@ -155,12 +156,8 @@ export function useEditorActions(
 
   const addViewportLabel = useCallback(() => {
     const id = makeId("label");
-    const ui = useUiStore.getState();
-    const center = {
-      x: (ui.canvasSize.w / 2 - ui.viewport.x) / ui.viewport.zoom,
-      y: (ui.canvasSize.h / 2 - ui.viewport.y) / ui.viewport.zoom,
-    };
-    const diagnostics = execute(addLabel("Label", { id, center }));
+    const placement = findTopLeftFreeLabelPlacement(viewDoc);
+    const diagnostics = execute(addLabel("Label", { id, ...placement }));
     if (diagnostics.some((diagnostic) => diagnostic.severity === "error"))
       return;
     setSelection([id]);
@@ -168,7 +165,7 @@ export function useEditorActions(
     useUiStore.getState().setInspectorTab("inspector");
     setActiveDrawer(null);
     requestLabelEdit(id);
-  }, [execute, requestLabelEdit, setActiveDrawer, setSelection]);
+  }, [execute, requestLabelEdit, setActiveDrawer, setSelection, viewDoc]);
 
   const selectAllVisible = useCallback(() => {
     const resolution = resolveSelectAllSelection(

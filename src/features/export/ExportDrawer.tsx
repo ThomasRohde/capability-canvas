@@ -28,7 +28,13 @@ type ExportStatus = {
 interface ExportDrawerProps {
   adapters?: ExportAdapter[];
   adapterForExport?: (format: ExportFormat) => ExportAdapter;
-  saveExport?: (result: ExportResult) => Promise<void> | void;
+  saveExport?: (
+    result: ExportResult,
+  ) =>
+    | Promise<{ status: "saved" } | { status: "canceled" } | void>
+    | { status: "saved" }
+    | { status: "canceled" }
+    | void;
 }
 
 export function ExportDrawer({
@@ -290,7 +296,14 @@ export function ExportDrawer({
       ];
       setExportDiagnostics(result.diagnostics);
       setDiagnostics(combinedDiagnostics);
-      await saveExport(result);
+      const saveResult = await saveExport(result);
+      if (saveResult?.status === "canceled") {
+        setExportStatus({
+          type: "warning",
+          message: `${adapter.label} export canceled.`,
+        });
+        return;
+      }
       setExportStatus({
         type: "success",
         message: `${adapter.label} export saved as ${result.filename}.`,

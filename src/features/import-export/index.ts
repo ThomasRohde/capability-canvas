@@ -1,3 +1,4 @@
+import { saveFile, type SaveFileResult } from '../../app/fileSystem';
 import { archimateAdapter } from './archimate';
 import { drawioAdapter } from './drawio';
 import { htmlAdapter } from './html';
@@ -21,12 +22,23 @@ export function adapterFor(format: ExportFormat): ExportAdapter {
   return adapter;
 }
 
-export async function saveExportResult(result: Awaited<ReturnType<ExportAdapter['exportDocument']>>): Promise<void> {
-  const blob = result.data instanceof Blob ? result.data : new Blob([result.data], { type: result.mimeType });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = result.filename;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+export async function saveExportResult(
+  result: Awaited<ReturnType<ExportAdapter['exportDocument']>>,
+): Promise<SaveFileResult> {
+  return saveFile({
+    filename: result.filename,
+    mimeType: result.mimeType,
+    data: result.data,
+    types: [
+      {
+        description: `${result.format.toUpperCase()} export`,
+        accept: { [result.mimeType]: exportFileExtensions(result.filename) },
+      },
+    ],
+  });
+}
+
+function exportFileExtensions(filename: string): string[] {
+  const match = filename.match(/(\.[A-Za-z0-9]+)$/);
+  return match ? [match[1]!] : [];
 }

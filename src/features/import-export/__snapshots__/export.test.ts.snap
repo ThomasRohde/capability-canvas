@@ -13,8 +13,6 @@ exports[`exports > snapshots SVG active-view visibility filtering 1`] = `
   <defs />
   <style>
     text { font-family: "Segoe UI", Arial, sans-serif; fill: #0f172a; }
-    .node-label { font-size: 13px; font-weight: 500; }
-    .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }
@@ -35,8 +33,6 @@ exports[`exports > snapshots SVG heatmap scores and legend fidelity 1`] = `
   <defs><linearGradient id="cc-heatmap-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#86efac" /><stop offset="25%" stop-color="#bef264" /><stop offset="50%" stop-color="#fde047" /><stop offset="75%" stop-color="#fb923c" /><stop offset="100%" stop-color="#ef4444" /></linearGradient></defs>
   <style>
     text { font-family: "Segoe UI", Arial, sans-serif; fill: #0f172a; }
-    .node-label { font-size: 13px; font-weight: 500; }
-    .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }
@@ -74,8 +70,6 @@ exports[`exports > snapshots SVG normal color mode fidelity 1`] = `
   <defs />
   <style>
     text { font-family: "Segoe UI", Arial, sans-serif; fill: #0f172a; }
-    .node-label { font-size: 13px; font-weight: 500; }
-    .container-label { font-size: 14px; font-weight: 600; }
     .heatmap-score { fill: #475569; font-variant-numeric: tabular-nums; }
     .heatmap-legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .heatmap-legend-label { font-size: 11px; fill: #64748b; }

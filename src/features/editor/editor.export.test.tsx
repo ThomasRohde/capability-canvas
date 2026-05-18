@@ -151,6 +151,73 @@ describe("editor export workflows", () => {
       "SVG export saved as export.svg.",
     );
   });
+
+  it("uses the native save dialog for exports when available", async () => {
+    const writable = {
+      write: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    const createWritable = vi.fn().mockResolvedValue(writable);
+    const showSaveFilePicker = vi.fn().mockResolvedValue({ createWritable });
+    vi.stubGlobal("showSaveFilePicker", showSaveFilePicker);
+    const exportDocument = vi.fn(() => exportResult("svg"));
+    const adapter = exportAdapter({ exportDocument });
+    useUiStore.setState({ activeDrawer: "export", exportFormat: "svg" });
+
+    render(
+      <ExportDrawer adapters={[adapter]} adapterForExport={() => adapter} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Export file" }));
+
+    await waitFor(() => expect(showSaveFilePicker).toHaveBeenCalledTimes(1));
+    expect(showSaveFilePicker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        suggestedName: "export.svg",
+        types: [
+          {
+            description: "SVG export",
+            accept: { "image/svg+xml": [".svg"] },
+          },
+        ],
+      }),
+    );
+    expect(createWritable).toHaveBeenCalledTimes(1);
+    expect(writable.write).toHaveBeenCalledWith("export");
+    expect(writable.close).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "SVG export saved as export.svg.",
+    );
+  });
+
+  it("treats canceling the native save dialog as a canceled export", async () => {
+    const showSaveFilePicker = vi
+      .fn()
+      .mockRejectedValue(new DOMException("Canceled", "AbortError"));
+    vi.stubGlobal("showSaveFilePicker", showSaveFilePicker);
+    const exportDocument = vi.fn(() => exportResult("svg"));
+    const adapter = exportAdapter({ exportDocument });
+    useUiStore.setState({ activeDrawer: "export", exportFormat: "svg" });
+
+    render(
+      <ExportDrawer adapters={[adapter]} adapterForExport={() => adapter} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Export file" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "SVG export canceled.",
+    );
+    expect(exportDocument).toHaveBeenCalledTimes(1);
+    expect(showSaveFilePicker).toHaveBeenCalledTimes(1);
+    expect(
+      useDocumentStore
+        .getState()
+        .lastDiagnostics.some(
+          (diagnostic) => diagnostic.code === "export-failed",
+        ),
+    ).toBe(false);
+  });
 });
 
 function exportAdapter(overrides: Partial<ExportAdapter> = {}): ExportAdapter {
@@ -173,7 +240,7 @@ function exportResult(format: ExportFormat): ExportResult {
   return {
     format,
     filename: `export.${format}`,
-    mimeType: "text/plain",
+    mimeType: format === "svg" ? "image/svg+xml" : "text/plain",
     data: "export",
     diagnostics: [],
   };

@@ -20,6 +20,10 @@ import {
   evaluateCanvasLayoutIntent,
 } from "../layout/canvasLayoutPolicy";
 import { snapCoordinate, snapLayoutSpacing } from "../layout/grid";
+import {
+  DEFAULT_CANVAS_LABEL_HEIGHT,
+  DEFAULT_CANVAS_LABEL_WIDTH,
+} from "../layout/labelPlacement";
 import { descendantsOf, isDescendantOf } from "../validation/validate";
 import { resolveVisualDocument } from "../visual/workspace";
 import { moveNodesWithLayoutIntent } from "./geometryOps";
@@ -180,8 +184,8 @@ export function addLabel(
         return fail(doc, "text-label-parent", "Labels cannot contain children.");
       }
       const next = cloneDocument(doc);
-      const w = options.w ?? 180;
-      const h = options.h ?? 40;
+      const w = options.w ?? DEFAULT_CANVAS_LABEL_WIDTH;
+      const h = options.h ?? DEFAULT_CANVAS_LABEL_HEIGHT;
       const baseX =
         options.x ??
         (options.center ? options.center.x - w / 2 : parent ? parent.x + 24 : 24);
