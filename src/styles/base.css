@@ -15,6 +15,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.cc-app {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.cc-app :where(input, textarea, [contenteditable="true"], .cc-text-selectable) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 button,
 input,
 textarea,
