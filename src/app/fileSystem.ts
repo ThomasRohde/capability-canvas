@@ -93,6 +93,9 @@ export async function saveFile({
       });
     } catch (error) {
       if (isAbortError(error)) return { status: 'canceled' };
+      if (isNativeSavePickerBlocked(error)) {
+        return downloadFile({ filename, mimeType, data });
+      }
       throw error;
     }
     const writable = await handle.createWritable();
@@ -101,13 +104,27 @@ export async function saveFile({
     return { status: 'saved' };
   }
 
+  return downloadFile({ filename, mimeType, data });
+}
+
+function downloadFile({
+  filename,
+  mimeType,
+  data,
+}: SaveFileOptions): SaveFileResult {
   const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  anchor.style.display = 'none';
+  document.body.append(anchor);
+  try {
+    anchor.click();
+  } finally {
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
   return { status: 'saved' };
 }
 
@@ -127,4 +144,21 @@ function readFileText(file: File): Promise<string> {
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
+}
+
+function isNativeSavePickerBlocked(error: unknown): boolean {
+  if (
+    error instanceof DOMException &&
+    (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+  ) {
+    return true;
+  }
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('showsavefilepicker') &&
+    (message.includes('not allowed') ||
+      message.includes('denied') ||
+      message.includes('current context'))
+  );
 }
